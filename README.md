@@ -46,12 +46,22 @@ pip install poetry
 
 **For development only (without ML models):**
 ```bash
-poetry install --all-extras
+poetry install --extras dev
 ```
 
-**For production with ML capabilities:**
+**For production with ML capabilities (CPU-only, default):**
 ```bash
-poetry install --all-extras --extras ml
+# Install PyTorch CPU version first to avoid CUDA packages
+poetry run pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+# Then install ML extras
+poetry install --extras "dev ml"
+```
+
+**For production with ML and GPU support (requires CUDA):**
+```bash
+poetry install --extras "dev ml-gpu"
+# Then install PyTorch with CUDA support:
+poetry run pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
 This will create a virtual environment and install all required dependencies including development tools.
@@ -67,12 +77,41 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e ".[dev]"
 ```
 
-**For production with ML capabilities:**
+**For production with ML capabilities (CPU-only, default):**
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Install PyTorch CPU version first to avoid CUDA packages
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+# Then install ML extras
 pip install -e ".[dev,ml]"
 ```
+
+**For production with ML and GPU support (requires CUDA):**
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Install PyTorch with CUDA first
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# Then install the rest
+pip install -e ".[dev,ml-gpu]"
+```
+
+### CPU vs GPU Installation
+
+**CPU-only (Default, Recommended for most users):**
+- Faster installation without large CUDA packages (~500MB vs ~2GB)
+- Works on all systems (Linux, macOS, Windows, ARM)
+- Suitable for development and moderate workloads
+- Use `ml` extra with CPU PyTorch (see commands above)
+- **Important**: Install PyTorch CPU version first using `--index-url https://download.pytorch.org/whl/cpu` to avoid downloading CUDA libraries
+
+**GPU with CUDA (For high-performance inference):**
+- Requires NVIDIA GPU with CUDA support
+- Larger installation (includes CUDA libraries ~2GB+)
+- Significantly faster inference for large batches
+- Use `ml-gpu` extra and install PyTorch with CUDA separately
+- Install CUDA PyTorch using `--index-url https://download.pytorch.org/whl/cu118`
 
 **Note:** The ML dependencies (Whisper, TTS, spaCy, sentence-transformers) are large and will download pre-trained models on first use. Without these dependencies, the API endpoints will return helpful error messages indicating that ML dependencies need to be installed.
 

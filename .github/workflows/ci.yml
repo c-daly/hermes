@@ -45,7 +45,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        poetry install --all-extras
+        poetry install --extras dev
 
     - name: Lint with Ruff
       run: |

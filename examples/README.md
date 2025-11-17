@@ -4,6 +4,8 @@ This directory contains example scripts demonstrating how to use the Hermes API.
 
 ## Prerequisites
 
+### Option 1: Local Installation
+
 1. Install Hermes:
 ```bash
 pip install -e ".[dev]"
@@ -17,6 +19,24 @@ uvicorn hermes.main:app --host 0.0.0.0 --port 8080
 Or simply:
 ```bash
 hermes
+```
+
+### Option 2: Using Docker
+
+1. Start the server with Docker Compose:
+```bash
+docker-compose up -d
+```
+
+2. Check server health:
+```bash
+docker-compose ps
+curl http://localhost:8080/
+```
+
+3. View logs:
+```bash
+docker-compose logs -f hermes
 ```
 
 ## Examples

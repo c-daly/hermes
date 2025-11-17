@@ -141,21 +141,75 @@ The API will be available at `http://localhost:8080`
 
 ### Docker Deployment
 
-Build and run with Docker:
+Hermes provides production-ready Docker images with ML capabilities and healthchecks.
+
+#### Production Deployment
+
+Build and run the production image with full ML capabilities:
 
 ```bash
-# Build the image
+# Build the production image (includes ML models)
 docker build -t hermes:latest .
 
 # Run the container
 docker run -d -p 8080:8080 --name hermes hermes:latest
+
+# Check health status
+docker inspect --format='{{.State.Health.Status}}' hermes
 ```
 
-Or use Docker Compose:
+Or use Docker Compose for a complete setup:
 
 ```bash
+# Start the service
 docker-compose up -d
+
+# View logs
+docker-compose logs -f hermes
+
+# Stop the service
+docker-compose down
 ```
+
+The production Docker image includes:
+- ✅ Multi-layer security (non-root user, read-only filesystem support)
+- ✅ Built-in healthcheck endpoint monitoring
+- ✅ CPU-optimized PyTorch (~500MB instead of ~2GB with CUDA)
+- ✅ All ML models (Whisper, TTS, spaCy, sentence-transformers)
+- ✅ Production-ready resource limits and logging
+- ✅ OCI-compliant image labels
+
+#### Development Deployment
+
+For faster iteration without ML dependencies:
+
+```bash
+# Build lightweight development image
+docker build -f Dockerfile.dev -t hermes:dev .
+
+# Run with source code mounting for live reload
+docker-compose -f docker-compose.dev.yml up
+```
+
+#### Docker Configuration
+
+**Environment Variables:**
+- `PYTHONUNBUFFERED=1` - Enable real-time logging output
+
+**Resource Limits** (docker-compose.yml):
+- CPU: 2.0 cores max, 0.5 cores reserved
+- Memory: 4GB max, 1GB reserved
+
+**Healthcheck:**
+- Checks `GET /` endpoint every 30 seconds
+- 40-second startup grace period for model loading
+- 3 retries before marking unhealthy
+
+**Security Features:**
+- Runs as non-root user (`hermes:1000`)
+- Read-only root filesystem with tmpfs exceptions
+- No privilege escalation allowed
+- Minimal attack surface
 
 ### API Documentation
 

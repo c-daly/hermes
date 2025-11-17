@@ -21,8 +21,8 @@ All endpoints are stateless and designed to be used by other LOGOS components (S
 
 ### Prerequisites
 
-- Python 3.9 or higher
-- pip
+- Python 3.11 or higher
+- [Poetry](https://python-poetry.org/) 1.0 or higher
 
 ### Setup
 
@@ -32,14 +32,30 @@ git clone https://github.com/c-daly/hermes.git
 cd hermes
 ```
 
-2. Create a virtual environment:
+2. Install Poetry (if not already installed):
+```bash
+curl -sSL https://install.python-poetry.org | python3 -
+```
+
+Or via pip:
+```bash
+pip install poetry
+```
+
+3. Install dependencies:
+```bash
+poetry install
+```
+
+This will create a virtual environment and install all required dependencies.
+
+### Alternative: Using pip
+
+If you prefer not to use Poetry, you can still install with pip:
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install in development mode:
-```bash
 pip install -e ".[dev]"
 ```
 
@@ -48,12 +64,20 @@ pip install -e ".[dev]"
 Start the Hermes API server:
 
 ```bash
-hermes
+poetry run hermes
 ```
 
 Or using uvicorn directly:
 
 ```bash
+poetry run uvicorn hermes.main:app --host 0.0.0.0 --port 8080 --reload
+```
+
+If not using Poetry:
+
+```bash
+hermes
+# or
 uvicorn hermes.main:app --host 0.0.0.0 --port 8080 --reload
 ```
 
@@ -166,13 +190,13 @@ Generate vector embeddings for text.
 ### Running Tests
 
 ```bash
-pytest
+poetry run pytest
 ```
 
 With coverage:
 
 ```bash
-pytest --cov=hermes --cov-report=html
+poetry run pytest --cov=hermes --cov-report=html
 ```
 
 ### Code Quality
@@ -181,13 +205,35 @@ Lint and format code:
 
 ```bash
 # Format code
-black src tests
+poetry run black src tests
 
 # Lint
-ruff check src tests
+poetry run ruff check src tests
 
 # Type checking
-mypy src
+poetry run mypy src
+```
+
+### Managing Dependencies
+
+Add a new dependency:
+```bash
+poetry add <package-name>
+```
+
+Add a development dependency:
+```bash
+poetry add --group dev <package-name>
+```
+
+Update dependencies:
+```bash
+poetry update
+```
+
+View installed packages:
+```bash
+poetry show
 ```
 
 ## Architecture

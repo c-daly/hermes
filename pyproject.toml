@@ -28,6 +28,24 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# ML dependencies with CPU-only PyTorch (default, faster install, no CUDA)
+ml = [
+    "torch>=2.0.0,<2.10.0",
+    "torchaudio>=2.0.0,<2.10.0",
+    "openai-whisper>=20231117",
+    "TTS>=0.22.0; python_version < '3.12'",
+    "spacy>=3.7.0",
+    "sentence-transformers>=2.2.0",
+    "numpy>=1.24.0",
+]
+# ML dependencies with GPU support (CUDA, larger download)
+ml-gpu = [
+    "openai-whisper>=20231117",
+    "TTS>=0.22.0; python_version < '3.12'",
+    "spacy>=3.7.0",
+    "sentence-transformers>=2.2.0",
+    "numpy>=1.24.0",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -57,6 +75,20 @@ python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+# Ignore missing imports for optional ML dependencies
+[[tool.mypy.overrides]]
+module = [
+    "whisper",
+    "whisper.*",
+    "TTS",
+    "TTS.*",
+    "spacy",
+    "spacy.*",
+    "sentence_transformers",
+    "sentence_transformers.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

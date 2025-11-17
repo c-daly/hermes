@@ -11,6 +11,12 @@ from typing import Any, Dict, List, Optional
 import logging
 
 from hermes import __version__
+from hermes.services import (
+    transcribe_audio,
+    synthesize_speech,
+    process_nlp,
+    generate_embedding,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -101,14 +107,26 @@ async def speech_to_text(
         STTResponse with transcribed text and confidence score
     """
     try:
-        # Placeholder implementation
-        # TODO: Implement actual STT using a speech recognition library
-        logger.info(f"STT request received for language: {language}")
+        # Validate audio file
+        if not audio.content_type or not audio.content_type.startswith("audio/"):
+            raise HTTPException(
+                status_code=400, detail="Invalid file type. Expected audio file."
+            )
 
-        # For now, return a placeholder response
-        return STTResponse(
-            text="Placeholder transcription - STT not yet implemented", confidence=0.0
-        )
+        # Read audio bytes
+        audio_bytes = await audio.read()
+
+        # Extract language code (e.g., "en-US" -> "en")
+        lang_code = language.split("-")[0] if language else "en"
+
+        # Transcribe
+        result = await transcribe_audio(audio_bytes, lang_code)
+
+        logger.info(f"STT request completed for language: {language}")
+        return STTResponse(text=result["text"], confidence=result["confidence"])
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"STT error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -125,62 +143,21 @@ async def text_to_speech(request: TTSRequest) -> Response:
         Audio file in WAV format
     """
     try:
-        # Placeholder implementation
-        # TODO: Implement actual TTS using a speech synthesis library
+        # Validate request
+        if not request.text or len(request.text.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Text cannot be empty")
+
         logger.info(f"TTS request received for text: {request.text[:50]}...")
 
-        # For now, return an empty WAV header
-        # Minimal WAV file header (44 bytes)
-        wav_header = bytes(
-            [
-                0x52,
-                0x49,
-                0x46,
-                0x46,  # "RIFF"
-                0x24,
-                0x00,
-                0x00,
-                0x00,  # File size - 8
-                0x57,
-                0x41,
-                0x56,
-                0x45,  # "WAVE"
-                0x66,
-                0x6D,
-                0x74,
-                0x20,  # "fmt "
-                0x10,
-                0x00,
-                0x00,
-                0x00,  # Subchunk1 size
-                0x01,
-                0x00,  # Audio format (PCM)
-                0x01,
-                0x00,  # Num channels
-                0x44,
-                0xAC,
-                0x00,
-                0x00,  # Sample rate (44100)
-                0x88,
-                0x58,
-                0x01,
-                0x00,  # Byte rate
-                0x02,
-                0x00,  # Block align
-                0x10,
-                0x00,  # Bits per sample
-                0x64,
-                0x61,
-                0x74,
-                0x61,  # "data"
-                0x00,
-                0x00,
-                0x00,
-                0x00,  # Data size
-            ]
+        # Synthesize speech
+        audio_bytes = await synthesize_speech(
+            request.text, request.voice, request.language
         )
 
-        return Response(content=wav_header, media_type="audio/wav")
+        return Response(content=audio_bytes, media_type="audio/wav")
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"TTS error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -197,32 +174,28 @@ async def simple_nlp(request: SimpleNLPRequest) -> SimpleNLPResponse:
         SimpleNLPResponse with requested NLP results
     """
     try:
-        # Placeholder implementation
-        # TODO: Implement actual NLP using spaCy or similar
+        # Validate request
+        if not request.text or len(request.text.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Text cannot be empty")
+
+        # Validate operations
+        valid_operations = {"tokenize", "pos_tag", "lemmatize", "ner"}
+        invalid_ops = set(request.operations) - valid_operations
+        if invalid_ops:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid operations: {invalid_ops}. Valid operations are: {valid_operations}",
+            )
+
         logger.info(f"NLP request received with operations: {request.operations}")
 
-        response_data: Dict[str, Any] = {}
+        # Process NLP
+        result = await process_nlp(request.text, request.operations)
 
-        if "tokenize" in request.operations:
-            # Simple whitespace tokenization as placeholder
-            response_data["tokens"] = request.text.split()
+        return SimpleNLPResponse(**result)
 
-        if "pos_tag" in request.operations:
-            # Placeholder POS tags
-            tokens = request.text.split()
-            response_data["pos_tags"] = [
-                POSTag(token=token, tag="NN") for token in tokens
-            ]
-
-        if "lemmatize" in request.operations:
-            # Placeholder lemmatization (just lowercase)
-            response_data["lemmas"] = [token.lower() for token in request.text.split()]
-
-        if "ner" in request.operations:
-            # Placeholder NER (empty list)
-            response_data["entities"] = []
-
-        return SimpleNLPResponse(**response_data)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"NLP error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -239,17 +212,23 @@ async def embed_text(request: EmbedTextRequest) -> EmbedTextResponse:
         EmbedTextResponse with embedding vector
     """
     try:
-        # Placeholder implementation
-        # TODO: Implement actual embedding using sentence-transformers or similar
+        # Validate request
+        if not request.text or len(request.text.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Text cannot be empty")
+
         logger.info(f"Embedding request received for text: {request.text[:50]}...")
 
-        # Return a placeholder embedding (384-dimensional zero vector)
-        dimension = 384
-        embedding = [0.0] * dimension
+        # Generate embedding
+        result = await generate_embedding(request.text, request.model)
 
         return EmbedTextResponse(
-            embedding=embedding, dimension=dimension, model=request.model
+            embedding=result["embedding"],
+            dimension=result["dimension"],
+            model=result["model"],
         )
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Embedding error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

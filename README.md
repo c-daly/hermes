@@ -43,8 +43,25 @@ pip install poetry
 ```
 
 3. Install dependencies:
+
+**For development only (without ML models):**
 ```bash
-poetry install --all-extras
+poetry install --extras dev
+```
+
+**For production with ML capabilities (CPU-only, default):**
+```bash
+# Install PyTorch CPU version first to avoid CUDA packages
+poetry run pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+# Then install ML extras
+poetry install --extras "dev ml"
+```
+
+**For production with ML and GPU support (requires CUDA):**
+```bash
+poetry install --extras "dev ml-gpu"
+# Then install PyTorch with CUDA support:
+poetry run pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
 This will create a virtual environment and install all required dependencies including development tools.
@@ -53,11 +70,50 @@ This will create a virtual environment and install all required dependencies inc
 
 If you prefer not to use Poetry, you can still install with pip:
 
+**For development only (without ML models):**
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e ".[dev]"
 ```
+
+**For production with ML capabilities (CPU-only, default):**
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Install PyTorch CPU version first to avoid CUDA packages
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+# Then install ML extras
+pip install -e ".[dev,ml]"
+```
+
+**For production with ML and GPU support (requires CUDA):**
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Install PyTorch with CUDA first
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# Then install the rest
+pip install -e ".[dev,ml-gpu]"
+```
+
+### CPU vs GPU Installation
+
+**CPU-only (Default, Recommended for most users):**
+- Faster installation without large CUDA packages (~500MB vs ~2GB)
+- Works on all systems (Linux, macOS, Windows, ARM)
+- Suitable for development and moderate workloads
+- Use `ml` extra with CPU PyTorch (see commands above)
+- **Important**: Install PyTorch CPU version first using `--index-url https://download.pytorch.org/whl/cpu` to avoid downloading CUDA libraries
+
+**GPU with CUDA (For high-performance inference):**
+- Requires NVIDIA GPU with CUDA support
+- Larger installation (includes CUDA libraries ~2GB+)
+- Significantly faster inference for large batches
+- Use `ml-gpu` extra and install PyTorch with CUDA separately
+- Install CUDA PyTorch using `--index-url https://download.pytorch.org/whl/cu118`
+
+**Note:** The ML dependencies (Whisper, TTS, spaCy, sentence-transformers) are large and will download pre-trained models on first use. Without these dependencies, the API endpoints will return helpful error messages indicating that ML dependencies need to be installed.
 
 ## Running the Server
 
@@ -245,6 +301,25 @@ Hermes is a stateless REST API built with FastAPI. It follows the canonical Open
 - Focused: Single responsibility - language processing only
 - Independent: Does not interact directly with the HCG (Hybrid Causal Graph)
 - Composable: Designed to be used by other LOGOS components
+
+### Implementation Details
+
+**Machine Learning Models:**
+- **Speech-to-Text**: OpenAI Whisper (base model) for audio transcription
+- **Text-to-Speech**: Coqui TTS with Tacotron2-DDC model for speech synthesis
+- **NLP Processing**: spaCy (en_core_web_sm) for tokenization, POS tagging, lemmatization, and NER
+- **Text Embeddings**: sentence-transformers (all-MiniLM-L6-v2) for 384-dimensional embeddings
+
+**Model Loading:**
+- Models are lazy-loaded on first use to minimize startup time
+- Models are cached in memory for subsequent requests
+- First requests to each endpoint will be slower due to model initialization
+
+**Optional Dependencies:**
+- ML dependencies are optional and can be installed with `pip install -e ".[ml]"`
+- Without ML dependencies, endpoints return helpful error messages
+- Validation tests run without ML dependencies
+- Integration tests require ML dependencies and are automatically skipped if not available
 
 ## Project LOGOS Ecosystem
 

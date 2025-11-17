@@ -30,7 +30,7 @@ dependencies = [
 [project.optional-dependencies]
 ml = [
     "openai-whisper>=20231117",
-    "TTS>=0.22.0",
+    "TTS>=0.22.0; python_version < '3.12'",
     "spacy>=3.7.0",
     "sentence-transformers>=2.2.0",
     "numpy>=1.24.0",

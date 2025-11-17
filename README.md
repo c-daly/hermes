@@ -43,8 +43,15 @@ pip install poetry
 ```
 
 3. Install dependencies:
+
+**For development only (without ML models):**
 ```bash
 poetry install --all-extras
+```
+
+**For production with ML capabilities:**
+```bash
+poetry install --all-extras --extras ml
 ```
 
 This will create a virtual environment and install all required dependencies including development tools.
@@ -53,11 +60,21 @@ This will create a virtual environment and install all required dependencies inc
 
 If you prefer not to use Poetry, you can still install with pip:
 
+**For development only (without ML models):**
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e ".[dev]"
 ```
+
+**For production with ML capabilities:**
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -e ".[dev,ml]"
+```
+
+**Note:** The ML dependencies (Whisper, TTS, spaCy, sentence-transformers) are large and will download pre-trained models on first use. Without these dependencies, the API endpoints will return helpful error messages indicating that ML dependencies need to be installed.
 
 ## Running the Server
 
@@ -245,6 +262,25 @@ Hermes is a stateless REST API built with FastAPI. It follows the canonical Open
 - Focused: Single responsibility - language processing only
 - Independent: Does not interact directly with the HCG (Hybrid Causal Graph)
 - Composable: Designed to be used by other LOGOS components
+
+### Implementation Details
+
+**Machine Learning Models:**
+- **Speech-to-Text**: OpenAI Whisper (base model) for audio transcription
+- **Text-to-Speech**: Coqui TTS with Tacotron2-DDC model for speech synthesis
+- **NLP Processing**: spaCy (en_core_web_sm) for tokenization, POS tagging, lemmatization, and NER
+- **Text Embeddings**: sentence-transformers (all-MiniLM-L6-v2) for 384-dimensional embeddings
+
+**Model Loading:**
+- Models are lazy-loaded on first use to minimize startup time
+- Models are cached in memory for subsequent requests
+- First requests to each endpoint will be slower due to model initialization
+
+**Optional Dependencies:**
+- ML dependencies are optional and can be installed with `pip install -e ".[ml]"`
+- Without ML dependencies, endpoints return helpful error messages
+- Validation tests run without ML dependencies
+- Integration tests require ML dependencies and are automatically skipped if not available
 
 ## Project LOGOS Ecosystem
 

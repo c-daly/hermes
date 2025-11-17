@@ -77,7 +77,8 @@ jobs:
         python -m build
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4:w
+      
       with:
         name: dist
         path: dist/

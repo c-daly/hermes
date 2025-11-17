@@ -2,15 +2,51 @@ version: '3.8'
 
 services:
   hermes:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hermes:latest
+    container_name: hermes
     ports:
       - "8080:8080"
     environment:
+      # Python settings
       - PYTHONUNBUFFERED=1
+      # Optional: Set log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+      # - LOG_LEVEL=INFO
     restart: unless-stopped
+    
+    # Resource limits to prevent runaway resource consumption
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # Read-only root filesystem for security (with exceptions for temp dirs)
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/hermes/.cache
+    
+    # Healthcheck configuration
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

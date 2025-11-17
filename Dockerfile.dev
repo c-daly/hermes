@@ -1,20 +1,16 @@
-# Production-ready Dockerfile for Hermes API server
-# Optimized for FastAPI/uvicorn with stateless design
+# Lightweight Dockerfile for Hermes API (without ML dependencies)
+# Useful for development or when only API validation is needed
 FROM python:3.11-slim
 
 # Add metadata labels following OCI standards
-LABEL org.opencontainers.image.title="Hermes API" \
-      org.opencontainers.image.description="Stateless language & embedding tools for Project LOGOS" \
+LABEL org.opencontainers.image.title="Hermes API (Lightweight)" \
+      org.opencontainers.image.description="Stateless language & embedding tools for Project LOGOS - Development build" \
       org.opencontainers.image.vendor="Project LOGOS Team" \
       org.opencontainers.image.source="https://github.com/c-daly/hermes" \
       org.opencontainers.image.licenses="MIT"
 
-# Install system dependencies for ML libraries and curl for healthcheck
+# Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    ffmpeg \
-    libsndfile1 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,19 +25,14 @@ WORKDIR /app
 # Copy dependency files
 COPY --chown=hermes:hermes pyproject.toml .
 
-# Install Python dependencies as root for system-wide availability
-# Install PyTorch CPU version first to avoid CUDA packages (~500MB vs ~2GB)
-RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir ".[ml]"
+# Install only core dependencies (no ML)
+RUN pip install --no-cache-dir ".[dev]"
 
 # Copy application source code
 COPY --chown=hermes:hermes src/ src/
 
 # Switch to non-root user for security
 USER hermes
-
-# Download spaCy model as non-root user
-RUN python -m spacy download en_core_web_sm
 
 # Expose the API port
 EXPOSE 8080
@@ -51,7 +42,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/src
 
 # Add healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8080/ || exit 1
 
 # Run the server as non-root user

@@ -44,10 +44,10 @@ pip install poetry
 
 3. Install dependencies:
 ```bash
-poetry install
+poetry install --all-extras
 ```
 
-This will create a virtual environment and install all required dependencies.
+This will create a virtual environment and install all required dependencies including development tools.
 
 ### Alternative: Using pip
 

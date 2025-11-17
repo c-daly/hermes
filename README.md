@@ -59,6 +59,24 @@ uvicorn hermes.main:app --host 0.0.0.0 --port 8080 --reload
 
 The API will be available at `http://localhost:8080`
 
+### Docker Deployment
+
+Build and run with Docker:
+
+```bash
+# Build the image
+docker build -t hermes:latest .
+
+# Run the container
+docker run -d -p 8080:8080 --name hermes hermes:latest
+```
+
+Or use Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
 ### API Documentation
 
 Once the server is running, access the interactive API documentation:

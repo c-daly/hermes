@@ -88,7 +88,9 @@ async def root() -> Dict[str, Any]:
 
 
 @app.post("/stt", response_model=STTResponse)
-async def speech_to_text(audio: UploadFile = File(...), language: str = "en-US") -> STTResponse:
+async def speech_to_text(
+    audio: UploadFile = File(...), language: str = "en-US"
+) -> STTResponse:
     """Convert audio input to text transcription.
 
     Args:

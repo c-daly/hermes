@@ -54,6 +54,8 @@ dev = [
     "black>=23.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "pymilvus>=2.3.0",
+    "neo4j>=5.0.0",
 ]
 
 [project.scripts]

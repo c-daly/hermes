@@ -80,6 +80,7 @@ class EmbedTextResponse(BaseModel):
     embedding: List[float] = Field(..., description="Vector embedding")
     dimension: int = Field(..., description="Embedding dimension")
     model: str = Field(..., description="Model used for embedding")
+    embedding_id: str = Field(..., description="Unique identifier for this embedding")
 
 
 class HealthResponse(BaseModel):
@@ -274,6 +275,7 @@ async def embed_text(request: EmbedTextRequest) -> EmbedTextResponse:
             embedding=result["embedding"],
             dimension=result["dimension"],
             model=result["model"],
+            embedding_id=result["embedding_id"],
         )
 
     except HTTPException:

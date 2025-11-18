@@ -5,6 +5,7 @@ This module contains the actual implementations for STT, TTS, NLP, and embedding
 
 import logging
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -259,7 +260,7 @@ async def generate_embedding(text: str, model_name: str = "default") -> Dict[str
         model_name: Model identifier (currently ignored, uses default)
 
     Returns:
-        Dictionary with 'embedding', 'dimension', and 'model' keys
+        Dictionary with 'embedding', 'dimension', 'model', and 'embedding_id' keys
     """
     try:
         model = get_embedding_model()
@@ -270,10 +271,14 @@ async def generate_embedding(text: str, model_name: str = "default") -> Dict[str
         # Convert to list of floats
         embedding_list = embedding.tolist()
 
+        # Generate a unique embedding ID
+        embedding_id = str(uuid.uuid4())
+
         return {
             "embedding": embedding_list,
             "dimension": len(embedding_list),
             "model": "all-MiniLM-L6-v2",
+            "embedding_id": embedding_id,
         }
 
     except Exception as e:

@@ -81,6 +81,12 @@ class EmbedTextResponse(BaseModel):
     model: str = Field(..., description="Model used for embedding")
 
 
+class HealthResponse(BaseModel):
+    status: str = Field(..., description="Overall health status")
+    version: str = Field(..., description="API version")
+    services: Dict[str, str] = Field(..., description="Status of individual services")
+
+
 # API Endpoints
 @app.get("/")
 async def root() -> Dict[str, Any]:
@@ -91,6 +97,54 @@ async def root() -> Dict[str, Any]:
         "description": "Stateless language & embedding tools for Project LOGOS",
         "endpoints": ["/stt", "/tts", "/simple_nlp", "/embed_text"],
     }
+
+
+@app.get("/health", response_model=HealthResponse)
+async def health() -> HealthResponse:
+    """Health check endpoint with detailed service status.
+    
+    Returns the overall health status and availability of ML services.
+    This is useful for monitoring and integration with other LOGOS components.
+    """
+    services_status = {}
+    
+    # Check STT (Whisper) availability
+    try:
+        import whisper
+        services_status["stt"] = "available"
+    except ImportError:
+        services_status["stt"] = "unavailable"
+    
+    # Check TTS availability
+    try:
+        import TTS
+        services_status["tts"] = "available"
+    except ImportError:
+        services_status["tts"] = "unavailable"
+    
+    # Check NLP (spaCy) availability
+    try:
+        import spacy
+        services_status["nlp"] = "available"
+    except ImportError:
+        services_status["nlp"] = "unavailable"
+    
+    # Check embeddings (sentence-transformers) availability
+    try:
+        import sentence_transformers
+        services_status["embeddings"] = "available"
+    except ImportError:
+        services_status["embeddings"] = "unavailable"
+    
+    # Determine overall status
+    all_available = all(status == "available" for status in services_status.values())
+    overall_status = "healthy" if all_available else "degraded"
+    
+    return HealthResponse(
+        status=overall_status,
+        version=__version__,
+        services=services_status,
+    )
 
 
 @app.post("/stt", response_model=STTResponse)

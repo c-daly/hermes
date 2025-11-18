@@ -211,6 +211,12 @@ docker-compose -f docker-compose.dev.yml up
 - No privilege escalation allowed
 - Minimal attack surface
 
+For more deployment options (Kubernetes, Docker Swarm) and advanced configurations, see:
+- **[Deployment Guide](deployments/)** - Kubernetes, Docker Swarm, and validation tools
+- **[Docker Guide](DOCKER.md)** - Detailed Docker deployment instructions
+- **[Integration Guide](examples/INTEGRATION.md)** - Integrating with Sophia and Apollo
+- **[Environment Configuration](.env.example)** - All available configuration options
+
 ### API Documentation
 
 Once the server is running, access the interactive API documentation:
@@ -219,6 +225,42 @@ Once the server is running, access the interactive API documentation:
 - ReDoc: http://localhost:8080/redoc
 
 ## API Endpoints
+
+### GET / - API Information
+
+Returns basic API information and available endpoints.
+
+**Response:**
+```json
+{
+  "name": "Hermes API",
+  "version": "0.1.0",
+  "description": "Stateless language & embedding tools for Project LOGOS",
+  "endpoints": ["/stt", "/tts", "/simple_nlp", "/embed_text"]
+}
+```
+
+### GET /health - Health Check
+
+Returns detailed health status including ML service availability. Useful for monitoring and integration testing.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "version": "0.1.0",
+  "services": {
+    "stt": "available",
+    "tts": "available",
+    "nlp": "available",
+    "embeddings": "available"
+  }
+}
+```
+
+Status values:
+- `healthy`: All ML services are available
+- `degraded`: Some ML services are unavailable (dependencies not installed)
 
 ### POST /stt - Speech to Text
 

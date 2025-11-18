@@ -1,0 +1,44 @@
+# Hermes API Ingress Configuration
+# Exposes Hermes API to external traffic through an Ingress controller
+#
+# Prerequisites:
+#   - Ingress controller installed (e.g., nginx-ingress, traefik)
+#   - TLS certificate (optional, for HTTPS)
+#
+# Apply with:
+#   kubectl apply -f deployments/kubernetes/ingress.yaml
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hermes
+  namespace: logos
+  labels:
+    app: hermes
+    component: language-tools
+    project: logos
+  annotations:
+    # Nginx ingress annotations (adjust for your ingress controller)
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Increase client body size for audio file uploads
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: hermes.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hermes
+            port:
+              number: 8080
+  # TLS configuration (uncomment and configure as needed)
+  # tls:
+  # - hosts:
+  #   - hermes.example.com
+  #   secretName: hermes-tls-secret

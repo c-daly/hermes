@@ -1,0 +1,89 @@
+# Docker Swarm Stack for Hermes API
+# Deploy with: docker stack deploy -c deployments/swarm/stack.yml hermes
+
+version: '3.8'
+
+services:
+  hermes:
+    image: hermes:latest
+    
+    # Deploy configuration
+    deploy:
+      replicas: 2
+      
+      # Update strategy
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      
+      # Rollback configuration
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+      
+      # Restart policy
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      
+      # Resource limits
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+      
+      # Placement constraints
+      placement:
+        constraints:
+          - node.role == worker
+        preferences:
+          - spread: node.labels.zone
+      
+      # Labels for service discovery
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.hermes.rule=Host(`hermes.example.com`)"
+        - "traefik.http.services.hermes.loadbalancer.server.port=8080"
+    
+    # Port mapping
+    ports:
+      - "8080:8080"
+    
+    # Environment variables
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Networks
+    networks:
+      - logos-network
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # Read-only filesystem
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/hermes/.cache
+
+networks:
+  logos-network:
+    driver: overlay
+    attachable: true

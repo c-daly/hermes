@@ -98,3 +98,113 @@ jobs:
       with:
         name: dist
         path: dist/
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: test
+    # Optional integration test - runs only if explicitly enabled or on main/develop
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'integration-test')
+    permissions:
+      contents: read
+
+    services:
+      etcd:
+        image: quay.io/coreos/etcd:v3.5.5
+        env:
+          ETCD_AUTO_COMPACTION_MODE: revision
+          ETCD_AUTO_COMPACTION_RETENTION: "1000"
+          ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+        options: >-
+          --health-cmd "etcdctl endpoint health"
+          --health-interval 30s
+          --health-timeout 20s
+          --health-retries 3
+
+      minio:
+        image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+        env:
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-interval 30s
+          --health-timeout 20s
+          --health-retries 3
+
+      milvus:
+        image: milvusdb/milvus:v2.3.3
+        env:
+          ETCD_ENDPOINTS: etcd:2379
+          MINIO_ADDRESS: minio:9000
+        ports:
+          - 19530:19530
+        options: >-
+          --health-cmd "curl -f http://localhost:9091/healthz"
+          --health-interval 30s
+          --health-start-period 90s
+          --health-timeout 20s
+          --health-retries 3
+
+      neo4j:
+        image: neo4j:5.13
+        env:
+          NEO4J_AUTH: neo4j/password
+        ports:
+          - 7687:7687
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p password 'RETURN 1'"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 3
+          --health-start-period 40s
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Configure Poetry
+      run: |
+        poetry config virtualenvs.in-project true
+
+    - name: Cache Poetry dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-integration-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+        restore-keys: |
+          venv-integration-${{ runner.os }}-
+
+    - name: Install dependencies with ML
+      run: |
+        poetry install --extras dev
+        poetry run pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+        poetry run pip install sentence-transformers
+
+    - name: Wait for services
+      run: |
+        echo "Waiting for Milvus to be ready..."
+        timeout 120 bash -c 'until curl -f http://localhost:19530/healthz 2>/dev/null; do sleep 2; done'
+        echo "Waiting for Neo4j to be ready..."
+        timeout 60 bash -c 'until nc -z localhost 7687; do sleep 2; done'
+
+    - name: Run integration tests
+      run: |
+        poetry run pytest tests/test_milvus_integration.py -v --cov=hermes --cov-report=xml --cov-report=term
+
+    - name: Upload integration test coverage
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: integration
+        fail_ci_if_error: false

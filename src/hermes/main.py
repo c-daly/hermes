@@ -9,6 +9,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
 import logging
+import importlib.util
 
 from hermes import __version__
 from hermes.services import (
@@ -102,44 +103,38 @@ async def root() -> Dict[str, Any]:
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     """Health check endpoint with detailed service status.
-    
+
     Returns the overall health status and availability of ML services.
     This is useful for monitoring and integration with other LOGOS components.
     """
     services_status = {}
-    
+
     # Check STT (Whisper) availability
-    try:
-        import whisper
-        services_status["stt"] = "available"
-    except ImportError:
-        services_status["stt"] = "unavailable"
-    
+    services_status["stt"] = (
+        "available" if importlib.util.find_spec("whisper") else "unavailable"
+    )
+
     # Check TTS availability
-    try:
-        import TTS
-        services_status["tts"] = "available"
-    except ImportError:
-        services_status["tts"] = "unavailable"
-    
+    services_status["tts"] = (
+        "available" if importlib.util.find_spec("TTS") else "unavailable"
+    )
+
     # Check NLP (spaCy) availability
-    try:
-        import spacy
-        services_status["nlp"] = "available"
-    except ImportError:
-        services_status["nlp"] = "unavailable"
-    
+    services_status["nlp"] = (
+        "available" if importlib.util.find_spec("spacy") else "unavailable"
+    )
+
     # Check embeddings (sentence-transformers) availability
-    try:
-        import sentence_transformers
-        services_status["embeddings"] = "available"
-    except ImportError:
-        services_status["embeddings"] = "unavailable"
-    
+    services_status["embeddings"] = (
+        "available"
+        if importlib.util.find_spec("sentence_transformers")
+        else "unavailable"
+    )
+
     # Determine overall status
     all_available = all(status == "available" for status in services_status.values())
     overall_status = "healthy" if all_available else "degraded"
-    
+
     return HealthResponse(
         status=overall_status,
         version=__version__,

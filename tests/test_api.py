@@ -33,6 +33,32 @@ def test_root_endpoint():
     assert "/embed_text" in data["endpoints"]
 
 
+def test_health_endpoint():
+    """Test the health endpoint returns service status."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+
+    # Check required fields
+    assert "status" in data
+    assert "version" in data
+    assert "services" in data
+
+    # Status should be "healthy" or "degraded"
+    assert data["status"] in ["healthy", "degraded"]
+
+    # Services should include all ML services
+    services = data["services"]
+    assert "stt" in services
+    assert "tts" in services
+    assert "nlp" in services
+    assert "embeddings" in services
+
+    # Each service should be "available" or "unavailable"
+    for service_name, service_status in services.items():
+        assert service_status in ["available", "unavailable"]
+
+
 def test_stt_endpoint_validation():
     """Test speech-to-text endpoint validates input."""
     # Test with non-audio file

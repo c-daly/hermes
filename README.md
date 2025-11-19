@@ -13,9 +13,13 @@ Hermes is a component of [Project LOGOS](https://github.com/c-daly/logos) that p
 - **Speech-to-Text (STT)**: Convert audio input to text transcription
 - **Text-to-Speech (TTS)**: Synthesize speech from text
 - **Simple NLP**: Basic NLP preprocessing (tokenization, POS tagging, lemmatization, NER)
-- **Text Embeddings**: Generate vector embeddings for text
+- **Text Embeddings**: Generate vector embeddings for text with automatic Milvus persistence
 
 All endpoints are stateless and designed to be used by other LOGOS components (Sophia, Talos, Apollo).
+
+### Milvus Integration
+
+Text embeddings are automatically persisted to Milvus when generated, providing vector storage for semantic search and retrieval. See [Milvus Integration Guide](docs/MILVUS_INTEGRATION.md) for details.
 
 ## Installation
 

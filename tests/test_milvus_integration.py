@@ -181,21 +181,12 @@ def test_embedding_persisted_to_milvus():
         assert len(embedding) == dimension
         assert model == "all-MiniLM-L6-v2"
 
-        # Step 3: Insert embedding into Milvus
-        timestamp = int(time.time() * 1000)  # milliseconds
-        entities = [
-            [embedding_id],  # embedding_id
-            [embedding],  # embedding
-            [model],  # model
-            [test_text],  # text
-            [timestamp],  # timestamp
-        ]
-
-        collection.insert(entities)
-        collection.flush()
-
+        # Step 3: Verify embedding was automatically persisted to Milvus
         # Load collection to enable search
         collection.load()
+
+        # Give Milvus a moment to index
+        time.sleep(0.5)
 
         # Step 4: Read back embedding from Milvus
         # Query by embedding_id (primary key)
@@ -204,12 +195,13 @@ def test_embedding_persisted_to_milvus():
             output_fields=["embedding_id", "model", "text", "timestamp"],
         )
 
+        # Verify the embedding was automatically persisted
         assert len(results) == 1
         result = results[0]
         assert result["embedding_id"] == embedding_id
         assert result["model"] == model
         assert result["text"] == test_text
-        assert result["timestamp"] == timestamp
+        assert "timestamp" in result
 
         # Step 5: Verify vector search works
         search_params = {"metric_type": "L2", "params": {"nprobe": 10}}

@@ -9,6 +9,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from hermes import milvus_client
+
 logger = logging.getLogger(__name__)
 
 # Try importing ML libraries
@@ -274,10 +276,20 @@ async def generate_embedding(text: str, model_name: str = "default") -> Dict[str
         # Generate a unique embedding ID
         embedding_id = str(uuid.uuid4())
 
+        model_name_used = "all-MiniLM-L6-v2"
+
+        # Persist to Milvus if available
+        await milvus_client.persist_embedding(
+            embedding_id=embedding_id,
+            embedding=embedding_list,
+            model=model_name_used,
+            text=text,
+        )
+
         return {
             "embedding": embedding_list,
             "dimension": len(embedding_list),
-            "model": "all-MiniLM-L6-v2",
+            "model": model_name_used,
             "embedding_id": embedding_id,
         }
 

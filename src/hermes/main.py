@@ -8,6 +8,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Any, Dict, List, Optional
+from contextlib import asynccontextmanager
 import logging
 import importlib.util
 
@@ -18,16 +19,32 @@ from hermes.services import (
     process_nlp,
     generate_embedding,
 )
+from hermes import milvus_client
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # type: ignore
+    """Lifespan event handler for application startup and shutdown."""
+    # Startup
+    logger.info("Starting Hermes API...")
+    # Initialize Milvus connection and collection
+    milvus_client.initialize_milvus()
+    logger.info("Hermes API startup complete")
+    yield
+    # Shutdown (if needed)
+    logger.info("Shutting down Hermes API...")
+
 
 # Create FastAPI app
 app = FastAPI(
     title="Hermes API",
     version=__version__,
     description="Stateless language & embedding tools for Project LOGOS",
+    lifespan=lifespan,
 )
 
 

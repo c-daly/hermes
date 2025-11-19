@@ -89,6 +89,8 @@ module = [
     "spacy.*",
     "sentence_transformers",
     "sentence_transformers.*",
+    "pymilvus",
+    "pymilvus.*",
 ]
 ignore_missing_imports = true
 

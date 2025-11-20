@@ -196,18 +196,27 @@ def test_embedding_persisted_to_milvus():
         # Load collection to enable search
         collection.load()
 
-        # Give Milvus time to index and persist data
-        time.sleep(5)
-
-        # Step 4: Read back embedding from Milvus
+        # Step 4: Read back embedding from Milvus with retry logic
         # Query by embedding_id (primary key)
-        results = collection.query(
-            expr=f'embedding_id == "{embedding_id}"',
-            output_fields=["embedding_id", "model", "text", "timestamp"],
-        )
+        # Use retry mechanism since Milvus indexing can be slow in CI
+        max_retries = 10
+        retry_delay = 1  # Start with 1 second
+        results = []
+
+        for attempt in range(max_retries):
+            results = collection.query(
+                expr=f'embedding_id == "{embedding_id}"',
+                output_fields=["embedding_id", "model", "text", "timestamp"],
+            )
+            if len(results) > 0:
+                break
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                # Exponential backoff with max of 3 seconds
+                retry_delay = min(retry_delay * 1.5, 3)
 
         # Verify the embedding was automatically persisted
-        assert len(results) == 1
+        assert len(results) == 1, f"Expected 1 result, got {len(results)} after {max_retries} retries"
         result = results[0]
         assert result["embedding_id"] == embedding_id
         assert result["model"] == model

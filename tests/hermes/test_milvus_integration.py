@@ -192,10 +192,10 @@ def test_embedding_persisted_to_milvus():
         # Step 3: Verify embedding was automatically persisted to Milvus
         # Load collection to enable search
         collection.load()
-        
+
         # Flush to ensure data is persisted and indexed
         collection.flush()
-        
+
         # Give Milvus time to index and persist data
         time.sleep(5)
 

@@ -93,7 +93,7 @@ NEO4J_CONNECTED = check_neo4j_connection()
 
 
 def create_milvus_collection():
-    """Create Milvus collection with the schema from c-daly/logos#155.
+    """Get or create Milvus collection with the schema from c-daly/logos#155.
 
     Schema for hermes_embeddings collection:
     - embedding_id: VARCHAR (primary key)
@@ -101,14 +101,19 @@ def create_milvus_collection():
     - model: VARCHAR
     - text: VARCHAR (original text)
     - timestamp: INT64 (creation timestamp)
+    
+    Note: This function no longer drops the collection if it exists, to avoid
+    invalidating collection references held by the FastAPI app.
     """
     connections.connect(alias="default", host=MILVUS_HOST, port=MILVUS_PORT)
 
-    # Drop collection if it exists
+    # Check if collection already exists (created by app on startup)
     if utility.has_collection(COLLECTION_NAME):
-        utility.drop_collection(COLLECTION_NAME)
+        # Use the existing collection instead of dropping/recreating
+        collection = Collection(name=COLLECTION_NAME)
+        return collection
 
-    # Define schema
+    # Define schema (only used if collection doesn't exist yet)
     fields = [
         FieldSchema(
             name="embedding_id", dtype=DataType.VARCHAR, is_primary=True, max_length=64

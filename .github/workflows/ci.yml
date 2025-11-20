@@ -145,6 +145,7 @@ jobs:
           DATA_COORD_ADDRESS: milvus
         ports:
           - 19530:19530
+          - 9091:9091
         options: >-
           --health-cmd "curl -f http://localhost:9091/healthz"
           --health-interval 30s

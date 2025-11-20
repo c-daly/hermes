@@ -190,11 +190,11 @@ def test_embedding_persisted_to_milvus():
         assert model == "all-MiniLM-L6-v2"
 
         # Step 3: Verify embedding was automatically persisted to Milvus
+        # Get a fresh collection reference to see the data persisted by the endpoint
+        collection = Collection(name=COLLECTION_NAME)
+
         # Load collection to enable search
         collection.load()
-
-        # Flush to ensure data is persisted and indexed
-        collection.flush()
 
         # Give Milvus time to index and persist data
         time.sleep(5)

@@ -197,19 +197,22 @@ def test_embedding_persisted_to_milvus():
         try:
             collection.load()
         except Exception:
-            # Some pymilvus builds may raise on load or behave differently; ignore and
-            # rely on the query retry loop below to detect persistence.
+            # Some pymilvus builds may raise on load or behave differently; ignore
+            # and rely on the query retry loop below to detect persistence.
             pass
 
         # Wait for collection to be fully loaded if the API exposes is_loaded.
         load_timeout = 30  # seconds
         load_start = time.time()
         if hasattr(collection, "is_loaded"):
-            while not collection.is_loaded and (time.time() - load_start) < load_timeout:
+            while (
+                not collection.is_loaded
+                and (time.time() - load_start) < load_timeout
+            ):
                 time.sleep(0.5)
         else:
-            # Give Milvus a short grace period before starting queries (the query retry
-            # loop below will handle longer waits).
+            # Give Milvus a short grace period before starting queries (the query
+            # retry loop below will handle longer waits).
             time.sleep(1)
 
         # Step 4: Read back embedding from Milvus with retry logic

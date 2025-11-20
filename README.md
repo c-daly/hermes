@@ -14,6 +14,7 @@ Hermes is a component of [Project LOGOS](https://github.com/c-daly/logos) that p
 - **Text-to-Speech (TTS)**: Synthesize speech from text
 - **Simple NLP**: Basic NLP preprocessing (tokenization, POS tagging, lemmatization, NER)
 - **Text Embeddings**: Generate vector embeddings for text with automatic Milvus persistence
+- **LLM Gateway**: `/llm` endpoint proxies chat completions through configurable providers (OpenAI today, local/echo fallbacks included)
 
 All endpoints are stateless and designed to be used by other LOGOS components (Sophia, Talos, Apollo).
 
@@ -143,6 +144,21 @@ uvicorn hermes.main:app --host 0.0.0.0 --port 8080 --reload
 
 The API will be available at `http://localhost:8080`
 
+### LLM Provider Configuration
+
+The `/llm` endpoint proxies completions through a configurable provider. By default,
+Hermes uses a deterministic `echo` provider so tests and local demos run without
+external credentials. To call a real LLM, set the following environment variables
+before starting the server (or add them to your process manager/Docker config):
+
+- `HERMES_LLM_PROVIDER` — Provider identifier (`echo`, `openai`, `mock`). Defaults to `echo`, or `openai` automatically when `OPENAI_API_KEY`/`HERMES_LLM_API_KEY` is set.
+- `HERMES_LLM_API_KEY` — Required when `HERMES_LLM_PROVIDER=openai` (falls back to `OPENAI_API_KEY` if defined).
+- `HERMES_LLM_MODEL` — Optional model override (for example `gpt-4o-mini`).
+- `HERMES_LLM_BASE_URL` — Override the OpenAI base URL (useful for compatible gateways).
+
+Partial configuration falls back to the echo provider, and `/health` reports the
+current default provider plus whether credentials are loaded.
+
 ### Docker Deployment
 
 Hermes provides production-ready Docker images with ML capabilities and healthchecks.
@@ -240,7 +256,7 @@ Returns basic API information and available endpoints.
   "name": "Hermes API",
   "version": "0.1.0",
   "description": "Stateless language & embedding tools for Project LOGOS",
-  "endpoints": ["/stt", "/tts", "/simple_nlp", "/embed_text"]
+  "endpoints": ["/stt", "/tts", "/simple_nlp", "/embed_text", "/llm"]
 }
 ```
 
@@ -257,7 +273,8 @@ Returns detailed health status including ML service availability, Milvus connect
     "stt": "available",
     "tts": "available",
     "nlp": "available",
-    "embeddings": "available"
+    "embeddings": "available",
+    "llm": "available"
   },
   "milvus": {
     "connected": true,
@@ -269,6 +286,14 @@ Returns detailed health status including ML service availability, Milvus connect
     "enabled": false,
     "pending": 0,
     "processed": 0
+  },
+  "llm": {
+    "default_provider": "openai",
+    "configured": true,
+    "providers": {
+      "echo": true,
+      "openai": true
+    }
   }
 }
 ```
@@ -351,6 +376,54 @@ Generate vector embeddings for text.
   "model": "default"
 }
 ```
+
+### POST /llm - LLM Gateway
+
+Proxy chat completions through the configured LLM provider. Apollo and other
+clients should call this endpoint instead of talking to OpenAI (or equivalents)
+directly so telemetry and persona context stay centralized in Hermes.
+
+**Request:**
+```json
+{
+  "messages": [
+    {"role": "system", "content": "You are a concise assistant."},
+    {"role": "user", "content": "Say hi"}
+  ],
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "temperature": 0.6,
+  "metadata": {"scenario": "browser_llm"}
+}
+```
+
+**Response:**
+```json
+{
+  "id": "openai-abc123",
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "created": 1731111111,
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello! 👋"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 20,
+    "completion_tokens": 7,
+    "total_tokens": 27
+  }
+}
+```
+
+When `HERMES_LLM_PROVIDER` is unset, the endpoint falls back to the echo provider
+so development and automated tests remain deterministic.
 
 ## Development
 

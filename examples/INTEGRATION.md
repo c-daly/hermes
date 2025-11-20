@@ -39,6 +39,7 @@ Hermes provides stateless language processing and embedding services to other LO
 │  - Text-to-Speech (TTS)                            │
 │  - Text Embeddings                                 │
 │  - Simple NLP (tokenization, POS, NER, etc.)       │
+│  - LLM Gateway (`/llm`)                            │
 └─────────────────────────────────────────────────────┘
 ```
 

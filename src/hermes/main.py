@@ -7,17 +7,20 @@ See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from contextlib import asynccontextmanager
 import logging
 import importlib.util
 
 from hermes import __version__
+from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError
 from hermes.services import (
     transcribe_audio,
     synthesize_speech,
     process_nlp,
     generate_embedding,
+    generate_llm_response,
+    get_llm_health,
 )
 from hermes import milvus_client
 
@@ -100,12 +103,84 @@ class EmbedTextResponse(BaseModel):
     embedding_id: str = Field(..., description="Unique identifier for this embedding")
 
 
+class LLMMessage(BaseModel):
+    role: Literal["system", "user", "assistant", "tool"] = Field(
+        ..., description="Role of the message."
+    )
+    content: str = Field(..., description="Text content of the message.")
+    name: Optional[str] = Field(
+        default=None, description="Optional identifier for tool/function calls."
+    )
+
+
+class LLMChoice(BaseModel):
+    index: int = Field(..., description="Choice index.")
+    message: LLMMessage = Field(..., description="Assistant message payload.")
+    finish_reason: str = Field(
+        default="stop", description="Reason generation completed."
+    )
+
+
+class LLMUsage(BaseModel):
+    prompt_tokens: int = Field(..., description="Prompt token count.")
+    completion_tokens: int = Field(..., description="Completion token count.")
+    total_tokens: int = Field(..., description="Total token count.")
+
+
+class LLMResponse(BaseModel):
+    id: str = Field(..., description="Provider response identifier.")
+    provider: str = Field(..., description="Provider used for the completion.")
+    model: str = Field(..., description="Provider model identifier.")
+    created: int = Field(..., description="Epoch timestamp when created.")
+    choices: List[LLMChoice] = Field(..., description="Choices returned by provider.")
+    usage: Optional[LLMUsage] = Field(
+        default=None, description="Token usage metadata if returned by provider."
+    )
+    raw: Optional[Dict[str, Any]] = Field(
+        default=None, description="Raw provider response for diagnostics."
+    )
+
+
+class LLMRequest(BaseModel):
+    prompt: Optional[str] = Field(
+        default=None,
+        description="Convenience field converted to a single user message.",
+    )
+    messages: Optional[List[LLMMessage]] = Field(
+        default=None,
+        description="Conversation history to send to the provider.",
+    )
+    provider: Optional[str] = Field(
+        default=None,
+        description="Override configured provider (e.g., `openai`, `echo`).",
+    )
+    model: Optional[str] = Field(
+        default=None, description="Override provider model for this request."
+    )
+    temperature: Optional[float] = Field(
+        default=0.7,
+        ge=0.0,
+        le=2.0,
+        description="Sampling temperature to forward to the provider.",
+    )
+    max_tokens: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="Optional maximum tokens for the completion.",
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Additional metadata stored alongside the request.",
+    )
+
+
 class HealthResponse(BaseModel):
     status: str = Field(..., description="Overall health status")
     version: str = Field(..., description="API version")
     services: Dict[str, str] = Field(..., description="Status of individual services")
     milvus: Dict[str, Any] = Field(..., description="Milvus connectivity status")
     queue: Dict[str, Any] = Field(..., description="Internal queue status")
+    llm: Dict[str, Any] = Field(..., description="LLM provider configuration status")
 
 
 # API Endpoints
@@ -116,7 +191,7 @@ async def root() -> Dict[str, Any]:
         "name": "Hermes API",
         "version": __version__,
         "description": "Stateless language & embedding tools for Project LOGOS",
-        "endpoints": ["/stt", "/tts", "/simple_nlp", "/embed_text"],
+        "endpoints": ["/stt", "/tts", "/simple_nlp", "/embed_text", "/llm"],
     }
 
 
@@ -171,6 +246,10 @@ async def health() -> HealthResponse:
         "processed": 0,
     }
 
+    # LLM provider status
+    llm_status = get_llm_health()
+    services_status["llm"] = "available" if llm_status["configured"] else "unavailable"
+
     # Determine overall status
     all_available = all(status == "available" for status in services_status.values())
     overall_status = "healthy" if all_available else "degraded"
@@ -181,6 +260,7 @@ async def health() -> HealthResponse:
         services=services_status,
         milvus=milvus_status,
         queue=queue_status,
+        llm=llm_status,
     )
 
 
@@ -324,6 +404,40 @@ async def embed_text(request: EmbedTextRequest) -> EmbedTextResponse:
     except Exception as e:
         logger.error(f"Embedding error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.post("/llm", response_model=LLMResponse)
+async def llm_generate(request: LLMRequest) -> LLMResponse:
+    """Proxy language model completions through Hermes."""
+    normalized_messages: List[LLMMessage] = list(request.messages or [])
+    if not normalized_messages:
+        prompt = (request.prompt or "").strip()
+        if not prompt:
+            raise HTTPException(
+                status_code=400,
+                detail="Either 'prompt' or 'messages' must be provided.",
+            )
+        normalized_messages = [LLMMessage(role="user", content=prompt)]
+
+    try:
+        result = await generate_llm_response(
+            messages=[msg.model_dump(exclude_none=True) for msg in normalized_messages],
+            provider=request.provider,
+            model=request.model,
+            temperature=request.temperature,
+            max_tokens=request.max_tokens,
+            metadata=request.metadata,
+        )
+        return LLMResponse(**result)
+    except LLMProviderNotConfiguredError as exc:
+        logger.error("LLM provider not configured: %s", exc)
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except LLMProviderError as exc:
+        logger.error("LLM provider error: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("LLM endpoint failure: %s", str(exc))
+        raise HTTPException(status_code=500, detail="LLM provider failure") from exc
 
 
 def main() -> None:

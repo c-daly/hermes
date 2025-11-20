@@ -93,6 +93,9 @@ services:
       - "8080:8080"
     environment:
       - PYTHONUNBUFFERED=1
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - MILVUS_COLLECTION_NAME=hermes_embeddings
     restart: unless-stopped
     depends_on:
       - milvus

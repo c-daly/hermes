@@ -88,8 +88,9 @@ def ensure_collection() -> Optional[Any]:
     try:
         # Check if collection already exists
         if utility.has_collection(COLLECTION_NAME):
-            if _milvus_collection is None:
-                _milvus_collection = Collection(name=COLLECTION_NAME)
+            # Always get a fresh collection reference to avoid stale references
+            # (e.g., if collection was dropped and recreated externally)
+            _milvus_collection = Collection(name=COLLECTION_NAME)
             return _milvus_collection
 
         # Create new collection with schema from c-daly/logos#155

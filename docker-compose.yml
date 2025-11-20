@@ -14,6 +14,10 @@ services:
       - PYTHONUNBUFFERED=1
       # Optional: Set log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
       # - LOG_LEVEL=INFO
+      # Optional: Milvus connection (uncomment if using Milvus)
+      # - MILVUS_HOST=milvus
+      # - MILVUS_PORT=19530
+      # - MILVUS_COLLECTION_NAME=hermes_embeddings
     restart: unless-stopped
     
     # Resource limits to prevent runaway resource consumption

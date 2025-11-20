@@ -180,7 +180,33 @@ Check Milvus status via the health endpoint:
 curl http://localhost:8080/health
 ```
 
-The Milvus connection status is not included in the health endpoint (to maintain stateless design), but logs will show initialization status:
+The health endpoint returns Milvus connectivity status:
+
+```json
+{
+  "status": "healthy",
+  "version": "0.1.0",
+  "services": {
+    "stt": "available",
+    "tts": "available",
+    "nlp": "available",
+    "embeddings": "available"
+  },
+  "milvus": {
+    "connected": true,
+    "host": "localhost",
+    "port": "19530",
+    "collection": "hermes_embeddings"
+  },
+  "queue": {
+    "enabled": false,
+    "pending": 0,
+    "processed": 0
+  }
+}
+```
+
+Logs will also show initialization status:
 
 ```
 INFO:hermes.milvus_client:Initializing Milvus integration...

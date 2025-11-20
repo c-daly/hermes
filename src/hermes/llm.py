@@ -140,9 +140,7 @@ class OpenAIProvider(BaseLLMProvider):
         except httpx.HTTPStatusError as exc:
             detail = exc.response.text
             logger.error("OpenAI provider error: %s", detail)
-            raise LLMProviderResponseError(
-                f"OpenAI provider error: {detail}"
-            ) from exc
+            raise LLMProviderResponseError(f"OpenAI provider error: {detail}") from exc
         except httpx.HTTPError as exc:
             logger.error("OpenAI request failed: %s", str(exc))
             raise LLMProviderError(f"OpenAI request failed: {str(exc)}") from exc
@@ -235,7 +233,9 @@ def _get_provider(name: str) -> Optional[BaseLLMProvider]:
 
     provider: Optional[BaseLLMProvider]
     if normalized in {"echo", "mock"}:
-        provider = EchoProvider(default_model=os.getenv("HERMES_LLM_MODEL", "echo-stub"))
+        provider = EchoProvider(
+            default_model=os.getenv("HERMES_LLM_MODEL", "echo-stub")
+        )
     elif normalized == "openai":
         provider = _build_openai_provider()
     else:
@@ -255,7 +255,9 @@ def _build_openai_provider() -> Optional[OpenAIProvider]:
         return None
     base_url = os.getenv("HERMES_LLM_BASE_URL", "https://api.openai.com/v1")
     default_model = os.getenv("HERMES_LLM_MODEL", "gpt-4o-mini")
-    return OpenAIProvider(api_key=api_key, base_url=base_url, default_model=default_model)
+    return OpenAIProvider(
+        api_key=api_key, base_url=base_url, default_model=default_model
+    )
 
 
 def _normalize_choices(choices: Optional[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:

@@ -216,7 +216,9 @@ def test_embedding_persisted_to_milvus():
                 retry_delay = min(retry_delay * 1.5, 3)
 
         # Verify the embedding was automatically persisted
-        assert len(results) == 1, f"Expected 1 result, got {len(results)} after {max_retries} retries"
+        assert (
+            len(results) == 1
+        ), f"Expected 1 result, got {len(results)} after {max_retries} retries"
         result = results[0]
         assert result["embedding_id"] == embedding_id
         assert result["model"] == model

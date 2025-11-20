@@ -193,8 +193,8 @@ def test_embedding_persisted_to_milvus():
         # Load collection to enable search
         collection.load()
 
-        # Give Milvus a moment to index
-        time.sleep(0.5)
+        # Give Milvus time to index and persist data
+        time.sleep(2)
 
         # Step 4: Read back embedding from Milvus
         # Query by embedding_id (primary key)

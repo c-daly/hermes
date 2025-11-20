@@ -101,7 +101,7 @@ def create_milvus_collection():
     - model: VARCHAR
     - text: VARCHAR (original text)
     - timestamp: INT64 (creation timestamp)
-    
+
     Note: This function no longer drops the collection if it exists, to avoid
     invalidating collection references held by the FastAPI app.
     """

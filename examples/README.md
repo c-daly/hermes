@@ -49,6 +49,7 @@ A complete example showing how to interact with all Hermes endpoints:
 - Text-to-Speech (TTS)
 - Simple NLP preprocessing
 - Text embedding generation
+- LLM gateway (`/llm`) for provider-backed completions
 
 Run the example:
 ```bash

@@ -89,6 +89,25 @@ def test_embed_text():
     print()
 
 
+def test_llm():
+    """Test LLM gateway endpoint."""
+    print("Testing LLM endpoint...")
+
+    payload = {
+        "messages": [
+            {"role": "system", "content": "You speak in short sentences."},
+            {"role": "user", "content": "Say hello from the Hermes example."},
+        ]
+    }
+
+    response = requests.post(f"{API_BASE_URL}/llm", json=payload)
+    print(f"Status: {response.status_code}")
+    data = response.json()
+    print(f"Provider: {data['provider']}")
+    print(f"Response: {data['choices'][0]['message']['content']}")
+    print()
+
+
 def main():
     """Run all examples."""
     print("=" * 60)
@@ -102,6 +121,7 @@ def main():
         test_tts()
         test_simple_nlp()
         test_embed_text()
+        test_llm()
         
         print("=" * 60)
         print("All examples completed successfully!")

@@ -31,6 +31,7 @@ def test_root_endpoint():
     assert "/tts" in data["endpoints"]
     assert "/simple_nlp" in data["endpoints"]
     assert "/embed_text" in data["endpoints"]
+    assert "/llm" in data["endpoints"]
 
 
 def test_health_endpoint():
@@ -55,6 +56,7 @@ def test_health_endpoint():
     assert "tts" in services
     assert "nlp" in services
     assert "embeddings" in services
+    assert "llm" in services
 
     # Each service should be "available" or "unavailable"
     for service_name, service_status in services.items():
@@ -76,6 +78,9 @@ def test_health_endpoint():
     assert isinstance(queue["enabled"], bool)
     assert isinstance(queue["pending"], int)
     assert isinstance(queue["processed"], int)
+    assert "llm" in data
+    assert "default_provider" in data["llm"]
+    assert "providers" in data["llm"]
 
 
 def test_stt_endpoint_validation():
@@ -185,3 +190,36 @@ def test_embed_text_endpoint():
     assert isinstance(data["embedding"], list)
     assert len(data["embedding"]) == data["dimension"]
     assert data["dimension"] > 0  # Should be 384 for all-MiniLM-L6-v2
+
+
+def test_llm_endpoint_requires_prompt_or_messages():
+    """Hermes should validate LLM requests."""
+    response = client.post("/llm", json={"prompt": "   "})
+    assert response.status_code == 400
+    assert "Either 'prompt' or 'messages'" in response.json()["detail"]
+
+
+def test_llm_endpoint_with_prompt():
+    """LLM endpoint should return an echo response by default."""
+    response = client.post("/llm", json={"prompt": "Hello Hermes"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["provider"] == "echo"
+    assert data["choices"]
+    assert data["choices"][0]["message"]["content"].startswith("[echo]")
+
+
+def test_llm_endpoint_with_messages():
+    """LLM endpoint should honor explicit messages payloads."""
+    payload = {
+        "messages": [
+            {"role": "system", "content": "You are a friendly assistant."},
+            {"role": "user", "content": "Say hi"},
+        ],
+        "max_tokens": 32,
+    }
+    response = client.post("/llm", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["choices"][0]["message"]["role"] == "assistant"
+    assert "hi" in data["choices"][0]["message"]["content"].lower()

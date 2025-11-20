@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from hermes import milvus_client
+from hermes.llm import generate_completion, llm_service_health
 
 logger = logging.getLogger(__name__)
 
@@ -296,3 +297,28 @@ async def generate_embedding(text: str, model_name: str = "default") -> Dict[str
     except Exception as e:
         logger.error(f"Error generating embedding: {str(e)}")
         raise
+
+
+async def generate_llm_response(
+    *,
+    messages: List[Dict[str, str]],
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
+    temperature: Optional[float] = None,
+    max_tokens: Optional[int] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Proxy LLM requests to the configured provider."""
+    return await generate_completion(
+        messages=messages,
+        provider_override=provider,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        metadata=metadata,
+    )
+
+
+def get_llm_health() -> Dict[str, Any]:
+    """Return configuration metadata for the LLM subsystem."""
+    return llm_service_health()

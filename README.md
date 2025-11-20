@@ -246,7 +246,7 @@ Returns basic API information and available endpoints.
 
 ### GET /health - Health Check
 
-Returns detailed health status including ML service availability. Useful for monitoring and integration testing.
+Returns detailed health status including ML service availability, Milvus connectivity, and internal queue status. Useful for monitoring and integration testing.
 
 **Response:**
 ```json
@@ -258,6 +258,17 @@ Returns detailed health status including ML service availability. Useful for mon
     "tts": "available",
     "nlp": "available",
     "embeddings": "available"
+  },
+  "milvus": {
+    "connected": true,
+    "host": "localhost",
+    "port": "19530",
+    "collection": "hermes_embeddings"
+  },
+  "queue": {
+    "enabled": false,
+    "pending": 0,
+    "processed": 0
   }
 }
 ```

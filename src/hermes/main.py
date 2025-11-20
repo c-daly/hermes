@@ -104,6 +104,8 @@ class HealthResponse(BaseModel):
     status: str = Field(..., description="Overall health status")
     version: str = Field(..., description="API version")
     services: Dict[str, str] = Field(..., description="Status of individual services")
+    milvus: Dict[str, Any] = Field(..., description="Milvus connectivity status")
+    queue: Dict[str, Any] = Field(..., description="Internal queue status")
 
 
 # API Endpoints
@@ -122,7 +124,8 @@ async def root() -> Dict[str, Any]:
 async def health() -> HealthResponse:
     """Health check endpoint with detailed service status.
 
-    Returns the overall health status and availability of ML services.
+    Returns the overall health status and availability of ML services,
+    Milvus connectivity, and internal queue status.
     This is useful for monitoring and integration with other LOGOS components.
     """
     services_status = {}
@@ -149,6 +152,25 @@ async def health() -> HealthResponse:
         else "unavailable"
     )
 
+    # Check Milvus connectivity
+    milvus_status = {
+        "connected": milvus_client._milvus_connected,
+        "host": milvus_client.MILVUS_HOST,
+        "port": milvus_client.MILVUS_PORT,
+        "collection": (
+            milvus_client.COLLECTION_NAME if milvus_client._milvus_connected else None
+        ),
+    }
+
+    # Internal queue status (placeholder for Phase 2)
+    # Note: Hermes is currently stateless with no internal queues
+    # This is a placeholder for future async processing capabilities
+    queue_status = {
+        "enabled": False,
+        "pending": 0,
+        "processed": 0,
+    }
+
     # Determine overall status
     all_available = all(status == "available" for status in services_status.values())
     overall_status = "healthy" if all_available else "degraded"
@@ -157,6 +179,8 @@ async def health() -> HealthResponse:
         status=overall_status,
         version=__version__,
         services=services_status,
+        milvus=milvus_status,
+        queue=queue_status,
     )
 
 

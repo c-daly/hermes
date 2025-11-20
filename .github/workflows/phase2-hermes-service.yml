@@ -1,0 +1,170 @@
+name: Phase 2 Hermes Service
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Configure Poetry
+      run: |
+        poetry config virtualenvs.in-project true
+
+    - name: Cache Poetry dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        restore-keys: |
+          venv-${{ runner.os }}-${{ matrix.python-version }}-
+
+    - name: Install dependencies
+      run: |
+        poetry install --extras dev
+
+    - name: Lint with Ruff
+      run: |
+        poetry run ruff check src tests
+
+    - name: Format check with Black
+      run: |
+        poetry run black --check src tests
+
+    - name: Type check with mypy
+      run: |
+        poetry run mypy src
+
+    - name: Run unit tests
+      run: |
+        poetry run pytest tests/hermes/ -v --cov=hermes --cov-report=xml --cov-report=term
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: phase2-unit
+        fail_ci_if_error: false
+
+  milvus-smoke-test:
+    name: Milvus Integration Smoke Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    permissions:
+      contents: read
+
+    services:
+      etcd:
+        image: quay.io/coreos/etcd:v3.5.5
+        env:
+          ETCD_AUTO_COMPACTION_MODE: revision
+          ETCD_AUTO_COMPACTION_RETENTION: "1000"
+          ETCD_QUOTA_BACKEND_BYTES: "4294967296"
+        options: >-
+          --health-cmd "etcdctl endpoint health"
+          --health-interval 30s
+          --health-timeout 20s
+          --health-retries 3
+
+      minio:
+        image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+        env:
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-interval 30s
+          --health-timeout 20s
+          --health-retries 3
+
+      milvus:
+        image: milvusdb/milvus:v2.3.3
+        env:
+          ETCD_ENDPOINTS: etcd:2379
+          MINIO_ADDRESS: minio:9000
+        ports:
+          - 19530:19530
+        options: >-
+          --health-cmd "curl -f http://localhost:9091/healthz"
+          --health-interval 30s
+          --health-start-period 90s
+          --health-timeout 20s
+          --health-retries 3
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Configure Poetry
+      run: |
+        poetry config virtualenvs.in-project true
+
+    - name: Cache Poetry dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-milvus-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+        restore-keys: |
+          venv-milvus-${{ runner.os }}-
+
+    - name: Install dependencies with ML
+      run: |
+        poetry install --extras dev
+        poetry run pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+        poetry run pip install sentence-transformers
+
+    - name: Wait for services
+      run: |
+        echo "Waiting for Milvus to be ready..."
+        timeout 120 bash -c 'until curl -f http://localhost:19530/healthz 2>/dev/null || curl -f http://localhost:9091/healthz 2>/dev/null; do sleep 2; done'
+        echo "Milvus is ready!"
+
+    - name: Run Milvus smoke tests
+      env:
+        MILVUS_HOST: localhost
+        MILVUS_PORT: "19530"
+      run: |
+        poetry run pytest tests/hermes/test_milvus_integration.py -v --cov=hermes --cov-report=xml --cov-report=term
+
+    - name: Upload Milvus test coverage
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: phase2-milvus
+        fail_ci_if_error: false

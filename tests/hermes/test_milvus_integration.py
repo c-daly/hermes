@@ -206,8 +206,7 @@ def test_embedding_persisted_to_milvus():
         load_start = time.time()
         if hasattr(collection, "is_loaded"):
             while (
-                not collection.is_loaded
-                and (time.time() - load_start) < load_timeout
+                not collection.is_loaded and (time.time() - load_start) < load_timeout
             ):
                 time.sleep(0.5)
         else:

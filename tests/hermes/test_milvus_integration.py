@@ -116,7 +116,10 @@ def create_milvus_collection():
     # Define schema (only used if collection doesn't exist yet)
     fields = [
         FieldSchema(
-            name="embedding_id", dtype=DataType.VARCHAR, is_primary=True, max_length=64
+            name="embedding_id",
+            dtype=DataType.VARCHAR,
+            is_primary=True,
+            max_length=64,
         ),
         FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=384),
         FieldSchema(name="model", dtype=DataType.VARCHAR, max_length=256),

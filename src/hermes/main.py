@@ -58,9 +58,7 @@ if raw_origins.strip() == "*":
     cors_origins = ["*"]
 else:
     cors_origins = [
-        origin.strip()
-        for origin in raw_origins.split(",")
-        if origin.strip()
+        origin.strip() for origin in raw_origins.split(",") if origin.strip()
     ]
 
 app.add_middleware(

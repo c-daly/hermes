@@ -4,6 +4,7 @@ Implements the canonical Hermes OpenAPI contract from Project LOGOS.
 See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 """
 
+import os
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
@@ -11,6 +12,8 @@ from typing import Any, Dict, List, Literal, Optional
 from contextlib import asynccontextmanager
 import logging
 import importlib.util
+
+from fastapi.middleware.cors import CORSMiddleware
 
 from hermes import __version__
 from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError
@@ -48,6 +51,24 @@ app = FastAPI(
     version=__version__,
     description="Stateless language & embedding tools for Project LOGOS",
     lifespan=lifespan,
+)
+
+raw_origins = os.getenv("HERMES_CORS_ORIGINS", "*")
+if raw_origins.strip() == "*":
+    cors_origins = ["*"]
+else:
+    cors_origins = [
+        origin.strip()
+        for origin in raw_origins.split(",")
+        if origin.strip()
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

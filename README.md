@@ -149,7 +149,7 @@ The API will be available at `http://localhost:8080`
 Hermes uses the shared LOGOS workflow template. Run these commands locally to match the GitHub Actions gate:
 
 ```bash
-poetry install --with dev
+poetry install --extras dev
 poetry run ruff check src tests
 poetry run black --check src tests
 poetry run mypy src

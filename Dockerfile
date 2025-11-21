@@ -55,8 +55,8 @@ ARG HERMES_LLM_BASE_URL=https://api.openai.com/v1
 # Set environment variables (can be overridden at runtime)
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/src \
-    HERMES_LLM_PROVIDER=openai \
-    HERMES_LLM_API_KEY=${OPENAI_API_KEY} \
+    HERMES_LLM_PROVIDER=${HERMES_LLM_PROVIDER} \
+    HERMES_LLM_API_KEY=${HERMES_LLM_API_KEY} \
     HERMES_LLM_MODEL=${HERMES_LLM_MODEL} \
     HERMES_LLM_BASE_URL=${HERMES_LLM_BASE_URL}
 

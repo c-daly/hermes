@@ -16,7 +16,7 @@ jobs:
       python_versions: '["3.11","3.12"]'
       python_package_manager: 'poetry'
       python_command_prefix: 'poetry run '
-      poetry_install_args: '--with dev'
+      poetry_install_args: '--extras dev'
       python_lint_paths: 'src tests'
       mypy_targets: 'src'
       pytest_command: 'pytest --cov=hermes --cov-report=term --cov-report=xml'
@@ -45,7 +45,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        poetry install --with dev
+        poetry install --extras dev
 
     - name: Build package
       run: |
@@ -149,7 +149,7 @@ jobs:
 
     - name: Install dependencies with ML extras
       run: |
-        poetry install --with dev
+        poetry install --extras dev
         poetry run pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
         poetry run pip install sentence-transformers
 

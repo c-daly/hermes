@@ -23,7 +23,7 @@ Integration & patterns
 
 GitHub, tickets & PRs
 - Follow the workspace-wide rules in `logos/.github/copilot-instructions.md` for issue titles, labels, branch naming, and PR requirements. Every PR must reference its issue (use `Closes #<n>`).
-- When you start work on an issue that lives on the LOGOS workspace project, move its card to *In Progress* (and adjust any `status/*` label). When the work is merged/done, move the card to *Done* so the board stays in sync.
+- When you start work on an issue that lives on the LOGOS workspace project, move its card to *In Progress* (and adjust any `status/*` label). Once a PR is open and just waiting for review/merge, move the card to *PR awaiting merge*. When the work is merged/done, move the card to *Done* so the board stays in sync.
 
 Examples
 - Add a new embedding endpoint: update OpenAPI in `logos/contracts/hermes.openapi.yaml`, add server handler, update `tests/` with request/response pairs, and add an integration smoke test.

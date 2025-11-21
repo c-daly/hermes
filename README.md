@@ -144,6 +144,20 @@ uvicorn hermes.main:app --host 0.0.0.0 --port 8080 --reload
 
 The API will be available at `http://localhost:8080`
 
+## Local Testing (CI Parity)
+
+Hermes uses the shared LOGOS workflow template. Run these commands locally to match the GitHub Actions gate:
+
+```bash
+poetry install --extras dev
+poetry run ruff check src tests
+poetry run black --check src tests
+poetry run mypy src
+poetry run pytest --cov=hermes --cov-report=term --cov-report=xml
+```
+
+If you need the Milvus/Neo4j integration tests, run `poetry run pytest tests/test_milvus_integration.py -v` with the docker-compose stack described in `.github/workflows/ci.yml`.
+
 ### LLM Provider Configuration
 
 The `/llm` endpoint proxies completions through a configurable provider. By default,
@@ -155,6 +169,7 @@ before starting the server (or add them to your process manager/Docker config):
 - `HERMES_LLM_API_KEY` — Required when `HERMES_LLM_PROVIDER=openai` (falls back to `OPENAI_API_KEY` if defined).
 - `HERMES_LLM_MODEL` — Optional model override (for example `gpt-4o-mini`).
 - `HERMES_LLM_BASE_URL` — Override the OpenAI base URL (useful for compatible gateways).
+- `HERMES_CORS_ORIGINS` — Comma-separated origins for browser access (defaults to `*`).
 
 Partial configuration falls back to the echo provider, and `/health` reports the
 current default provider plus whether credentials are loaded.
@@ -171,6 +186,18 @@ Build and run the production image with full ML capabilities:
 # Build the production image (includes ML models)
 docker build -t hermes:latest .
 
+# Or inject your local Hermes LLM env vars during build
+docker build \
+  --build-arg HERMES_LLM_PROVIDER=${HERMES_LLM_PROVIDER:-openai} \
+  --build-arg HERMES_LLM_API_KEY=${HERMES_LLM_API_KEY} \
+  --build-arg HERMES_LLM_MODEL=${HERMES_LLM_MODEL:-gpt-4o-mini} \
+  --build-arg HERMES_LLM_BASE_URL=${HERMES_LLM_BASE_URL:-https://api.openai.com/v1} \
+  -t hermes:latest .
+```
+
+> ℹ️ Build args simply seed the image defaults. You can (and should) still override secrets at runtime via `docker run -e ...` or Compose environment entries.
+
+```bash
 # Run the container
 docker run -d -p 8080:8080 --name hermes hermes:latest
 

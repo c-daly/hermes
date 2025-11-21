@@ -26,8 +26,8 @@ RUN useradd -m -u 1000 -s /bin/bash hermes && \
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files
-COPY --chown=hermes:hermes pyproject.toml .
+# Copy dependency + source files (needed for poetry build includes)
+COPY --chown=hermes:hermes pyproject.toml README.md src/ ./
 
 # Install Python dependencies as root for system-wide availability
 # Install PyTorch CPU version first to avoid CUDA packages (~500MB vs ~2GB)
@@ -46,9 +46,19 @@ RUN python -m spacy download en_core_web_sm
 # Expose the API port
 EXPOSE 8080
 
-# Set environment variables
+# Allow build-time injection of Hermes LLM configuration
+ARG HERMES_LLM_PROVIDER=echo
+ARG HERMES_LLM_API_KEY=
+ARG HERMES_LLM_MODEL=gpt-4o-mini
+ARG HERMES_LLM_BASE_URL=https://api.openai.com/v1
+
+# Set environment variables (can be overridden at runtime)
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/src
+    PYTHONPATH=/app/src \
+    HERMES_LLM_PROVIDER=${HERMES_LLM_PROVIDER} \
+    HERMES_LLM_API_KEY=${HERMES_LLM_API_KEY} \
+    HERMES_LLM_MODEL=${HERMES_LLM_MODEL} \
+    HERMES_LLM_BASE_URL=${HERMES_LLM_BASE_URL}
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

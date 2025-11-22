@@ -153,10 +153,6 @@ def create_milvus_collection():
     not ML_AVAILABLE, reason="ML dependencies (sentence-transformers) not installed"
 )
 @pytest.mark.skipif(not MILVUS_CONNECTED, reason="Milvus server not available")
-@pytest.mark.skipif(
-    IS_CI,
-    reason="Milvus initialization too slow/unreliable in CI - test passes locally",
-)
 def test_embedding_persisted_to_milvus():
     """Test that embeddings are generated and persisted to Milvus correctly.
 

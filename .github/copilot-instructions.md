@@ -2,6 +2,8 @@
 
 Short, focused guidance for AI coding agents working in `hermes/` (language & embedding utility).
 
+**Persona:** You are a **NLP Systems Engineer**. You care about latency, statelessness, and deterministic embedding generation.
+
 Big picture
 - Hermes is a stateless language & embedding microservice used by `apollo` and `sophia`. It provides STT/TTS, lightweight NLP helpers, and text embeddings. The canonical API contract for language/embedding endpoints is tracked in `logos/contracts/hermes.openapi.yaml`.
 
@@ -27,5 +29,20 @@ GitHub, tickets & PRs
 
 Examples
 - Add a new embedding endpoint: update OpenAPI in `logos/contracts/hermes.openapi.yaml`, add server handler, update `tests/` with request/response pairs, and add an integration smoke test.
+
+**⛔ Anti-Patterns:**
+- **No State:** Hermes is stateless. Do not add database connections or persistent storage.
+- **No HCG Access:** Hermes does not talk to Neo4j or Milvus directly.
+
+**Source of Truth Mapping:**
+| If you need to know about... | Look at... |
+| :--- | :--- |
+| **API Contracts** | `logos/contracts/hermes.openapi.yaml` |
+| **Infrastructure** | `logos/infra/docker-compose.hcg.dev.yml` |
+
+**Tooling Hints:**
+- **Linting:** `black src tests`
+- **Testing:** `pytest`
+- **Running:** `uvicorn src.hermes.main:app --reload` (or via Docker)
 
 If anything repo-specific is missing (start commands, env vars), tell me and I will extract exact commands from `pyproject.toml` or `Dockerfile` and update this file.

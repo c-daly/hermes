@@ -1,0 +1,25 @@
+# Minimal CI dependencies for fast testing
+# Generated for CI to avoid poetry lock resolution overhead
+# Update when pyproject.toml dependencies change
+
+# Core dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+python-multipart>=0.0.6
+httpx>=0.25.0
+
+# Testing dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-asyncio>=0.21.0
+pytest-benchmark>=4.0.0
+
+# Code quality
+black>=23.0.0
+ruff>=0.1.0
+mypy>=1.0.0
+
+# Integration test dependencies
+pymilvus>=2.3.0
+neo4j>=5.0.0

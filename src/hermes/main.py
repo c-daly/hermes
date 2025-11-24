@@ -463,7 +463,9 @@ def main() -> None:
     """Entry point for running the Hermes server."""
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    port = int(os.getenv("HERMES_PORT", "8080"))
+    host = os.getenv("HERMES_HOST", "0.0.0.0")
+    uvicorn.run(app, host=host, port=port)
 
 
 if __name__ == "__main__":

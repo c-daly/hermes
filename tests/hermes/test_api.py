@@ -200,8 +200,8 @@ def test_llm_endpoint_requires_prompt_or_messages():
 
 
 def test_llm_endpoint_with_prompt():
-    """LLM endpoint should return an echo response by default."""
-    response = client.post("/llm", json={"prompt": "Hello Hermes"})
+    """LLM endpoint should return an echo response when explicitly requested."""
+    response = client.post("/llm", json={"prompt": "Hello Hermes", "provider": "echo"})
     assert response.status_code == 200
     data = response.json()
     assert data["provider"] == "echo"

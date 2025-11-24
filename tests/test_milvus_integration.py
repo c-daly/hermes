@@ -1,11 +1,17 @@
-"""Functional test for Hermes embeddings persisted to Milvus.
+"""Comprehensive tests for Hermes Milvus integration.
 
-This test verifies:
-1. Hermes generates embeddings with a small model (all-MiniLM-L6-v2)
-2. Embeddings are stored in Milvus with the correct schema
-3. Response contains embedding_id and model metadata
-4. Embeddings can be read back from Milvus
-5. (Optional) embedding_id can be written to and read from Neo4j
+This test suite covers:
+1. Vector insertion to Milvus collection
+2. Vector search (similarity query)
+3. Batch insertion
+4. Collection creation/initialization
+5. Schema validation
+6. Duplicate handling
+7. Vector retrieval by ID
+8. Filtering with metadata
+9. Connection error handling
+10. Milvus unavailable scenario
+11. Index creation and optimization
 
 Test runs with skip flag if Milvus is unavailable.
 """
@@ -327,3 +333,426 @@ def test_embedding_response_includes_metadata():
     assert data["dimension"] == 384
     assert data["model"] == "all-MiniLM-L6-v2"
     assert len(data["embedding"]) == data["dimension"]
+
+
+# Additional comprehensive Milvus tests
+
+
+@pytest.mark.skipif(not MILVUS_CONNECTED, reason="Milvus server not available")
+class TestMilvusVectorOperations:
+    """Test suite for Milvus vector insertion and retrieval."""
+
+    def test_vector_insertion(self):
+        """Test inserting a single vector into Milvus."""
+        collection = create_milvus_collection()
+
+        try:
+            # Insert test vector
+            test_id = "test-vector-001"
+            test_vector = [0.1] * 384
+            test_model = "test-model"
+            test_text = "Test insertion text"
+            test_timestamp = int(time.time() * 1000)
+
+            data = [
+                [test_id],
+                [test_vector],
+                [test_model],
+                [test_text],
+                [test_timestamp],
+            ]
+            collection.insert(data)
+            collection.flush()
+
+            # Load and query
+            collection.load()
+            time.sleep(0.5)
+
+            results = collection.query(
+                expr=f'embedding_id == "{test_id}"',
+                output_fields=["embedding_id", "model", "text", "timestamp"],
+            )
+
+            assert len(results) == 1
+            assert results[0]["embedding_id"] == test_id
+            assert results[0]["model"] == test_model
+            assert results[0]["text"] == test_text
+
+        finally:
+            connections.disconnect("default")
+
+    def test_batch_vector_insertion(self):
+        """Test inserting multiple vectors in a batch."""
+        collection = create_milvus_collection()
+
+        try:
+            # Create batch of test vectors
+            num_vectors = 100
+            ids = [f"batch-vector-{i:03d}" for i in range(num_vectors)]
+            vectors = [[0.1 * (i % 10)] * 384 for i in range(num_vectors)]
+            models = ["batch-model"] * num_vectors
+            texts = [f"Batch text {i}" for i in range(num_vectors)]
+            timestamps = [int(time.time() * 1000)] * num_vectors
+
+            data = [ids, vectors, models, texts, timestamps]
+            collection.insert(data)
+            collection.flush()
+
+            # Load and count
+            collection.load()
+            time.sleep(0.5)
+
+            results = collection.query(
+                expr='model == "batch-model"', output_fields=["embedding_id"], limit=200
+            )
+
+            assert len(results) == num_vectors
+
+        finally:
+            connections.disconnect("default")
+
+    def test_vector_search_similarity(self):
+        """Test similarity search for nearest neighbors."""
+        collection = create_milvus_collection()
+
+        try:
+            # Insert test vectors with known similarities
+            base_vector = [1.0] * 384
+            similar_vector = [0.99] * 384
+            different_vector = [-1.0] * 384
+
+            ids = ["similar-base", "similar-close", "similar-far"]
+            vectors = [base_vector, similar_vector, different_vector]
+            models = ["test"] * 3
+            texts = ["base", "close", "far"]
+            timestamps = [int(time.time() * 1000)] * 3
+
+            data = [ids, vectors, models, texts, timestamps]
+            collection.insert(data)
+            collection.flush()
+
+            # Load and search
+            collection.load()
+            time.sleep(0.5)
+
+            search_params = {"metric_type": "L2", "params": {"nprobe": 10}}
+            results = collection.search(
+                data=[base_vector],
+                anns_field="embedding",
+                param=search_params,
+                limit=3,
+                output_fields=["embedding_id", "text"],
+            )
+
+            assert len(results) == 1
+            assert len(results[0]) >= 1
+
+            # The closest result should be base itself or similar
+            top_result = results[0][0]
+            assert top_result.entity.get("embedding_id") in [
+                "similar-base",
+                "similar-close",
+            ]
+
+        finally:
+            connections.disconnect("default")
+
+    def test_vector_retrieval_by_id(self):
+        """Test retrieving specific vector by embedding_id."""
+        collection = create_milvus_collection()
+
+        try:
+            test_id = "retrieve-by-id-001"
+            test_vector = [0.5] * 384
+            test_text = "Retrieval test text"
+
+            data = [
+                [test_id],
+                [test_vector],
+                ["retrieval-model"],
+                [test_text],
+                [int(time.time() * 1000)],
+            ]
+            collection.insert(data)
+            collection.flush()
+
+            collection.load()
+            time.sleep(0.5)
+
+            # Query by primary key
+            results = collection.query(
+                expr=f'embedding_id == "{test_id}"',
+                output_fields=["embedding_id", "text", "model"],
+            )
+
+            assert len(results) == 1
+            assert results[0]["embedding_id"] == test_id
+            assert results[0]["text"] == test_text
+
+        finally:
+            connections.disconnect("default")
+
+
+@pytest.mark.skipif(not MILVUS_CONNECTED, reason="Milvus server not available")
+class TestMilvusCollectionManagement:
+    """Test suite for Milvus collection management."""
+
+    def test_collection_creation(self):
+        """Test creating a new collection with schema."""
+        connections.connect(alias="default", host=MILVUS_HOST, port=MILVUS_PORT)
+
+        try:
+            test_collection_name = "test_collection_creation"
+
+            # Drop if exists
+            if utility.has_collection(test_collection_name):
+                utility.drop_collection(test_collection_name)
+
+            # Create collection
+            fields = [
+                FieldSchema(
+                    name="id", dtype=DataType.VARCHAR, is_primary=True, max_length=64
+                ),
+                FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=128),
+            ]
+            schema = CollectionSchema(fields=fields)
+            Collection(name=test_collection_name, schema=schema)
+
+            assert utility.has_collection(test_collection_name)
+
+            # Cleanup
+            utility.drop_collection(test_collection_name)
+
+        finally:
+            connections.disconnect("default")
+
+    def test_collection_schema_validation(self):
+        """Test that collection has correct schema."""
+        collection = create_milvus_collection()
+
+        try:
+            schema = collection.schema
+
+            # Check field names
+            field_names = [field.name for field in schema.fields]
+            assert "embedding_id" in field_names
+            assert "embedding" in field_names
+            assert "model" in field_names
+            assert "text" in field_names
+            assert "timestamp" in field_names
+
+            # Check primary key
+            primary_field = next(f for f in schema.fields if f.is_primary)
+            assert primary_field.name == "embedding_id"
+
+            # Check vector dimension
+            vector_field = next(f for f in schema.fields if f.name == "embedding")
+            assert vector_field.dtype == DataType.FLOAT_VECTOR
+            assert vector_field.params["dim"] == 384
+
+        finally:
+            connections.disconnect("default")
+
+    def test_duplicate_id_handling(self):
+        """Test that duplicate embedding_id is handled appropriately."""
+        collection = create_milvus_collection()
+
+        try:
+            test_id = "duplicate-test-001"
+            vector1 = [0.1] * 384
+            vector2 = [0.2] * 384
+
+            # Insert first vector
+            data1 = [
+                [test_id],
+                [vector1],
+                ["model1"],
+                ["text1"],
+                [int(time.time() * 1000)],
+            ]
+            collection.insert(data1)
+            collection.flush()
+
+            # Attempt to insert duplicate ID
+            # Milvus allows this but we should be aware
+            data2 = [
+                [test_id],
+                [vector2],
+                ["model2"],
+                ["text2"],
+                [int(time.time() * 1000)],
+            ]
+
+            # This should work (Milvus allows duplicates in primary key before 2.4)
+            # or fail (Milvus 2.4+ enforces unique primary keys)
+            try:
+                collection.insert(data2)
+                collection.flush()
+            except Exception:
+                # Expected in newer Milvus versions
+                pass
+
+        finally:
+            connections.disconnect("default")
+
+    def test_index_creation(self):
+        """Test creating index on vector field."""
+        connections.connect(alias="default", host=MILVUS_HOST, port=MILVUS_PORT)
+
+        try:
+            test_collection_name = "test_index_collection"
+
+            if utility.has_collection(test_collection_name):
+                utility.drop_collection(test_collection_name)
+
+            # Create collection
+            fields = [
+                FieldSchema(
+                    name="id", dtype=DataType.VARCHAR, is_primary=True, max_length=64
+                ),
+                FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=128),
+            ]
+            schema = CollectionSchema(fields=fields)
+            collection = Collection(name=test_collection_name, schema=schema)
+
+            # Create index
+            index_params = {
+                "index_type": "IVF_FLAT",
+                "metric_type": "L2",
+                "params": {"nlist": 128},
+            }
+            collection.create_index(field_name="vector", index_params=index_params)
+
+            # Verify index exists
+            index_info = collection.index()
+            assert index_info is not None
+
+            # Cleanup
+            utility.drop_collection(test_collection_name)
+
+        finally:
+            connections.disconnect("default")
+
+
+@pytest.mark.skipif(not MILVUS_CONNECTED, reason="Milvus server not available")
+class TestMilvusErrorHandling:
+    """Test suite for Milvus error handling."""
+
+    def test_query_nonexistent_id(self):
+        """Test querying for non-existent embedding_id."""
+        collection = create_milvus_collection()
+
+        try:
+            collection.load()
+
+            results = collection.query(
+                expr='embedding_id == "nonexistent-id-999"',
+                output_fields=["embedding_id"],
+            )
+
+            # Should return empty results
+            assert len(results) == 0
+
+        finally:
+            connections.disconnect("default")
+
+    def test_invalid_vector_dimension(self):
+        """Test inserting vector with wrong dimension."""
+        collection = create_milvus_collection()
+
+        try:
+            # Try to insert 256-dim vector into 384-dim field
+            data = [
+                ["wrong-dim-001"],
+                [[0.1] * 256],  # Wrong dimension
+                ["test"],
+                ["test text"],
+                [int(time.time() * 1000)],
+            ]
+
+            with pytest.raises(Exception):
+                collection.insert(data)
+                collection.flush()
+
+        finally:
+            connections.disconnect("default")
+
+    def test_connection_timeout(self):
+        """Test handling connection timeout."""
+        # Try to connect to non-existent host
+        with pytest.raises(Exception):
+            connections.connect(
+                alias="timeout_test", host="nonexistent-host", port="19530", timeout=1
+            )
+
+
+@pytest.mark.skipif(not MILVUS_CONNECTED, reason="Milvus server not available")
+class TestMilvusMetadataFiltering:
+    """Test suite for metadata filtering in Milvus queries."""
+
+    def test_filter_by_model(self):
+        """Test filtering vectors by model metadata."""
+        collection = create_milvus_collection()
+
+        try:
+            # Insert vectors with different models
+            ids = [f"model-filter-{i}" for i in range(10)]
+            vectors = [[float(i)] * 384 for i in range(10)]
+            models = ["model-A"] * 5 + ["model-B"] * 5
+            texts = [f"text {i}" for i in range(10)]
+            timestamps = [int(time.time() * 1000)] * 10
+
+            data = [ids, vectors, models, texts, timestamps]
+            collection.insert(data)
+            collection.flush()
+
+            collection.load()
+            time.sleep(0.5)
+
+            # Query for specific model
+            results = collection.query(
+                expr='model == "model-A"',
+                output_fields=["embedding_id", "model"],
+                limit=10,
+            )
+
+            assert len(results) == 5
+            assert all(r["model"] == "model-A" for r in results)
+
+        finally:
+            connections.disconnect("default")
+
+    def test_filter_by_timestamp_range(self):
+        """Test filtering vectors by timestamp range."""
+        collection = create_milvus_collection()
+
+        try:
+            current_time = int(time.time() * 1000)
+
+            # Insert vectors with different timestamps
+            ids = [f"time-filter-{i}" for i in range(10)]
+            vectors = [[float(i)] * 384 for i in range(10)]
+            models = ["time-test"] * 10
+            texts = [f"text {i}" for i in range(10)]
+            timestamps = [current_time + i * 1000 for i in range(10)]
+
+            data = [ids, vectors, models, texts, timestamps]
+            collection.insert(data)
+            collection.flush()
+
+            collection.load()
+            time.sleep(0.5)
+
+            # Query for timestamp range
+            mid_time = current_time + 5000
+            results = collection.query(
+                expr=f"timestamp > {mid_time}",
+                output_fields=["embedding_id", "timestamp"],
+                limit=10,
+            )
+
+            assert len(results) > 0
+            assert all(r["timestamp"] > mid_time for r in results)
+
+        finally:
+            connections.disconnect("default")

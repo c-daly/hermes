@@ -1,6 +1,29 @@
-# Milvus Integration Testing
+# Hermes Test Suite - Phase 2 Testing
 
-This directory contains functional tests for Hermes embeddings persisted to Milvus.
+This directory contains comprehensive tests for the Hermes API, covering Phase 2 requirements as specified in [issue #24](https://github.com/c-daly/hermes/issues/24).
+
+## Test Files Overview
+
+### Unit Tests
+- **`test_embeddings.py`** - Embedding generation tests (vector dimensions, consistency, batching, edge cases)
+- **`test_nlp_operations.py`** - NLP functionality tests (tokenization, POS tagging, NER, etc.)
+- **`test_error_handling.py`** - Error handling and resilience tests
+- **`test_api.py`** - API endpoint and contract tests (existing)
+
+### Integration Tests
+- **`test_milvus_integration.py`** - Comprehensive Milvus vector database integration tests
+- **`test_neo4j_linkage.py`** - Neo4j graph database integration and relationship tests
+- **`test_hermes_integration.py`** - End-to-end workflow tests
+
+### Performance Tests
+- **`test_performance.py`** - Latency, throughput, and load testing
+
+### Test Infrastructure
+- **`conftest.py`** - Shared fixtures and test utilities
+
+---
+
+# Original Milvus Integration Testing Documentation
 
 ## Overview
 

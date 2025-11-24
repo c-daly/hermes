@@ -29,6 +29,14 @@ except ImportError:
     ML_AVAILABLE = False
     NLP_AVAILABLE = False
 
+# Check if pytest-benchmark is available
+try:
+    import pytest_benchmark  # noqa: F401
+
+    BENCHMARK_AVAILABLE = True
+except ImportError:
+    BENCHMARK_AVAILABLE = False
+
 # Check if Milvus is available
 try:
     from pymilvus import connections
@@ -54,6 +62,7 @@ client = TestClient(app)
 
 
 @pytest.mark.skipif(not ML_AVAILABLE, reason="ML dependencies not installed")
+@pytest.mark.skipif(not BENCHMARK_AVAILABLE, reason="pytest-benchmark not installed")
 class TestEmbeddingLatency:
     """Test embedding generation latency."""
 
@@ -272,6 +281,7 @@ class TestConcurrentHandling:
 
 
 @pytest.mark.skipif(not NLP_AVAILABLE, reason="NLP dependencies not installed")
+@pytest.mark.skipif(not BENCHMARK_AVAILABLE, reason="pytest-benchmark not installed")
 class TestNLPPerformance:
     """Test NLP operation performance."""
 
@@ -333,6 +343,7 @@ class TestNLPPerformance:
         assert all(s == 200 for s in status_codes)
 
 
+@pytest.mark.skipif(not BENCHMARK_AVAILABLE, reason="pytest-benchmark not installed")
 class TestAPIOverhead:
     """Test API overhead and response times."""
 

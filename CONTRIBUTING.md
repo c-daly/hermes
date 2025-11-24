@@ -4,13 +4,57 @@ Thank you for your interest in contributing to Hermes, part of Project LOGOS!
 
 ## Development Setup
 
-1. Fork and clone the repository
+### Prerequisites
+
+- Python 3.11 or higher
+- Poetry (recommended) or pip
+
+### Setup with Poetry (Recommended)
+
+1. Fork and clone the repository:
+```bash
+git clone https://github.com/c-daly/hermes.git
+cd hermes
+```
+
+2. Install dependencies:
+```bash
+poetry install --extras dev
+```
+
+3. Activate the virtual environment:
+```bash
+poetry shell
+```
+
+### Setup with pip
+
+1. Fork and clone the repository:
+```bash
+git clone https://github.com/c-daly/hermes.git
+cd hermes
+```
+
 2. Set up your development environment:
 ```bash
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e ".[dev]"
 ```
+
+## CI Parity: Running All Checks Locally
+
+Before opening a pull request, run these commands to mirror the GitHub Actions CI pipeline:
+
+```bash
+poetry install --extras dev
+poetry run ruff check src tests
+poetry run black --check src tests
+poetry run mypy src
+poetry run pytest --cov=hermes --cov-report=term --cov-report=xml
+```
+
+All checks must pass for your PR to be merged.
 
 ## Code Standards
 
@@ -26,14 +70,28 @@ pip install -e ".[dev]"
 
 - Write tests for all new features
 - Maintain or improve code coverage
-- Run the test suite before submitting:
+- Run the test suite before submitting
+
+With Poetry:
+```bash
+poetry run pytest --cov=hermes
+```
+
+With pip:
 ```bash
 pytest --cov=hermes
 ```
 
 ### Type Checking
 
-All code should pass mypy type checking:
+All code should pass mypy type checking.
+
+With Poetry:
+```bash
+poetry run mypy src
+```
+
+With pip:
 ```bash
 mypy src
 ```
@@ -44,13 +102,7 @@ mypy src
 2. Make your changes
 3. Add/update tests as needed
 4. Update documentation if needed
-5. Run tests and linting:
-```bash
-pytest
-black src tests
-ruff check src tests
-mypy src
-```
+5. Run tests and linting (see CI Parity section above)
 6. Commit your changes with clear, descriptive messages
 7. Push to your fork and submit a pull request
 

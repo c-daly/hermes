@@ -13,6 +13,13 @@ Test runs with skip flag if Milvus is unavailable.
 import os
 import pytest
 import time
+
+# Set environment variables BEFORE importing the app
+# This ensures milvus_client reads the correct configuration
+os.environ.setdefault("MILVUS_HOST", "localhost")
+os.environ.setdefault("MILVUS_PORT", "19530")
+os.environ.setdefault("MILVUS_COLLECTION_NAME", "hermes_embeddings")
+
 from fastapi.testclient import TestClient
 from hermes.main import app
 

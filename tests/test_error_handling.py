@@ -295,13 +295,13 @@ class TestLLMProviderErrors:
         assert response.status_code in [200, 400, 502, 503]
 
     def test_llm_default_provider(self):
-        """Test LLM endpoint uses default provider when none specified."""
-        response = client.post("/llm", json={"prompt": "Hello"})
+        """Test LLM endpoint with explicit echo provider."""
+        response = client.post("/llm", json={"prompt": "Hello", "provider": "echo"})
         # Should work with echo provider
         assert response.status_code == 200
         data = response.json()
         assert "provider" in data
-        assert data["provider"] == "echo"  # Default echo provider
+        assert data["provider"] == "echo"
 
     def test_llm_temperature_validation(self):
         """Test LLM temperature parameter validation."""

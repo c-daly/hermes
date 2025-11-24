@@ -64,7 +64,12 @@ NEO4J_URI = "bolt://localhost:7687"
 NEO4J_USER = "neo4j"
 NEO4J_PASSWORD = "password"
 
-client = TestClient(app)
+
+@pytest.fixture
+def client():
+    """Create a TestClient with lifespan events enabled."""
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 def check_milvus_connection():
@@ -160,7 +165,7 @@ def create_milvus_collection():
     not ML_AVAILABLE, reason="ML dependencies (sentence-transformers) not installed"
 )
 @pytest.mark.skipif(not MILVUS_CONNECTED, reason="Milvus server not available")
-def test_embedding_persisted_to_milvus():
+def test_embedding_persisted_to_milvus(client):
     """Test that embeddings are generated and persisted to Milvus correctly.
 
     This test verifies:
@@ -279,8 +284,8 @@ def test_embedding_persisted_to_milvus():
     not ML_AVAILABLE, reason="ML dependencies (sentence-transformers) not installed"
 )
 @pytest.mark.skipif(not MILVUS_CONNECTED, reason="Milvus server not available")
-@pytest.mark.skipif(not NEO4J_CONNECTED, reason="Neo4j server not available")
-def test_embedding_id_in_neo4j():
+@pytest.mark.skipif(not NEO4J_AVAILABLE, reason="Neo4j library not available")
+def test_embedding_id_in_neo4j(client):
     """Optional test: Write embedding_id to Neo4j node and read it back.
 
     This test verifies:
@@ -348,7 +353,7 @@ def test_embedding_id_in_neo4j():
 @pytest.mark.skipif(
     not ML_AVAILABLE, reason="ML dependencies (sentence-transformers) not installed"
 )
-def test_embedding_response_includes_metadata():
+def test_embedding_response_includes_metadata(client):
     """Test that embedding response includes embedding_id and model metadata.
 
     This test can run without Milvus/Neo4j and just verifies the API response.

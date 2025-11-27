@@ -37,6 +37,18 @@ The `test_milvus_integration.py` file contains tests that verify:
 
 ## Running Integration Tests Locally
 
+### Recommended: Shared Test Stack Helper
+
+Launch the dependencies and run the Milvus/Neo4j integration suite in one step:
+
+```bash
+./scripts/run_integration_stack.sh
+```
+
+The helper checks for port conflicts, waits for each container to become healthy, streams logs on failure, and finally executes `poetry run pytest tests/test_milvus_integration.py -v`. Pass any additional pytest arguments to the script to override the default command.
+
+Environment overrides such as `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `MILVUS_HOST`, and `MILVUS_PORT` are respected, so you can point the tests at an already running stack without restarting containers.
+
 ### Prerequisites
 
 1. Install dependencies:

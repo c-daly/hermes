@@ -30,8 +30,26 @@ Expected response should include:
 
 ### 1. Start Services
 
+Run the shared test stack helper (recommended):
+
 ```bash
-docker-compose -f docker-compose.test.yml up -d
+./scripts/run_integration_stack.sh
+```
+
+The script will:
+
+- Warn you about any conflicting ports (7474/7687/19530/9091)
+- Start `etcd`, `minio`, `milvus`, and `neo4j` via `docker-compose.test.yml`
+- Wait for each container to report healthy, tailing logs automatically on failure
+- Export the expected `NEO4J_*` and `MILVUS_*` variables
+- Run `poetry run pytest tests/test_milvus_integration.py -v` (pass additional pytest args to override)
+
+Environment overrides (`NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `MILVUS_HOST`, `MILVUS_PORT`) are honored, making it easy to target an already running shared stack instead of launching new containers.
+
+If you need to keep the stack running for manual testing, stop the script with `CTRL+C` *after* the services report healthy and before pytest launches, or start services manually with:
+
+```bash
+docker compose -f docker-compose.test.yml up -d
 ```
 
 This starts:
@@ -40,6 +58,8 @@ This starts:
 - Hermes
 
 ### 2. Wait for Services to be Ready
+
+Skip this step if you used `./scripts/run_integration_stack.sh`; it already polls container health and dumps logs on failure.
 
 ```bash
 # Wait for Milvus

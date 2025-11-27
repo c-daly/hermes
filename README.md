@@ -466,6 +466,15 @@ With coverage:
 poetry run pytest --cov=hermes --cov-report=html
 ```
 
+Integration tests that rely on Neo4j + Milvus can be run end-to-end with the shared helper:
+
+```bash
+./scripts/run_integration_stack.sh            # defaults to tests/test_milvus_integration.py -v
+./scripts/run_integration_stack.sh -k milvus  # pass custom pytest args as needed
+```
+
+The script starts the services from `docker-compose.test.yml`, waits for their health checks, streams logs if a container fails, and exports `NEO4J_*` / `MILVUS_*` overrides so local runs match CI.
+
 ### Code Quality
 
 Lint and format code:

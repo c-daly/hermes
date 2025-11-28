@@ -130,7 +130,7 @@ done
 
 export NEO4J_URI=${NEO4J_URI:-"bolt://localhost:7687"}
 export NEO4J_USER=${NEO4J_USER:-"neo4j"}
-export NEO4J_PASSWORD=${NEO4J_PASSWORD:-"password"}
+export NEO4J_PASSWORD=${NEO4J_PASSWORD:-"neo4jtest"}
 export MILVUS_HOST=${MILVUS_HOST:-"localhost"}
 export MILVUS_PORT=${MILVUS_PORT:-"19530"}
 export RUN_HERMES_INTEGRATION=1

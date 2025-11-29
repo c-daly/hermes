@@ -1,0 +1,22 @@
+services:
+  test-runner:
+    image: ghcr.io/c-daly/logos-foundry:0.1.0
+    container_name: hermes-test-runner
+    volumes:
+      - ${HERMES_ROOT:-.}:/app/hermes:ro
+    working_dir: /app/hermes
+    environment:
+      PYTHONPATH: /app:/app/hermes/src
+    entrypoint: /bin/sh
+    command: 
+      - -c
+      - |
+        cd /app/hermes
+        poetry install --no-root --only main
+        pytest tests/ -m "not integration" -v --no-cov
+    networks:
+      - default
+
+networks:
+  default:
+    name: logos-test-network

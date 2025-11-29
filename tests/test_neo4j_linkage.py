@@ -35,7 +35,7 @@ MILVUS_AVAILABLE = False
 # Test configuration
 NEO4J_URI = "bolt://localhost:7687"
 NEO4J_USER = "neo4j"
-NEO4J_PASSWORD = "password"
+NEO4J_PASSWORD = "neo4jtest"
 MILVUS_HOST = "localhost"
 MILVUS_PORT = "19530"
 COLLECTION_NAME = "hermes_embeddings"

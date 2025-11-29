@@ -1,127 +1,88 @@
-version: '3.8'
-
+version: '3.9'
+networks:
+  default:
+    name: logos-test-network
+    driver: bridge
+volumes:
+  hermes_test_neo4j_data: {}
+  hermes_test_neo4j_logs: {}
+  hermes_test_milvus_etcd: {}
+  hermes_test_milvus_minio: {}
+  hermes_test_milvus: {}
 services:
-  # Milvus standalone service for testing
-  etcd:
-    container_name: milvus-etcd
-    image: quay.io/coreos/etcd:v3.5.5
+  milvus-etcd:
+    container_name: hermes-test-milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.15
     environment:
-      - ETCD_AUTO_COMPACTION_MODE=revision
-      - ETCD_AUTO_COMPACTION_RETENTION=1000
-      - ETCD_QUOTA_BACKEND_BYTES=4294967296
-      - ETCD_SNAPSHOT_COUNT=50000
+    - ETCD_AUTO_COMPACTION_MODE=revision
+    - ETCD_AUTO_COMPACTION_RETENTION=1000
+    - ETCD_QUOTA_BACKEND_BYTES=4294967296
+    - ETCD_SNAPSHOT_COUNT=50000
+    command:
+    - etcd
+    - -advertise-client-urls=http://127.0.0.1:2379
+    - -listen-client-urls
+    - http://0.0.0.0:2379
+    - --data-dir
+    - /etcd
     volumes:
-      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/etcd:/etcd
-    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    - hermes_test_milvus_etcd:/etcd
+    networks:
+    - default
+  milvus-minio:
+    container_name: hermes-test-milvus-minio
+    image: minio/minio:RELEASE.2024-11-07T00-52-20Z
+    environment:
+    - MINIO_ROOT_USER=minioadmin
+    - MINIO_ROOT_PASSWORD=minioadmin
+    command:
+    - minio
+    - server
+    - /minio_data
+    - --console-address
+    - :9001
+    volumes:
+    - hermes_test_milvus_minio:/minio_data
     healthcheck:
-      test: ["CMD", "etcdctl", "endpoint", "health"]
+      test:
+      - CMD
+      - curl
+      - -f
+      - http://localhost:9000/minio/health/live
       interval: 30s
       timeout: 20s
       retries: 3
-
-  minio:
-    container_name: milvus-minio
-    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
-    environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
     ports:
-      - "9001:9001"
-      - "9000:9000"
-    volumes:
-      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/minio:/minio_data
-    command: minio server /minio_data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
+    - 9000:9000
+    - 9001:9001
+    networks:
+    - default
   milvus:
-    container_name: milvus-standalone
-    image: milvusdb/milvus:v2.3.3
-    command: ["milvus", "run", "standalone"]
-    security_opt:
-      - no-new-privileges:true
+    container_name: hermes-test-milvus
+    image: milvusdb/milvus:v2.4.15
+    command:
+    - milvus
+    - run
+    - standalone
     environment:
-      ETCD_ENDPOINTS: etcd:2379
-      MINIO_ADDRESS: minio:9000
+    - ETCD_ENDPOINTS=milvus-etcd:2379
+    - MINIO_ADDRESS=milvus-minio:9000
+    depends_on:
+    - milvus-etcd
+    - milvus-minio
     volumes:
-      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/milvus:/var/lib/milvus
+    - hermes_test_milvus:/var/lib/milvus
+    ports:
+    - 19530:19530
+    - 9091:9091
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      test:
+      - CMD
+      - curl
+      - -f
+      - http://localhost:9091/healthz
       interval: 30s
-      start_period: 90s
       timeout: 20s
       retries: 3
-    ports:
-      - "19530:19530"
-      - "9091:9091"
-    depends_on:
-      - etcd
-      - minio
-
-  # Neo4j service for optional testing
-  neo4j:
-    container_name: hermes-neo4j
-    image: neo4j:5.13
-    ports:
-      - "7474:7474"
-      - "7687:7687"
-    environment:
-      - NEO4J_AUTH=neo4j/password
-      - NEO4J_PLUGINS=["apoc"]
-      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
-    volumes:
-      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/neo4j/data:/data
-      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/neo4j/logs:/logs
-    healthcheck:
-      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "password", "RETURN 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # Hermes service
-  hermes:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: hermes:latest
-    container_name: hermes
-    ports:
-      - "8080:8080"
-    environment:
-      - PYTHONUNBUFFERED=1
-      - MILVUS_HOST=milvus
-      - MILVUS_PORT=19530
-      - MILVUS_COLLECTION_NAME=hermes_embeddings
-    restart: unless-stopped
-    depends_on:
-      - milvus
-      - neo4j
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 4G
-        reservations:
-          cpus: '0.5'
-          memory: 1G
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /home/hermes/.cache
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    networks:
+    - default

@@ -1,6 +1,6 @@
 # Production-ready Dockerfile for Hermes API server
 # Optimized for FastAPI/uvicorn with stateless design
-FROM python:3.11-slim
+FROM ghcr.io/c-daly/logos-foundry:0.1.0
 
 # Add metadata labels following OCI standards
 LABEL org.opencontainers.image.title="Hermes API" \
@@ -9,39 +9,19 @@ LABEL org.opencontainers.image.title="Hermes API" \
       org.opencontainers.image.source="https://github.com/c-daly/hermes" \
       org.opencontainers.image.licenses="MIT"
 
-# Install system dependencies for ML libraries and curl for healthcheck
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    ffmpeg \
-    libsndfile1 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user for security
-RUN useradd -m -u 1000 -s /bin/bash hermes && \
-    mkdir -p /app && \
-    chown -R hermes:hermes /app
-
 # Set working directory
-WORKDIR /app
+WORKDIR /app/hermes
 
-# Copy dependency + source files (needed for poetry build includes)
-COPY --chown=hermes:hermes pyproject.toml README.md src/ ./
+# Copy application code and configuration
+COPY src/ ./src/
+COPY pyproject.toml README.md ./
 
-# Install Python dependencies as root for system-wide availability
-# Install PyTorch CPU version first to avoid CUDA packages (~500MB vs ~2GB)
-RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir ".[ml]"
+# Install Hermes dependencies (including ML packages)
+# Note: foundry base already has Poetry and common dependencies
+RUN poetry install --only main --extras ml --no-interaction --no-ansi
 
-# Copy application source code
-COPY --chown=hermes:hermes src/ src/
-
-# Switch to non-root user for security
-USER hermes
-
-# Download spaCy model as non-root user
-RUN python -m spacy download en_core_web_sm
+# Download spaCy model
+RUN poetry run python -m spacy download en_core_web_sm
 
 # Expose the API port
 EXPOSE 8080
@@ -54,7 +34,7 @@ ARG HERMES_LLM_BASE_URL=https://api.openai.com/v1
 
 # Set environment variables (can be overridden at runtime)
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/src \
+    PYTHONPATH=/app/hermes/src \
     HERMES_LLM_PROVIDER=${HERMES_LLM_PROVIDER} \
     HERMES_LLM_API_KEY=${HERMES_LLM_API_KEY} \
     HERMES_LLM_MODEL=${HERMES_LLM_MODEL} \
@@ -64,5 +44,5 @@ ENV PYTHONUNBUFFERED=1 \
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8080/ || exit 1
 
-# Run the server as non-root user
-CMD ["uvicorn", "hermes.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Run the server
+CMD ["poetry", "run", "uvicorn", "hermes.main:app", "--host", "0.0.0.0", "--port", "8080"]

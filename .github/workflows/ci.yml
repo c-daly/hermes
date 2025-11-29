@@ -71,7 +71,7 @@ jobs:
 
     - name: Start services
       run: |
-        docker compose -f docker-compose.test.yml up -d milvus-etcd milvus-minio milvus neo4j
+        docker compose -f docker-compose.test.yml up -d milvus-etcd milvus-minio milvus
 
     - name: Wait for services
       run: |
@@ -83,9 +83,6 @@ jobs:
         
         echo "Waiting for Milvus..."
         timeout 120 bash -c 'until curl -f http://localhost:9091/healthz 2>/dev/null; do sleep 2; done'
-        
-        echo "Waiting for Neo4j..."
-        timeout 90 bash -c 'until nc -z localhost 7687; do sleep 2; done'
 
     - name: Install dependencies
       run: |

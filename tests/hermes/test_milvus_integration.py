@@ -284,7 +284,7 @@ def test_embedding_persisted_to_milvus(client):
     not ML_AVAILABLE, reason="ML dependencies (sentence-transformers) not installed"
 )
 @pytest.mark.skipif(not MILVUS_CONNECTED, reason="Milvus server not available")
-@pytest.mark.skipif(not NEO4J_AVAILABLE, reason="Neo4j library not available")
+@pytest.mark.skipif(not NEO4J_CONNECTED, reason="Neo4j server not available")
 def test_embedding_id_in_neo4j(client):
     """Optional test: Write embedding_id to Neo4j node and read it back.
 

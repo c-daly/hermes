@@ -24,6 +24,21 @@ Text embeddings are automatically persisted to Milvus when generated, providing 
 
 ## Installation
 
+### Using Docker
+
+The recommended way to run Hermes is using the pre-built Docker image:
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/c-daly/hermes:latest
+
+# Run with environment variables
+docker run -p 8080:8080 \
+  -e MILVUS_HOST=your-milvus-host \
+  -e MILVUS_PORT=19530 \
+  ghcr.io/c-daly/hermes:latest
+```
+
 ### Prerequisites
 
 - Python 3.11 or higher

@@ -1,8 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Determine repo root: use HERMES_REPO_ROOT if set, otherwise compute from script location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HERMES_REPO_ROOT="${HERMES_REPO_ROOT:-$(dirname "$SCRIPT_DIR")}"
+export HERMES_REPO_ROOT
+
+# Load environment from .env.test if it exists
+if [[ -f "${HERMES_REPO_ROOT}/.env.test" ]]; then
+  # shellcheck disable=SC1091
+  set -a
+  source "${HERMES_REPO_ROOT}/.env.test"
+  set +a
+fi
+
 COMPOSE=${COMPOSE_CMD:-"docker compose"}
-COMPOSE_FILE=${COMPOSE_FILE:-"docker-compose.test.yml"}
+COMPOSE_FILE=${COMPOSE_FILE:-"${HERMES_REPO_ROOT}/docker-compose.test.yml"}
 SERVICES=("etcd" "minio" "milvus" "neo4j")
 HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-180}
 PORTS_TO_CHECK=(

@@ -11,6 +11,12 @@ import pytest
 from typing import Any
 from fastapi.testclient import TestClient
 from hermes.main import app
+from hermes.env import get_milvus_config, get_neo4j_config, load_env_file
+
+# Load environment configuration at module level
+_env = load_env_file()
+_milvus_config = get_milvus_config(_env)
+_neo4j_config = get_neo4j_config(_env)
 
 # Sample test data
 SAMPLE_TEXTS = [
@@ -84,7 +90,12 @@ def milvus_connection():
     try:
         from pymilvus import connections
 
-        connections.connect(alias="test", host="localhost", port="19530", timeout=5)
+        connections.connect(
+            alias="test",
+            host=_milvus_config["host"],
+            port=_milvus_config["port"],
+            timeout=5,
+        )
         yield connections
         connections.disconnect("test")
     except Exception as e:
@@ -94,7 +105,7 @@ def milvus_connection():
 @pytest.fixture
 def milvus_collection_name() -> str:
     """Provide the test collection name."""
-    return "hermes_embeddings"
+    return _milvus_config["collection_name"]
 
 
 # Neo4j fixtures
@@ -105,7 +116,8 @@ def neo4j_driver():
         from neo4j import GraphDatabase
 
         driver = GraphDatabase.driver(
-            "bolt://localhost:7687", auth=("neo4j", "password")
+            _neo4j_config["uri"],
+            auth=(_neo4j_config["user"], _neo4j_config["password"]),
         )
         driver.verify_connectivity()
         yield driver
@@ -235,14 +247,14 @@ def test_config() -> dict[str, Any]:
     """Provide test configuration."""
     return {
         "milvus": {
-            "host": "localhost",
-            "port": "19530",
-            "collection": "hermes_embeddings",
+            "host": _milvus_config["host"],
+            "port": _milvus_config["port"],
+            "collection": _milvus_config["collection_name"],
         },
         "neo4j": {
-            "uri": "bolt://localhost:7687",
-            "user": "neo4j",
-            "password": "password",
+            "uri": _neo4j_config["uri"],
+            "user": _neo4j_config["user"],
+            "password": _neo4j_config["password"],
         },
         "api": {"base_url": "http://localhost:8080", "timeout": 30},
     }

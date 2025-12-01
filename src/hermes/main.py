@@ -41,8 +41,9 @@ async def lifespan(app: FastAPI):  # type: ignore
     milvus_client.initialize_milvus()
     logger.info("Hermes API startup complete")
     yield
-    # Shutdown (if needed)
+    # Shutdown
     logger.info("Shutting down Hermes API...")
+    milvus_client.disconnect_milvus()
 
 
 # Create FastAPI app

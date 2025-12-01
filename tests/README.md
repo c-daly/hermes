@@ -58,18 +58,15 @@ poetry run pip install torch torchaudio --index-url https://download.pytorch.org
 poetry run pip install sentence-transformers
 ```
 
-2. Start Milvus and Neo4j services:
+2. Start Milvus services:
 ```bash
-docker-compose -f docker-compose.test.yml up -d milvus neo4j
+docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
 ```
 
 3. Wait for services to be ready:
 ```bash
-# Wait for Milvus
-timeout 120 bash -c 'until curl -f http://localhost:19530/healthz 2>/dev/null; do sleep 2; done'
-
-# Wait for Neo4j
-timeout 60 bash -c 'until nc -z localhost 7687; do sleep 2; done'
+# Wait for Milvus (port 18091 for health)
+timeout 120 bash -c 'until curl -f http://localhost:18091/healthz 2>/dev/null; do sleep 2; done'
 ```
 
 ### Running Tests
@@ -95,7 +92,7 @@ poetry run pytest tests/test_milvus_integration.py::test_embedding_id_in_neo4j -
 
 Stop and remove services:
 ```bash
-docker-compose -f docker-compose.test.yml down -v
+docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml down -v
 ```
 
 ## Test Behavior
@@ -112,8 +109,8 @@ Tests automatically skip if required dependencies are not available:
 
 Default connection settings (can be overridden via environment variables):
 
-- **Milvus**: `localhost:19530`
-- **Neo4j**: `bolt://localhost:7687` (user: `neo4j`, password: `password`)
+- **Milvus**: `localhost:18530`
+- **Neo4j**: `bolt://localhost:7687` (user: `neo4j`, password: `neo4jtest`)
 
 ## Milvus Schema
 
@@ -147,15 +144,15 @@ The CI workflow:
 ### Milvus Connection Failed
 
 If Milvus connection fails:
-1. Check if services are running: `docker-compose -f docker-compose.test.yml ps`
-2. Check Milvus logs: `docker-compose -f docker-compose.test.yml logs milvus`
-3. Verify port is accessible: `curl http://localhost:19530/healthz`
+1. Check if services are running: `docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml ps`
+2. Check Milvus logs: `docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml logs milvus`
+3. Verify port is accessible: `curl http://localhost:18091/healthz`
 
 ### Neo4j Connection Failed
 
 If Neo4j connection fails:
-1. Check Neo4j logs: `docker-compose -f docker-compose.test.yml logs neo4j`
-2. Verify credentials: `cypher-shell -u neo4j -p password "RETURN 1"`
+1. Check Neo4j logs: `docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml logs neo4j`
+2. Verify credentials: `cypher-shell -u neo4j -p neo4jtest "RETURN 1"`
 3. Ensure port 7687 is not already in use
 
 ### ML Dependencies Not Found

@@ -51,6 +51,9 @@ NEO4J_URI = _neo4j_config["uri"]
 NEO4J_USER = _neo4j_config["user"]
 NEO4J_PASSWORD = _neo4j_config["password"]
 
+# Note: We use the lifespan_client fixture from conftest.py for tests
+# that need Milvus persistence. The module-level client below is only
+# for backward compatibility with tests that don't need lifespan.
 client = TestClient(app)
 
 
@@ -91,6 +94,11 @@ class TestCompleteEmbeddingWorkflow:
     """Test complete embedding workflow end-to-end."""
 
     @pytest.fixture(autouse=True)
+    def setup_client(self, lifespan_client):
+        """Set up the lifespan-managed client for all tests."""
+        self.client = lifespan_client
+
+    @pytest.fixture(autouse=True)
     def cleanup(self):
         """Clean up test data before and after tests."""
         # Cleanup Neo4j
@@ -114,7 +122,7 @@ class TestCompleteEmbeddingWorkflow:
         test_text = "Integration test: complete workflow"
 
         # Step 1: Generate embedding via API
-        response = client.post("/embed_text", json={"text": test_text})
+        response = self.client.post("/embed_text", json={"text": test_text})
         assert response.status_code == 200
 
         data = response.json()
@@ -184,7 +192,7 @@ class TestCompleteEmbeddingWorkflow:
 
         embedding_ids = []
         for doc in test_docs:
-            response = client.post("/embed_text", json={"text": doc})
+            response = self.client.post("/embed_text", json={"text": doc})
             assert response.status_code == 200
             embedding_ids.append(response.json()["embedding_id"])
 
@@ -192,7 +200,7 @@ class TestCompleteEmbeddingWorkflow:
 
         # Step 2: Generate query embedding
         query_text = "Cats and dogs"
-        response = client.post("/embed_text", json={"text": query_text})
+        response = self.client.post("/embed_text", json={"text": query_text})
         assert response.status_code == 200
 
         query_embedding = response.json()["embedding"]
@@ -252,7 +260,7 @@ class TestCompleteEmbeddingWorkflow:
 
             for aspect_text in aspects:
                 # Generate embedding
-                response = client.post("/embed_text", json={"text": aspect_text})
+                response = self.client.post("/embed_text", json={"text": aspect_text})
                 assert response.status_code == 200
 
                 embedding_id = response.json()["embedding_id"]
@@ -295,6 +303,11 @@ class TestDataConsistency:
     """Test data consistency across Milvus and Neo4j."""
 
     @pytest.fixture(autouse=True)
+    def setup_client(self, lifespan_client):
+        """Set up the lifespan-managed client for all tests."""
+        self.client = lifespan_client
+
+    @pytest.fixture(autouse=True)
     def cleanup(self):
         """Clean up test data."""
         if NEO4J_CONNECTED:
@@ -314,7 +327,7 @@ class TestDataConsistency:
         test_text = "Consistency check text"
 
         # Generate embedding
-        response = client.post("/embed_text", json={"text": test_text})
+        response = self.client.post("/embed_text", json={"text": test_text})
         assert response.status_code == 200
 
         embedding_id = response.json()["embedding_id"]
@@ -368,7 +381,7 @@ class TestDataConsistency:
         """Test that metadata is consistent across services."""
         test_text = "Metadata consistency test"
 
-        response = client.post("/embed_text", json={"text": test_text})
+        response = self.client.post("/embed_text", json={"text": test_text})
         assert response.status_code == 200
 
         data = response.json()
@@ -434,6 +447,11 @@ class TestDataConsistency:
 class TestProposalIngestion:
     """Test text proposal ingestion workflow."""
 
+    @pytest.fixture(autouse=True)
+    def setup_client(self, lifespan_client):
+        """Set up the lifespan-managed client for all tests."""
+        self.client = lifespan_client
+
     def test_ingest_text_proposal(self):
         """Test ingesting a text proposal and generating embeddings."""
         proposal = {
@@ -443,8 +461,10 @@ class TestProposalIngestion:
         }
 
         # Generate embeddings for title and description
-        title_response = client.post("/embed_text", json={"text": proposal["title"]})
-        desc_response = client.post(
+        title_response = self.client.post(
+            "/embed_text", json={"text": proposal["title"]}
+        )
+        desc_response = self.client.post(
             "/embed_text", json={"text": proposal["description"]}
         )
 
@@ -469,7 +489,7 @@ class TestProposalIngestion:
         Paragraph 4: Finally, we discuss the expected benefits.
         """
 
-        response = client.post("/embed_text", json={"text": long_proposal})
+        response = self.client.post("/embed_text", json={"text": long_proposal})
         assert response.status_code == 200
 
         data = response.json()
@@ -481,12 +501,17 @@ class TestProposalIngestion:
 class TestCrossServiceIntegration:
     """Test integration with other LOGOS services."""
 
+    @pytest.fixture(autouse=True)
+    def setup_client(self, lifespan_client):
+        """Set up the lifespan-managed client for all tests."""
+        self.client = lifespan_client
+
     def test_nlp_then_embedding(self):
         """Test NLP processing followed by embedding generation."""
         test_text = "This is a test for cross-service integration."
 
         # Step 1: Process with NLP
-        nlp_response = client.post(
+        nlp_response = self.client.post(
             "/simple_nlp", json={"text": test_text, "operations": ["tokenize", "ner"]}
         )
         assert nlp_response.status_code == 200
@@ -495,7 +520,7 @@ class TestCrossServiceIntegration:
         assert "tokens" in nlp_data
 
         # Step 2: Generate embedding
-        embed_response = client.post("/embed_text", json={"text": test_text})
+        embed_response = self.client.post("/embed_text", json={"text": test_text})
         assert embed_response.status_code == 200
 
         embed_data = embed_response.json()
@@ -544,12 +569,17 @@ class TestEmbeddingVersioning:
                 session.run("MATCH (n:IntegrationTest) DETACH DELETE n")
             driver.close()
 
+    @pytest.fixture(autouse=True)
+    def setup_client(self, lifespan_client):
+        """Use the lifespan_client fixture to ensure Milvus is initialized."""
+        self.client = lifespan_client
+
     def test_track_embedding_versions(self):
         """Test tracking different versions of embeddings."""
         test_text = "Version tracking test"
 
         # Generate version 1
-        response_v1 = client.post("/embed_text", json={"text": test_text})
+        response_v1 = self.client.post("/embed_text", json={"text": test_text})
         assert response_v1.status_code == 200
 
         embedding_id_v1 = response_v1.json()["embedding_id"]
@@ -591,7 +621,7 @@ class TestEmbeddingVersioning:
 
     def test_model_metadata_tracking(self):
         """Test tracking which model generated each embedding."""
-        response = client.post("/embed_text", json={"text": "Model tracking test"})
+        response = self.client.post("/embed_text", json={"text": "Model tracking test"})
         assert response.status_code == 200
 
         data = response.json()

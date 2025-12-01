@@ -6,23 +6,28 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HERMES_REPO_ROOT="${HERMES_REPO_ROOT:-$(dirname "$SCRIPT_DIR")}"
 export HERMES_REPO_ROOT
 
-# Load environment from .env.test if it exists
-if [[ -f "${HERMES_REPO_ROOT}/.env.test" ]]; then
+# Standard stack location (matches LOGOS layout)
+STACK_DIR="${HERMES_REPO_ROOT}/tests/e2e/stack/hermes"
+ENV_FILE="${STACK_DIR}/.env.test"
+COMPOSE_FILE="${STACK_DIR}/docker-compose.test.yml"
+
+# Load environment from .env.test
+if [[ -f "$ENV_FILE" ]]; then
   # shellcheck disable=SC1091
   set -a
-  source "${HERMES_REPO_ROOT}/.env.test"
+  source "$ENV_FILE"
   set +a
 fi
 
 COMPOSE=${COMPOSE_CMD:-"docker compose"}
-COMPOSE_FILE=${COMPOSE_FILE:-"${HERMES_REPO_ROOT}/docker-compose.test.yml"}
-SERVICES=("etcd" "minio" "milvus" "neo4j")
+# Hermes only needs Milvus (no Neo4j)
+SERVICES=("milvus-etcd" "milvus-minio" "milvus")
 HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-180}
+
+# Hermes-specific ports (18530, 18091 to avoid conflicts with other repos)
 PORTS_TO_CHECK=(
-  "7474:Neo4j HTTP"
-  "7687:Neo4j Bolt"
-  "19530:Milvus gRPC"
-  "9091:Milvus health"
+  "18530:Milvus gRPC"
+  "18091:Milvus health"
 )
 
 info() {
@@ -119,7 +124,7 @@ for mapping in "${PORTS_TO_CHECK[@]}"; do
 
 done
 
-echo "Starting Neo4j + Milvus dependencies for Hermes integration tests..."
+echo "Starting Milvus stack for Hermes integration tests..."
 if ! $COMPOSE -f "$COMPOSE_FILE" up -d "${SERVICES[@]}"; then
   error "docker compose failed to start services"
   $COMPOSE -f "$COMPOSE_FILE" logs --tail=200 || true
@@ -141,11 +146,12 @@ for service in "${SERVICES[@]}"; do
 
 done
 
+# Export standard env vars (from .env.test, with localhost for host access)
+export MILVUS_HOST=${MILVUS_HOST:-"localhost"}
+export MILVUS_PORT=${MILVUS_PORT:-"18530"}
 export NEO4J_URI=${NEO4J_URI:-"bolt://localhost:7687"}
 export NEO4J_USER=${NEO4J_USER:-"neo4j"}
 export NEO4J_PASSWORD=${NEO4J_PASSWORD:-"neo4jtest"}
-export MILVUS_HOST=${MILVUS_HOST:-"localhost"}
-export MILVUS_PORT=${MILVUS_PORT:-"19530"}
 export RUN_HERMES_INTEGRATION=1
 
 default_pytest_args=("tests/test_milvus_integration.py" "-v")

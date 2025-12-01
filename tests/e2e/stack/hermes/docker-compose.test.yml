@@ -73,8 +73,8 @@ services:
     volumes:
     - hermes_test_milvus:/var/lib/milvus
     ports:
-    - 19530:19530
-    - 9091:9091
+    - 18530:19530
+    - 18091:9091
     healthcheck:
       test:
       - CMD

@@ -38,10 +38,10 @@ Run the shared test stack helper (recommended):
 
 The script will:
 
-- Warn you about any conflicting ports (7474/7687/19530/9091)
-- Start `etcd`, `minio`, `milvus`, and `neo4j` via `docker-compose.test.yml`
+- Warn you about any conflicting ports (18530/18091 for Milvus)
+- Start `milvus-etcd`, `milvus-minio`, and `milvus` via `tests/e2e/stack/hermes/docker-compose.test.yml`
 - Wait for each container to report healthy, tailing logs automatically on failure
-- Export the expected `NEO4J_*` and `MILVUS_*` variables
+- Export the expected `MILVUS_*` variables (port 18530)
 - Run `poetry run pytest tests/test_milvus_integration.py -v` (pass additional pytest args to override)
 
 Environment overrides (`NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `MILVUS_HOST`, `MILVUS_PORT`) are honored, making it easy to target an already running shared stack instead of launching new containers.
@@ -49,24 +49,19 @@ Environment overrides (`NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `MILVUS_HOST
 If you need to keep the stack running for manual testing, stop the script with `CTRL+C` *after* the services report healthy and before pytest launches, or start services manually with:
 
 ```bash
-docker compose -f docker-compose.test.yml up -d
+docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
 ```
 
 This starts:
-- Milvus (with etcd and MinIO dependencies)
-- Neo4j
-- Hermes
+- Milvus (with etcd and MinIO dependencies) on port 18530
 
 ### 2. Wait for Services to be Ready
 
 Skip this step if you used `./scripts/run_integration_stack.sh`; it already polls container health and dumps logs on failure.
 
 ```bash
-# Wait for Milvus
-timeout 120 bash -c 'until curl -f http://localhost:19530/healthz 2>/dev/null; do echo "Waiting for Milvus..."; sleep 2; done'
-
-# Wait for Neo4j
-timeout 60 bash -c 'until nc -z localhost 7687; do echo "Waiting for Neo4j..."; sleep 2; done'
+# Wait for Milvus (port 18091 for health, 18530 for gRPC)
+timeout 120 bash -c 'until curl -f http://localhost:18091/healthz 2>/dev/null; do echo "Waiting for Milvus..."; sleep 2; done'
 ```
 
 ### 3. Install ML Dependencies
@@ -90,7 +85,7 @@ poetry run pytest tests/test_milvus_integration.py::test_embedding_id_in_neo4j -
 ### 5. Cleanup
 
 ```bash
-docker-compose -f docker-compose.test.yml down -v
+docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml down -v
 ```
 
 ## Manual Testing Steps
@@ -118,7 +113,7 @@ from pymilvus import connections, Collection
 import time
 
 # Connect to Milvus
-connections.connect(alias="default", host="localhost", port="19530")
+connections.connect(alias="default", host="localhost", port="18530")
 
 # Get the collection (assumes test created it)
 collection = Collection("hermes_embeddings")

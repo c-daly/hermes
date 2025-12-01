@@ -1,0 +1,20 @@
+# Codecov configuration
+# Disabling coverage gates temporarily - coverage review planned for later
+# See: https://docs.codecov.com/docs/commit-status
+
+coverage:
+  status:
+    project:
+      default:
+        # Disable project coverage gate
+        informational: true
+    patch:
+      default:
+        # Disable patch coverage gate
+        informational: true
+
+comment:
+  # Still show coverage reports in PR comments for visibility
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: false

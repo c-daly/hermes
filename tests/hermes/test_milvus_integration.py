@@ -14,14 +14,21 @@ import os
 import pytest
 import time
 
+# Load configuration from environment BEFORE importing the app
+from hermes.env import get_milvus_config, get_neo4j_config, load_env_file
+
+_env = load_env_file()
+_milvus_config = get_milvus_config(_env)
+_neo4j_config = get_neo4j_config(_env)
+
 # Set environment variables BEFORE importing the app
 # This ensures milvus_client reads the correct configuration
-os.environ.setdefault("MILVUS_HOST", "localhost")
-os.environ.setdefault("MILVUS_PORT", "19530")
-os.environ.setdefault("MILVUS_COLLECTION_NAME", "hermes_embeddings")
+os.environ.setdefault("MILVUS_HOST", _milvus_config["host"])
+os.environ.setdefault("MILVUS_PORT", _milvus_config["port"])
+os.environ.setdefault("MILVUS_COLLECTION_NAME", _milvus_config["collection_name"])
 
-from fastapi.testclient import TestClient
-from hermes.main import app
+from fastapi.testclient import TestClient  # noqa: E402
+from hermes.main import app  # noqa: E402
 
 # Check if running in CI environment
 IS_CI = os.getenv("CI", "false").lower() == "true"
@@ -56,13 +63,13 @@ try:
 except ImportError:
     ML_AVAILABLE = False
 
-# Test configuration
-MILVUS_HOST = "localhost"
-MILVUS_PORT = "19530"
-COLLECTION_NAME = "hermes_embeddings"
-NEO4J_URI = "bolt://localhost:7687"
-NEO4J_USER = "neo4j"
-NEO4J_PASSWORD = "neo4jtest"
+# Test configuration from environment
+MILVUS_HOST = _milvus_config["host"]
+MILVUS_PORT = _milvus_config["port"]
+COLLECTION_NAME = _milvus_config["collection_name"]
+NEO4J_URI = _neo4j_config["uri"]
+NEO4J_USER = _neo4j_config["user"]
+NEO4J_PASSWORD = _neo4j_config["password"]
 
 
 @pytest.fixture

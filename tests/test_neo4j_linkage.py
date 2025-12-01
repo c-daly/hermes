@@ -15,6 +15,13 @@ import pytest
 from fastapi.testclient import TestClient
 from hermes.main import app
 
+# Load configuration from environment
+from hermes.env import get_milvus_config, get_neo4j_config, load_env_file
+
+_env = load_env_file()
+_milvus_config = get_milvus_config(_env)
+_neo4j_config = get_neo4j_config(_env)
+
 # Check if dependencies are available
 try:
     from neo4j import GraphDatabase
@@ -32,13 +39,13 @@ except ImportError:
 
 MILVUS_AVAILABLE = False
 
-# Test configuration
-NEO4J_URI = "bolt://localhost:7687"
-NEO4J_USER = "neo4j"
-NEO4J_PASSWORD = "neo4jtest"
-MILVUS_HOST = "localhost"
-MILVUS_PORT = "19530"
-COLLECTION_NAME = "hermes_embeddings"
+# Test configuration from environment
+NEO4J_URI = _neo4j_config["uri"]
+NEO4J_USER = _neo4j_config["user"]
+NEO4J_PASSWORD = _neo4j_config["password"]
+MILVUS_HOST = _milvus_config["host"]
+MILVUS_PORT = _milvus_config["port"]
+COLLECTION_NAME = _milvus_config["collection_name"]
 
 client = TestClient(app)
 

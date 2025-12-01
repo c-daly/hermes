@@ -49,8 +49,24 @@ SAMPLE_UNICODE_TEXT = [
 
 @pytest.fixture
 def test_client() -> TestClient:
-    """Provide a FastAPI test client."""
+    """Provide a FastAPI test client.
+
+    Note: This fixture does NOT trigger lifespan events.
+    Use `lifespan_client` for tests requiring Milvus initialization.
+    """
     return TestClient(app)
+
+
+@pytest.fixture
+def lifespan_client():
+    """Provide a FastAPI test client with lifespan management.
+
+    This fixture properly triggers startup/shutdown events, which
+    initializes Milvus connection. Use this for integration tests
+    that require Milvus persistence.
+    """
+    with TestClient(app) as client:
+        yield client
 
 
 @pytest.fixture

@@ -154,7 +154,7 @@ def create_milvus_collection():
     not ML_AVAILABLE, reason="ML dependencies (sentence-transformers) not installed"
 )
 @pytest.mark.skipif(not MILVUS_CONNECTED, reason="Milvus server not available")
-def test_embedding_persisted_to_milvus():
+def test_embedding_persisted_to_milvus(lifespan_client):
     """Test that embeddings are generated and persisted to Milvus correctly.
 
     This test verifies:
@@ -171,7 +171,7 @@ def test_embedding_persisted_to_milvus():
         test_text = "This is a test sentence for embedding."
         request_data = {"text": test_text, "model": "default"}
 
-        response = client.post("/embed_text", json=request_data)
+        response = lifespan_client.post("/embed_text", json=request_data)
         assert response.status_code == 200
 
         # Step 2: Verify response contains required fields

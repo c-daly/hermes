@@ -70,7 +70,7 @@ jobs:
 
     - name: Start services
       run: |
-        docker compose -f docker-compose.test.yml up -d milvus-etcd milvus-minio milvus
+        docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d milvus-etcd milvus-minio milvus
 
     - name: Wait for services
       run: |
@@ -81,7 +81,7 @@ jobs:
         timeout 60 bash -c 'until curl -f http://localhost:9000/minio/health/live 2>/dev/null; do sleep 2; done'
         
         echo "Waiting for Milvus..."
-        timeout 120 bash -c 'until curl -f http://localhost:9091/healthz 2>/dev/null; do sleep 2; done'
+        timeout 120 bash -c 'until curl -f http://localhost:18091/healthz 2>/dev/null; do sleep 2; done'
 
     - name: Install Poetry
       run: |
@@ -97,7 +97,7 @@ jobs:
     - name: Run integration tests
       env:
         MILVUS_HOST: localhost
-        MILVUS_PORT: "19530"
+        MILVUS_PORT: "18530"
       run: |
         poetry run pytest tests/hermes/test_milvus_integration.py -v --cov=hermes --cov-report=xml --cov-report=term
 
@@ -110,4 +110,4 @@ jobs:
     
     - name: Stop services
       if: always()
-      run: docker compose -f docker-compose.test.yml down -v
+      run: docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml down -v

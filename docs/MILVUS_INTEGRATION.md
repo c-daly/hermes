@@ -15,9 +15,9 @@ Hermes now automatically persists text embeddings to Milvus when the `/embed_tex
 Configure Milvus connection via environment variables:
 
 ```bash
-# .env file
+# .env file or tests/e2e/stack/hermes/.env.test
 MILVUS_HOST=localhost
-MILVUS_PORT=19530
+MILVUS_PORT=18530
 MILVUS_COLLECTION_NAME=hermes_embeddings
 ```
 
@@ -41,13 +41,13 @@ For testing and development, use Docker Compose:
 
 ```bash
 # Start Milvus and dependencies
-docker compose -f docker-compose.test.yml up -d milvus
+docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
 
 # Check status
-docker ps --filter "name=milvus"
+docker ps --filter "name=hermes-test-milvus"
 
 # Stop services
-docker compose -f docker-compose.test.yml down
+docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml down -v
 ```
 
 ### API Usage
@@ -80,7 +80,7 @@ You can query the persisted embeddings using the pymilvus client:
 from pymilvus import connections, Collection
 
 # Connect to Milvus
-connections.connect(host="localhost", port="19530")
+connections.connect(host="localhost", port="18530")
 
 # Get collection
 collection = Collection("hermes_embeddings")
@@ -113,16 +113,16 @@ The production Docker image includes pymilvus. Set Milvus connection in the envi
 docker run -d \
   -p 8080:8080 \
   -e MILVUS_HOST=milvus-host \
-  -e MILVUS_PORT=19530 \
+  -e MILVUS_PORT=18530 \
   hermes:latest
 ```
 
 ### Docker Compose
 
-The `docker-compose.test.yml` includes a complete stack with Milvus:
+The `tests/e2e/stack/hermes/docker-compose.test.yml` includes a complete Milvus stack:
 
 ```bash
-docker compose -f docker-compose.test.yml up -d
+docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
 ```
 
 ### Kubernetes
@@ -134,7 +134,7 @@ env:
   - name: MILVUS_HOST
     value: "milvus-service"
   - name: MILVUS_PORT
-    value: "19530"
+    value: "18530"
 ```
 
 ## Testing
@@ -153,7 +153,7 @@ Integration tests require a running Milvus instance and ML dependencies:
 
 ```bash
 # Start Milvus
-docker compose -f docker-compose.test.yml up -d milvus
+docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
 
 # Install ML dependencies
 pip install sentence-transformers

@@ -464,8 +464,10 @@ async def llm_generate(request: LLMRequest) -> LLMResponse:
 # Media Ingestion Endpoint
 # ---------------------------------------------------------------------
 
+
 class MediaType(str):
     """Media type enumeration."""
+
     IMAGE = "IMAGE"
     VIDEO = "VIDEO"
     AUDIO = "AUDIO"
@@ -473,13 +475,20 @@ class MediaType(str):
 
 class MediaIngestResponse(BaseModel):
     """Response from media ingestion."""
+
     sample_id: str = Field(..., description="Unique identifier for the media sample")
     file_path: str = Field(..., description="Path where media is stored")
     media_type: str = Field(..., description="Type of media (IMAGE, VIDEO, AUDIO)")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Extracted metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Extracted metadata"
+    )
     neo4j_node_id: Optional[str] = Field(None, description="Neo4j node ID if persisted")
-    embedding_id: Optional[str] = Field(None, description="Milvus embedding ID if generated")
-    transcription: Optional[str] = Field(None, description="Transcription for audio/video")
+    embedding_id: Optional[str] = Field(
+        None, description="Milvus embedding ID if generated"
+    )
+    transcription: Optional[str] = Field(
+        None, description="Transcription for audio/video"
+    )
     message: str = Field(..., description="Status message")
 
 
@@ -532,7 +541,9 @@ async def ingest_media(
             try:
                 stt_result = await transcribe_audio(file_content)
                 transcription = stt_result.get("text")
-                logger.info(f"Transcribed audio: {transcription[:100] if transcription else 'empty'}...")
+                logger.info(
+                    f"Transcribed audio: {transcription[:100] if transcription else 'empty'}..."
+                )
 
                 # Generate embedding for transcription
                 if transcription:
@@ -584,7 +595,9 @@ async def ingest_media(
         return result
 
     except httpx.HTTPStatusError as exc:
-        logger.error(f"Sophia rejected media: {exc.response.status_code} - {exc.response.text}")
+        logger.error(
+            f"Sophia rejected media: {exc.response.status_code} - {exc.response.text}"
+        )
         raise HTTPException(
             status_code=exc.response.status_code,
             detail=f"Sophia ingestion failed: {exc.response.text}",

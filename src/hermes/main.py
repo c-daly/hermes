@@ -460,6 +460,162 @@ async def llm_generate(request: LLMRequest) -> LLMResponse:
         raise HTTPException(status_code=500, detail="LLM provider failure") from exc
 
 
+# ---------------------------------------------------------------------
+# Media Ingestion Endpoint
+# ---------------------------------------------------------------------
+
+
+class MediaType(str):
+    """Media type enumeration."""
+
+    IMAGE = "IMAGE"
+    VIDEO = "VIDEO"
+    AUDIO = "AUDIO"
+
+
+class MediaIngestResponse(BaseModel):
+    """Response from media ingestion."""
+
+    sample_id: str = Field(..., description="Unique identifier for the media sample")
+    file_path: str = Field(..., description="Path where media is stored")
+    media_type: str = Field(..., description="Type of media (IMAGE, VIDEO, AUDIO)")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Extracted metadata"
+    )
+    neo4j_node_id: Optional[str] = Field(None, description="Neo4j node ID if persisted")
+    embedding_id: Optional[str] = Field(
+        None, description="Milvus embedding ID if generated"
+    )
+    transcription: Optional[str] = Field(
+        None, description="Transcription for audio/video"
+    )
+    message: str = Field(..., description="Status message")
+
+
+@app.post("/ingest/media", response_model=MediaIngestResponse)
+async def ingest_media(
+    file: UploadFile = File(...),
+    media_type: str = "IMAGE",
+    question: Optional[str] = None,
+) -> MediaIngestResponse:
+    """Ingest media, process it through Hermes, and forward to Sophia.
+
+    This endpoint:
+    1. Receives media from Apollo
+    2. Processes it (STT for audio, embedding generation, etc.)
+    3. Forwards to Sophia for storage and perception workflows
+
+    Args:
+        file: Media file to ingest (image/video/audio)
+        media_type: Type of media (IMAGE, VIDEO, AUDIO)
+        question: Optional question context for perception
+
+    Returns:
+        MediaIngestResponse with sample_id and processing results
+    """
+    import httpx
+
+    # Get Sophia configuration from environment
+    sophia_host = os.getenv("SOPHIA_HOST", "localhost")
+    sophia_port = os.getenv("SOPHIA_PORT", "8001")
+    sophia_url = f"http://{sophia_host}:{sophia_port}"
+    sophia_token = os.getenv("SOPHIA_API_KEY") or os.getenv("SOPHIA_API_TOKEN")
+
+    if not sophia_token:
+        raise HTTPException(
+            status_code=503,
+            detail="Sophia API token not configured. Set SOPHIA_API_KEY or SOPHIA_API_TOKEN.",
+        )
+
+    transcription: Optional[str] = None
+    embedding_id: Optional[str] = None
+
+    try:
+        # Read file content
+        file_content = await file.read()
+        await file.seek(0)  # Reset for forwarding
+
+        # Process based on media type
+        if media_type == "AUDIO":
+            # Transcribe audio using Hermes STT
+            try:
+                stt_result = await transcribe_audio(file_content)
+                transcription = stt_result.get("text")
+                logger.info(
+                    f"Transcribed audio: {transcription[:100] if transcription else 'empty'}..."
+                )
+
+                # Generate embedding for transcription
+                if transcription:
+                    embed_result = await generate_embedding(transcription, "default")
+                    embedding_id = embed_result.get("embedding_id")
+            except Exception as e:
+                logger.warning(f"Audio processing failed, continuing with forward: {e}")
+
+        elif media_type == "VIDEO":
+            # For video, we could extract audio and transcribe
+            # For now, just log and forward
+            logger.info(f"Video ingestion: {file.filename}")
+
+        elif media_type == "IMAGE":
+            # For images, we could generate description/caption
+            # For now, just log and forward
+            logger.info(f"Image ingestion: {file.filename}")
+
+        # Forward to Sophia for storage and perception
+        await file.seek(0)  # Reset file pointer
+        files = {"file": (file.filename, file.file, file.content_type)}
+        data = {"media_type": media_type}
+        if question:
+            data["question"] = question
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{sophia_url}/ingest/media",
+                files=files,
+                data=data,
+                headers={"Authorization": f"Bearer {sophia_token}"},
+            )
+            response.raise_for_status()
+            sophia_result = response.json()
+
+        # Merge Hermes processing with Sophia result
+        result = MediaIngestResponse(
+            sample_id=sophia_result.get("sample_id", "unknown"),
+            file_path=sophia_result.get("file_path", ""),
+            media_type=media_type,
+            metadata=sophia_result.get("metadata", {}),
+            neo4j_node_id=sophia_result.get("neo4j_node_id"),
+            embedding_id=embedding_id,
+            transcription=transcription,
+            message=f"Media ingested via Hermes. {sophia_result.get('message', '')}",
+        )
+
+        logger.info(f"Media ingested: {result.sample_id} ({media_type})")
+        return result
+
+    except httpx.HTTPStatusError as exc:
+        logger.error(
+            f"Sophia rejected media: {exc.response.status_code} - {exc.response.text}"
+        )
+        raise HTTPException(
+            status_code=exc.response.status_code,
+            detail=f"Sophia ingestion failed: {exc.response.text}",
+        ) from exc
+    except httpx.RequestError as exc:
+        logger.error(f"Cannot connect to Sophia: {exc}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Cannot connect to Sophia service: {str(exc)}",
+        ) from exc
+    except Exception as exc:
+        logger.error(f"Media ingestion failed: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Media ingestion failed: {str(exc)}",
+        ) from exc
+
+
 def main() -> None:
     """Entry point for running the Hermes server."""
     import uvicorn

@@ -27,10 +27,11 @@ jobs:
       python_lint_paths: 'src tests'
       mypy_targets: 'src'
       # -r s: show skip reasons, -r S: show skip summary
+      # --cov-fail-under=75: Enforce 75% minimum coverage
       # Note: Standard CI runs WITHOUT ML deps (intentional - saves 5-10 min)
       # ML tests will be skipped. Run locally with 'poetry install -E ml' for full coverage.
       # Runs ALL tests - those requiring ML will skip gracefully with clear messages.
-      pytest_command: 'pytest tests/ --cov=hermes --cov-report=term --cov-report=xml -r sS'
+      pytest_command: 'pytest tests/ --cov=hermes --cov-report=term --cov-report=xml --cov-fail-under=75 -r sS'
       coverage_python_version: '3.12'
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -115,8 +116,9 @@ jobs:
       run: |
         # Run ALL tests against live services
         # ML tests will skip (no ML deps in this job)
+        # --cov-fail-under=75: Enforce 75% minimum coverage
         poetry run pytest tests/ -v \
-          --cov=hermes --cov-report=xml --cov-report=term \
+          --cov=hermes --cov-report=xml --cov-report=term --cov-fail-under=75 \
           -r sS \
           | tee pytest-output.txt
         
@@ -198,8 +200,9 @@ jobs:
       run: |
         # Run ALL tests with ML dependencies installed
         # This should have minimal skips
+        # --cov-fail-under=75: Enforce 75% minimum coverage
         poetry run pytest tests/ -v \
-          --cov=hermes --cov-report=xml --cov-report=term \
+          --cov=hermes --cov-report=xml --cov-report=term --cov-fail-under=75 \
           -r sS \
           | tee pytest-output.txt
         

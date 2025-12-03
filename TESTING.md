@@ -4,6 +4,12 @@ This document provides a comprehensive guide for testing Hermes, including CI be
 
 ## CI Testing Behavior
 
+### Coverage Requirement
+
+All CI jobs enforce a **75% minimum coverage** threshold. Tests will fail if coverage drops below 75%.
+
+Current coverage: **77%** (as of 2025-12-03)
+
 ### CI Jobs Overview
 
 | Job | Triggers | ML Deps | Services | Purpose |

@@ -195,7 +195,7 @@ The health endpoint returns Milvus connectivity status:
   "milvus": {
     "connected": true,
     "host": "localhost",
-    "port": "19530",
+    "port": "18530",
     "collection": "hermes_embeddings"
   },
   "queue": {
@@ -210,7 +210,7 @@ Logs will also show initialization status:
 
 ```
 INFO:hermes.milvus_client:Initializing Milvus integration...
-INFO:hermes.milvus_client:Connected to Milvus at localhost:19530
+INFO:hermes.milvus_client:Connected to Milvus at localhost:18530
 INFO:hermes.milvus_client:Milvus integration initialized successfully
 ```
 

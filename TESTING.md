@@ -1,6 +1,66 @@
-# Testing the Milvus Integration Implementation
+# Hermes Testing Guide
 
-This document provides a guide for testing the new Milvus integration functionality.
+This document provides a comprehensive guide for testing Hermes, including CI behavior, local testing, and ML dependency management.
+
+## CI Testing Behavior
+
+### Coverage Requirement
+
+All CI jobs enforce a **60% minimum coverage** threshold. Tests will fail if coverage drops below 60%.
+
+Current coverage: **~63%** (without ML deps)
+
+### CI Jobs Overview
+
+| Job | Triggers | ML Deps | Services | Purpose |
+|-----|----------|---------|----------|---------|
+| **standard** | All PRs/pushes | ❌ No | ✅ Milvus, Neo4j | Lint + type check + full test suite (via reusable workflow) |
+| **ml-full-test** | Weekly (Sun 3am UTC), manual dispatch, or `ml-test` label | ✅ Yes | ✅ Milvus, Neo4j | Full test suite with all ML dependencies |
+
+### Standard CI
+
+The **standard** job runs on every PR and push. It uses the reusable CI workflow from logos and:
+- Starts Milvus and Neo4j via docker-compose
+- Runs ALL tests in `tests/` directory
+- Does NOT install ML dependencies (saves 5-10 minutes)
+- Enforces 75% minimum coverage
+- ML tests skip gracefully with clear messages
+
+**Expected output:**
+```
+=========== 97 passed, 93 skipped ===========
+```
+
+The 93 skipped tests are ML/NLP tests - this is expected behavior.
+
+### Full ML Test Job (Opt-in)
+
+The **ml-full-test** job runs the complete test suite with ML dependencies. Trigger it by:
+
+1. **Manual dispatch**: Go to Actions → CI/CD → Run workflow → Check "Install ML dependencies"
+2. **PR label**: Add the `ml-test` label to your PR
+
+This job:
+- Installs `poetry install -E dev -E ml`
+- Installs CPU-only PyTorch for speed
+- Runs against live Milvus + Neo4j
+- Should have minimal skips (~1-2)
+
+**Use this before merging ML/NLP changes!**
+
+### Before Merging ML/NLP Changes
+
+**You MUST run the full test suite locally with ML dependencies before merging changes to ML or NLP code:**
+
+```bash
+cd hermes
+poetry install -E dev -E ml  # Install ML extras
+poetry run pytest tests/ -v  # Run full suite
+```
+
+All ML tests should PASS locally before merging.
+
+---
 
 ## Quick Test (No External Services)
 
@@ -138,7 +198,7 @@ for result in results:
 ```python
 from neo4j import GraphDatabase
 
-driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "password"))
+driver = GraphDatabase.driver("bolt://localhost:18687", auth=("neo4j", "password"))
 
 with driver.session() as session:
     # Query for test nodes
@@ -167,7 +227,7 @@ poetry run pip install sentence-transformers
 **Check if Milvus is running:**
 ```bash
 docker ps | grep milvus
-curl http://localhost:19530/healthz
+curl http://localhost:18530/healthz
 ```
 
 **View Milvus logs:**
@@ -193,8 +253,8 @@ If you get "port already in use" errors:
 
 ```bash
 # Check what's using the port
-lsof -i :19530  # Milvus
-lsof -i :7687   # Neo4j
+lsof -i :18530  # Milvus
+lsof -i :18687   # Neo4j
 lsof -i :8080   # Hermes
 
 # Stop existing services

@@ -495,7 +495,7 @@ class MediaIngestResponse(BaseModel):
 @app.post("/ingest/media", response_model=MediaIngestResponse)
 async def ingest_media(
     file: UploadFile = File(...),
-    media_type: str = "IMAGE",
+    media_type: str = "image",
     question: Optional[str] = None,
 ) -> MediaIngestResponse:
     """Ingest media, process it through Hermes, and forward to Sophia.
@@ -507,13 +507,16 @@ async def ingest_media(
 
     Args:
         file: Media file to ingest (image/video/audio)
-        media_type: Type of media (IMAGE, VIDEO, AUDIO)
+        media_type: Type of media (image, video, audio)
         question: Optional question context for perception
 
     Returns:
         MediaIngestResponse with sample_id and processing results
     """
     import httpx
+
+    # Normalize media_type to lowercase for Sophia compatibility
+    media_type = media_type.lower()
 
     # Get Sophia configuration from environment
     sophia_host = os.getenv("SOPHIA_HOST", "localhost")
@@ -536,7 +539,7 @@ async def ingest_media(
         await file.seek(0)  # Reset for forwarding
 
         # Process based on media type
-        if media_type == "AUDIO":
+        if media_type == "audio":
             # Transcribe audio using Hermes STT
             try:
                 stt_result = await transcribe_audio(file_content)
@@ -552,12 +555,12 @@ async def ingest_media(
             except Exception as e:
                 logger.warning(f"Audio processing failed, continuing with forward: {e}")
 
-        elif media_type == "VIDEO":
+        elif media_type == "video":
             # For video, we could extract audio and transcribe
             # For now, just log and forward
             logger.info(f"Video ingestion: {file.filename}")
 
-        elif media_type == "IMAGE":
+        elif media_type == "image":
             # For images, we could generate description/caption
             # For now, just log and forward
             logger.info(f"Image ingestion: {file.filename}")

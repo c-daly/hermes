@@ -73,7 +73,7 @@ The `.env.test` file exports these variables:
 - `MILVUS_HOST=milvus` (container name for internal access)
 - `MILVUS_PORT=18530` (Hermes-specific port)
 - `MILVUS_HEALTHCHECK=http://milvus:18091/healthz`
-- `NEO4J_URI=bolt://neo4j:7687` (not used by Hermes, but available)
+- `NEO4J_URI=bolt://neo4j:18687` (Hermes-specific port)
 - `NEO4J_USER=neo4j`
 - `NEO4J_PASSWORD=neo4jtest`
 

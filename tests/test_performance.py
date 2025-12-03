@@ -46,7 +46,7 @@ try:
     def check_milvus():
         try:
             connections.connect(
-                alias="perf_test", host="localhost", port="19530", timeout=2
+                alias="perf_test", host="localhost", port="18530", timeout=2
             )
             connections.disconnect("perf_test")
             return True

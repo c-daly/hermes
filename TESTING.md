@@ -179,7 +179,7 @@ for result in results:
 ```python
 from neo4j import GraphDatabase
 
-driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "password"))
+driver = GraphDatabase.driver("bolt://localhost:18687", auth=("neo4j", "password"))
 
 with driver.session() as session:
     # Query for test nodes
@@ -208,7 +208,7 @@ poetry run pip install sentence-transformers
 **Check if Milvus is running:**
 ```bash
 docker ps | grep milvus
-curl http://localhost:19530/healthz
+curl http://localhost:18530/healthz
 ```
 
 **View Milvus logs:**
@@ -234,8 +234,8 @@ If you get "port already in use" errors:
 
 ```bash
 # Check what's using the port
-lsof -i :19530  # Milvus
-lsof -i :7687   # Neo4j
+lsof -i :18530  # Milvus
+lsof -i :18687   # Neo4j
 lsof -i :8080   # Hermes
 
 # Stop existing services

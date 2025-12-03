@@ -86,3 +86,22 @@ services:
       retries: 3
     networks:
     - default
+  neo4j:
+    container_name: hermes-test-neo4j
+    image: neo4j:5.13.0-community
+    environment:
+      - NEO4J_AUTH=neo4j/neo4jtest
+      - NEO4J_PLUGINS=["apoc"]
+    ports:
+      - "18687:7687"
+      - "18474:7474"
+    volumes:
+      - hermes_test_neo4j_data:/data
+      - hermes_test_neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD", "neo4j", "status"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - default

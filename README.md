@@ -35,7 +35,7 @@ docker pull ghcr.io/c-daly/hermes:latest
 # Run with environment variables
 docker run -p 8080:8080 \
   -e MILVUS_HOST=your-milvus-host \
-  -e MILVUS_PORT=19530 \
+  -e MILVUS_PORT=18530 \
   ghcr.io/c-daly/hermes:latest
 ```
 
@@ -321,7 +321,7 @@ Returns detailed health status including ML service availability, Milvus connect
   "milvus": {
     "connected": true,
     "host": "localhost",
-    "port": "19530",
+    "port": "18530",
     "collection": "hermes_embeddings"
   },
   "queue": {

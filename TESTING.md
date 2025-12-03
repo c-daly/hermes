@@ -4,30 +4,50 @@ This document provides a comprehensive guide for testing Hermes, including CI be
 
 ## CI Testing Behavior
 
-### Understanding Test Skips in CI
+### CI Jobs Overview
 
-**Standard CI** (`poetry install -E dev`) does **NOT** install ML dependencies (sentence-transformers, spaCy, torch). This is intentional:
-- ML dependencies add 5-10 minutes to install time
-- Many tests are skipped with reason: "ML dependencies not installed" or "NLP dependencies not installed"
+| Job | Triggers | ML Deps | Services | Purpose |
+|-----|----------|---------|----------|---------|
+| **standard** | All PRs/pushes | ❌ No | ❌ None | Fast lint/type/unit tests |
+| **integration-test** | Push to main/develop, or `integration-test` label | ❌ No | ✅ Milvus, Neo4j | Integration tests against live services |
+| **ml-full-test** | Manual dispatch, or `ml-test` label | ✅ Yes | ✅ Milvus, Neo4j | Full test suite with all ML dependencies |
 
-**Expected CI output:**
+### Standard CI (Fast)
+
+The **standard** job runs on every PR and push. It uses the reusable CI workflow and:
+- Runs ALL tests in `tests/` directory
+- Does NOT install ML dependencies (saves 5-10 minutes)
+- ML tests skip gracefully with clear messages
+
+**Expected output:**
 ```
 =========== 97 passed, 93 skipped ===========
 ```
 
-This is normal. The skips are ML/NLP tests that require expensive dependencies.
+The 93 skipped tests are ML/NLP tests - this is expected behavior.
 
-### Integration CI Job
+### Integration Test Job
 
-The `integration-test` job DOES install ML dependencies:
-```yaml
-poetry run pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
-poetry run pip install sentence-transformers
-```
+The **integration-test** job runs:
+- On pushes to `main` or `develop`
+- On PRs with the `integration-test` label
 
-This job runs on:
-- Pushes to `main` or `develop`
-- PRs with the `integration-test` label
+It starts the full test stack (Milvus + Neo4j) and runs all tests against live services. ML tests still skip since ML deps aren't installed.
+
+### Full ML Test Job (Opt-in)
+
+The **ml-full-test** job runs the complete test suite with ML dependencies. Trigger it by:
+
+1. **Manual dispatch**: Go to Actions → CI/CD → Run workflow → Check "Install ML dependencies"
+2. **PR label**: Add the `ml-test` label to your PR
+
+This job:
+- Installs `poetry install -E dev -E ml`
+- Installs CPU-only PyTorch for speed
+- Runs against live Milvus + Neo4j
+- Should have minimal skips (~1-2)
+
+**Use this before merging ML/NLP changes!**
 
 ### Before Merging ML/NLP Changes
 
@@ -35,8 +55,8 @@ This job runs on:
 
 ```bash
 cd hermes
-poetry install -E ml        # Install ML extras
-poetry run pytest tests/ -v # Run full suite
+poetry install -E dev -E ml  # Install ML extras
+poetry run pytest tests/ -v  # Run full suite
 ```
 
 All ML tests should PASS locally before merging.

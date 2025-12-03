@@ -5,6 +5,13 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      run_ml_tests:
+        description: 'Install ML dependencies and run full test suite'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -22,7 +29,8 @@ jobs:
       # -r s: show skip reasons, -r S: show skip summary
       # Note: Standard CI runs WITHOUT ML deps (intentional - saves 5-10 min)
       # ML tests will be skipped. Run locally with 'poetry install -E ml' for full coverage.
-      pytest_command: 'pytest --cov=hermes --cov-report=term --cov-report=xml -r sS'
+      # Runs ALL tests - those requiring ML will skip gracefully with clear messages.
+      pytest_command: 'pytest tests/ --cov=hermes --cov-report=term --cov-report=xml -r sS'
       coverage_python_version: '3.12'
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -73,7 +81,7 @@ jobs:
 
     - name: Start services
       run: |
-        docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d milvus-etcd milvus-minio milvus
+        docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
 
     - name: Wait for services
       run: |
@@ -85,6 +93,9 @@ jobs:
         
         echo "Waiting for Milvus..."
         timeout 120 bash -c 'until curl -f http://localhost:18091/healthz 2>/dev/null; do sleep 2; done'
+        
+        echo "Waiting for Neo4j..."
+        timeout 60 bash -c 'until curl -f http://localhost:18474 2>/dev/null; do sleep 2; done'
 
     - name: Install Poetry
       run: |
@@ -92,19 +103,19 @@ jobs:
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Install dependencies
-      run: |
-        poetry install -E dev
-        poetry run pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
-        poetry run pip install sentence-transformers
+      run: poetry install -E dev
 
-    - name: Run integration tests
+    - name: Run integration tests (without ML)
       env:
         MILVUS_HOST: localhost
         MILVUS_PORT: "18530"
+        NEO4J_URI: bolt://localhost:18687
+        NEO4J_USER: neo4j
+        NEO4J_PASSWORD: neo4jtest
       run: |
-        # Run integration tests with skip reporting
-        # These tests require ML deps which are installed in this job
-        poetry run pytest tests/hermes/test_milvus_integration.py -v \
+        # Run ALL tests against live services
+        # ML tests will skip (no ML deps in this job)
+        poetry run pytest tests/ -v \
           --cov=hermes --cov-report=xml --cov-report=term \
           -r sS \
           | tee pytest-output.txt
@@ -125,6 +136,89 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: integration-coverage
+        path: coverage.xml
+    
+    - name: Stop services
+      if: always()
+      run: docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml down -v
+
+  # Full ML test suite - opt-in via workflow_dispatch or 'ml-test' label
+  ml-full-test:
+    runs-on: ubuntu-latest
+    needs: standard
+    if: |
+      github.event.inputs.run_ml_tests == 'true' ||
+      contains(github.event.pull_request.labels.*.name, 'ml-test')
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Start services
+      run: |
+        docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
+
+    - name: Wait for services
+      run: |
+        echo "Waiting for etcd..."
+        timeout 60 bash -c 'until docker exec hermes-test-milvus-etcd etcdctl endpoint health 2>/dev/null; do sleep 2; done'
+        
+        echo "Waiting for MinIO..."
+        timeout 60 bash -c 'until curl -f http://localhost:9000/minio/health/live 2>/dev/null; do sleep 2; done'
+        
+        echo "Waiting for Milvus..."
+        timeout 120 bash -c 'until curl -f http://localhost:18091/healthz 2>/dev/null; do sleep 2; done'
+        
+        echo "Waiting for Neo4j..."
+        timeout 60 bash -c 'until curl -f http://localhost:18474 2>/dev/null; do sleep 2; done'
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies with ML extras
+      run: |
+        poetry install -E dev -E ml
+        # Install CPU-only torch to save time/space
+        poetry run pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu --force-reinstall
+
+    - name: Run full test suite with ML
+      env:
+        MILVUS_HOST: localhost
+        MILVUS_PORT: "18530"
+        NEO4J_URI: bolt://localhost:18687
+        NEO4J_USER: neo4j
+        NEO4J_PASSWORD: neo4jtest
+      run: |
+        # Run ALL tests with ML dependencies installed
+        # This should have minimal skips
+        poetry run pytest tests/ -v \
+          --cov=hermes --cov-report=xml --cov-report=term \
+          -r sS \
+          | tee pytest-output.txt
+        
+        # Extract and display test summary
+        echo "::group::Test Summary"
+        grep -E "(passed|failed|skipped|error)" pytest-output.txt | tail -5 || true
+        echo "::endgroup::"
+
+    - name: Upload ML test coverage
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: ml-full
+        fail_ci_if_error: false
+
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ml-full-coverage
         path: coverage.xml
     
     - name: Stop services

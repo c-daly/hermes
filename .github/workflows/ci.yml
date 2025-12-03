@@ -19,7 +19,10 @@ jobs:
       poetry_install_args: '-E dev'
       python_lint_paths: 'src tests'
       mypy_targets: 'src'
-      pytest_command: 'pytest --cov=hermes --cov-report=term --cov-report=xml'
+      # -r s: show skip reasons, -r S: show skip summary
+      # Note: Standard CI runs WITHOUT ML deps (intentional - saves 5-10 min)
+      # ML tests will be skipped. Run locally with 'poetry install -E ml' for full coverage.
+      pytest_command: 'pytest --cov=hermes --cov-report=term --cov-report=xml -r sS'
       coverage_python_version: '3.12'
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -99,7 +102,17 @@ jobs:
         MILVUS_HOST: localhost
         MILVUS_PORT: "18530"
       run: |
-        poetry run pytest tests/hermes/test_milvus_integration.py -v --cov=hermes --cov-report=xml --cov-report=term
+        # Run integration tests with skip reporting
+        # These tests require ML deps which are installed in this job
+        poetry run pytest tests/hermes/test_milvus_integration.py -v \
+          --cov=hermes --cov-report=xml --cov-report=term \
+          -r sS \
+          | tee pytest-output.txt
+        
+        # Extract and display test summary
+        echo "::group::Test Summary"
+        grep -E "(passed|failed|skipped|error)" pytest-output.txt | tail -5 || true
+        echo "::endgroup::"
 
     - name: Upload integration test coverage
       uses: codecov/codecov-action@v4
@@ -107,6 +120,12 @@ jobs:
         file: ./coverage.xml
         flags: integration
         fail_ci_if_error: false
+
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-coverage
+        path: coverage.xml
     
     - name: Stop services
       if: always()

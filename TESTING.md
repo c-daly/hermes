@@ -1,6 +1,47 @@
-# Testing the Milvus Integration Implementation
+# Hermes Testing Guide
 
-This document provides a guide for testing the new Milvus integration functionality.
+This document provides a comprehensive guide for testing Hermes, including CI behavior, local testing, and ML dependency management.
+
+## CI Testing Behavior
+
+### Understanding Test Skips in CI
+
+**Standard CI** (`poetry install -E dev`) does **NOT** install ML dependencies (sentence-transformers, spaCy, torch). This is intentional:
+- ML dependencies add 5-10 minutes to install time
+- Many tests are skipped with reason: "ML dependencies not installed" or "NLP dependencies not installed"
+
+**Expected CI output:**
+```
+=========== 97 passed, 93 skipped ===========
+```
+
+This is normal. The skips are ML/NLP tests that require expensive dependencies.
+
+### Integration CI Job
+
+The `integration-test` job DOES install ML dependencies:
+```yaml
+poetry run pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+poetry run pip install sentence-transformers
+```
+
+This job runs on:
+- Pushes to `main` or `develop`
+- PRs with the `integration-test` label
+
+### Before Merging ML/NLP Changes
+
+**You MUST run the full test suite locally with ML dependencies before merging changes to ML or NLP code:**
+
+```bash
+cd hermes
+poetry install -E ml        # Install ML extras
+poetry run pytest tests/ -v # Run full suite
+```
+
+All ML tests should PASS locally before merging.
+
+---
 
 ## Quick Test (No External Services)
 

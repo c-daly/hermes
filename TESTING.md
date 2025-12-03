@@ -15,7 +15,7 @@ Current coverage: **~63%** (without ML deps)
 | Job | Triggers | ML Deps | Services | Purpose |
 |-----|----------|---------|----------|---------|
 | **standard** | All PRs/pushes | ❌ No | ✅ Milvus, Neo4j | Lint + type check + full test suite (via reusable workflow) |
-| **ml-full-test** | Manual dispatch, or `ml-test` label | ✅ Yes | ✅ Milvus, Neo4j | Full test suite with all ML dependencies |
+| **ml-full-test** | Weekly (Sun 3am UTC), manual dispatch, or `ml-test` label | ✅ Yes | ✅ Milvus, Neo4j | Full test suite with all ML dependencies |
 
 ### Standard CI
 

@@ -5,6 +5,9 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  schedule:
+    # Run ML tests weekly on Sunday at 3 AM UTC
+    - cron: '0 3 * * 0'
   workflow_dispatch:
     inputs:
       run_ml_tests:
@@ -81,11 +84,12 @@ jobs:
         name: dist
         path: dist/
 
-  # Full ML test suite - opt-in via workflow_dispatch or 'ml-test' label
+  # Full ML test suite - weekly scheduled, manual dispatch, or 'ml-test' label
   ml-full-test:
     runs-on: ubuntu-latest
     needs: standard
     if: |
+      github.event_name == 'schedule' ||
       github.event.inputs.run_ml_tests == 'true' ||
       contains(github.event.pull_request.labels.*.name, 'ml-test')
     permissions:

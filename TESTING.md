@@ -14,15 +14,16 @@ Current coverage: **77%** (as of 2025-12-03)
 
 | Job | Triggers | ML Deps | Services | Purpose |
 |-----|----------|---------|----------|---------|
-| **standard** | All PRs/pushes | ❌ No | ❌ None | Fast lint/type/unit tests |
-| **integration-test** | Push to main/develop, or `integration-test` label | ❌ No | ✅ Milvus, Neo4j | Integration tests against live services |
+| **standard** | All PRs/pushes | ❌ No | ✅ Milvus, Neo4j | Lint + type check + full test suite (via reusable workflow) |
 | **ml-full-test** | Manual dispatch, or `ml-test` label | ✅ Yes | ✅ Milvus, Neo4j | Full test suite with all ML dependencies |
 
-### Standard CI (Fast)
+### Standard CI
 
-The **standard** job runs on every PR and push. It uses the reusable CI workflow and:
+The **standard** job runs on every PR and push. It uses the reusable CI workflow from logos and:
+- Starts Milvus and Neo4j via docker-compose
 - Runs ALL tests in `tests/` directory
 - Does NOT install ML dependencies (saves 5-10 minutes)
+- Enforces 75% minimum coverage
 - ML tests skip gracefully with clear messages
 
 **Expected output:**
@@ -31,14 +32,6 @@ The **standard** job runs on every PR and push. It uses the reusable CI workflow
 ```
 
 The 93 skipped tests are ML/NLP tests - this is expected behavior.
-
-### Integration Test Job
-
-The **integration-test** job runs:
-- On pushes to `main` or `develop`
-- On PRs with the `integration-test` label
-
-It starts the full test stack (Milvus + Neo4j) and runs all tests against live services. ML tests still skip since ML deps aren't installed.
 
 ### Full ML Test Job (Opt-in)
 

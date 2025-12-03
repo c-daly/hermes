@@ -26,11 +26,26 @@ jobs:
       poetry_install_args: '-E dev'
       python_lint_paths: 'src tests'
       mypy_targets: 'src'
+      # Start test services (Milvus, Neo4j) for full test coverage
+      docker_compose_file: 'tests/e2e/stack/hermes/docker-compose.test.yml'
+      docker_compose_wait_script: |
+        echo "Waiting for etcd..."
+        timeout 60 bash -c 'until docker exec hermes-test-milvus-etcd etcdctl endpoint health 2>/dev/null; do sleep 2; done'
+        echo "Waiting for MinIO..."
+        timeout 60 bash -c 'until curl -f http://localhost:9000/minio/health/live 2>/dev/null; do sleep 2; done'
+        echo "Waiting for Milvus..."
+        timeout 120 bash -c 'until curl -f http://localhost:18091/healthz 2>/dev/null; do sleep 2; done'
+        echo "Waiting for Neo4j..."
+        timeout 60 bash -c 'until curl -f http://localhost:18474 2>/dev/null; do sleep 2; done'
+      pytest_env_script: |
+        export MILVUS_HOST=localhost
+        export MILVUS_PORT=18530
+        export NEO4J_URI=bolt://localhost:18687
+        export NEO4J_USER=neo4j
+        export NEO4J_PASSWORD=neo4jtest
       # -r s: show skip reasons, -r S: show skip summary
       # --cov-fail-under=75: Enforce 75% minimum coverage
-      # Note: Standard CI runs WITHOUT ML deps (intentional - saves 5-10 min)
-      # ML tests will be skipped. Run locally with 'poetry install -E ml' for full coverage.
-      # Runs ALL tests - those requiring ML will skip gracefully with clear messages.
+      # Runs ALL tests with services available
       pytest_command: 'pytest tests/ --cov=hermes --cov-report=term --cov-report=xml --cov-fail-under=75 -r sS'
       coverage_python_version: '3.12'
     secrets:
@@ -65,84 +80,6 @@ jobs:
       with:
         name: dist
         path: dist/
-
-  integration-test:
-    runs-on: ubuntu-latest
-    needs: standard
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'integration-test')
-    permissions:
-      contents: read
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Start services
-      run: |
-        docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
-
-    - name: Wait for services
-      run: |
-        echo "Waiting for etcd..."
-        timeout 60 bash -c 'until docker exec hermes-test-milvus-etcd etcdctl endpoint health 2>/dev/null; do sleep 2; done'
-        
-        echo "Waiting for MinIO..."
-        timeout 60 bash -c 'until curl -f http://localhost:9000/minio/health/live 2>/dev/null; do sleep 2; done'
-        
-        echo "Waiting for Milvus..."
-        timeout 120 bash -c 'until curl -f http://localhost:18091/healthz 2>/dev/null; do sleep 2; done'
-        
-        echo "Waiting for Neo4j..."
-        timeout 60 bash -c 'until curl -f http://localhost:18474 2>/dev/null; do sleep 2; done'
-
-    - name: Install Poetry
-      run: |
-        curl -sSL https://install.python-poetry.org | python3 -
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Install dependencies
-      run: poetry install -E dev
-
-    - name: Run integration tests (without ML)
-      env:
-        MILVUS_HOST: localhost
-        MILVUS_PORT: "18530"
-        NEO4J_URI: bolt://localhost:18687
-        NEO4J_USER: neo4j
-        NEO4J_PASSWORD: neo4jtest
-      run: |
-        # Run ALL tests against live services
-        # ML tests will skip (no ML deps in this job)
-        # --cov-fail-under=75: Enforce 75% minimum coverage
-        poetry run pytest tests/ -v \
-          --cov=hermes --cov-report=xml --cov-report=term --cov-fail-under=75 \
-          -r sS \
-          | tee pytest-output.txt
-        
-        # Extract and display test summary
-        echo "::group::Test Summary"
-        grep -E "(passed|failed|skipped|error)" pytest-output.txt | tail -5 || true
-        echo "::endgroup::"
-
-    - name: Upload integration test coverage
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
-        flags: integration
-        fail_ci_if_error: false
-
-    - name: Upload coverage artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: integration-coverage
-        path: coverage.xml
-    
-    - name: Stop services
-      if: always()
-      run: docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml down -v
 
   # Full ML test suite - opt-in via workflow_dispatch or 'ml-test' label
   ml-full-test:

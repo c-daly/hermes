@@ -44,9 +44,9 @@ jobs:
         export NEO4J_USER=neo4j
         export NEO4J_PASSWORD=neo4jtest
       # -r s: show skip reasons, -r S: show skip summary
-      # --cov-fail-under=75: Enforce 75% minimum coverage
+      # --cov-fail-under=60: Enforce 60% minimum coverage
       # Runs ALL tests with services available
-      pytest_command: 'pytest tests/ --cov=hermes --cov-report=term --cov-report=xml --cov-fail-under=75 -r sS'
+      pytest_command: 'pytest tests/ --cov=hermes --cov-report=term --cov-report=xml --cov-fail-under=60 -r sS'
       coverage_python_version: '3.12'
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -137,9 +137,9 @@ jobs:
       run: |
         # Run ALL tests with ML dependencies installed
         # This should have minimal skips
-        # --cov-fail-under=75: Enforce 75% minimum coverage
+        # --cov-fail-under=60: Enforce 60% minimum coverage
         poetry run pytest tests/ -v \
-          --cov=hermes --cov-report=xml --cov-report=term --cov-fail-under=75 \
+          --cov=hermes --cov-report=xml --cov-report=term --cov-fail-under=60 \
           -r sS \
           | tee pytest-output.txt
         

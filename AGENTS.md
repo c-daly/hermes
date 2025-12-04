@@ -161,6 +161,45 @@ Stay focused on the task. Avoid drive-by refactors, unrelated formatting changes
 
 ## Testing and linting
 
+### Linting and formatting
+
+All Python code must pass ruff and mypy before merge.
+
+**Ruff** (linting + formatting):
+```bash
+# Check for issues
+poetry run ruff check .
+
+# Auto-fix what's possible
+poetry run ruff check --fix .
+
+# Format code
+poetry run ruff format .
+
+# Check formatting without changing files
+poetry run ruff format --check .
+```
+
+**Mypy** (type checking):
+```bash
+poetry run mypy src/
+```
+
+**Pre-commit workflow**:
+```bash
+# Before committing, run:
+poetry run ruff check --fix .
+poetry run ruff format .
+poetry run mypy src/
+poetry run pytest tests/unit/
+```
+
+**Common issues and fixes**:
+- `F401 imported but unused` → Remove the import or add `# noqa: F401` if re-exported
+- `E501 line too long` → Ruff format usually fixes this; if not, break the line manually
+- `I001 import order` → `ruff check --fix` will reorder imports
+- Mypy `missing-imports` → Add type stubs or `# type: ignore[import-untyped]`
+
 ### Local CI parity
 For full CI parity, run:
 ```bash

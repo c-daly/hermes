@@ -33,13 +33,13 @@ except ImportError:
 _milvus_connected = False
 _milvus_collection: Optional[Any] = None
 
-# Configuration - use hermes.env for consistency with tests
-_env = load_env_file()
-_milvus_config = get_milvus_config(_env)
-MILVUS_HOST = _milvus_config["host"]
-MILVUS_PORT = _milvus_config["port"]
-COLLECTION_NAME = _milvus_config["collection_name"]
 EMBEDDING_DIMENSION = 384  # all-MiniLM-L6-v2 dimension
+
+
+def _milvus_settings() -> tuple[str, str, str]:
+    """Resolve current Milvus host/port/collection from env (or .env.test)."""
+    cfg = get_milvus_config(load_env_file())
+    return cfg["host"], cfg["port"], cfg["collection_name"]
 
 
 def is_milvus_available() -> bool:
@@ -83,14 +83,15 @@ def connect_milvus() -> bool:
         return True
 
     try:
+        host, port, _ = _milvus_settings()
         connections.connect(
             alias="default",
-            host=MILVUS_HOST,
-            port=MILVUS_PORT,
+            host=host,
+            port=port,
             timeout=5,
         )
         _milvus_connected = True
-        logger.info(f"Connected to Milvus at {MILVUS_HOST}:{MILVUS_PORT}")
+        logger.info(f"Connected to Milvus at {host}:{port}")
         return True
     except Exception as e:
         logger.warning(f"Failed to connect to Milvus: {str(e)}")
@@ -110,15 +111,16 @@ def ensure_collection() -> Optional[Any]:
     global _milvus_collection
 
     try:
+        _, _, collection_name = _milvus_settings()
         # Check if collection already exists
-        if utility.has_collection(COLLECTION_NAME):
+        if utility.has_collection(collection_name):
             # Always get a fresh collection reference to avoid stale references
             # (e.g., if collection was dropped and recreated externally)
-            _milvus_collection = Collection(name=COLLECTION_NAME)
+            _milvus_collection = Collection(name=collection_name)
             return _milvus_collection
 
         # Create new collection with schema from c-daly/logos#155
-        logger.info(f"Creating Milvus collection: {COLLECTION_NAME}")
+        logger.info(f"Creating Milvus collection: {collection_name}")
 
         fields = [
             FieldSchema(
@@ -139,7 +141,7 @@ def ensure_collection() -> Optional[Any]:
             fields=fields, description="Hermes text embeddings collection"
         )
 
-        collection = Collection(name=COLLECTION_NAME, schema=schema)
+        collection = Collection(name=collection_name, schema=schema)
 
         # Create index for vector field
         index_params = {
@@ -149,7 +151,7 @@ def ensure_collection() -> Optional[Any]:
         }
         collection.create_index(field_name="embedding", index_params=index_params)
 
-        logger.info(f"Collection {COLLECTION_NAME} created successfully")
+        logger.info(f"Collection {collection_name} created successfully")
         _milvus_collection = collection
         return collection
 

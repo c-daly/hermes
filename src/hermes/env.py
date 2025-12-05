@@ -10,6 +10,7 @@ import os
 from collections.abc import Mapping
 from functools import cache
 from pathlib import Path
+from typing import Callable
 
 
 def get_env_value(

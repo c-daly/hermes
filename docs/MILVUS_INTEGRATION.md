@@ -159,7 +159,7 @@ docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
 pip install sentence-transformers
 
 # Run integration tests
-pytest tests/test_milvus_integration.py -v
+pytest tests/integration/test_milvus_integration.py -v
 ```
 
 ## Graceful Degradation

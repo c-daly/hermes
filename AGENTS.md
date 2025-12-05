@@ -223,7 +223,7 @@ Hermes has integration tests requiring Milvus:
 
 # Or manually
 docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
-poetry run pytest tests/test_milvus_integration.py -v
+poetry run pytest tests/integration/test_milvus_integration.py -v
 docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml down -v
 ```
 

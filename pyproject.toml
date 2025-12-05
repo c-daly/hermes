@@ -102,4 +102,6 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+plugins = ["pytest_asyncio"]
+pythonpath = ["src"]
 addopts = "-v --cov=hermes --cov-report=term-missing"

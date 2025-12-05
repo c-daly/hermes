@@ -102,7 +102,7 @@ The script will:
 - Start `milvus-etcd`, `milvus-minio`, and `milvus` via `tests/e2e/stack/hermes/docker-compose.test.yml`
 - Wait for each container to report healthy, tailing logs automatically on failure
 - Export the expected `MILVUS_*` variables (port 18530)
-- Run `poetry run pytest tests/test_milvus_integration.py -v` (pass additional pytest args to override)
+- Run `poetry run pytest tests/integration/test_milvus_integration.py -v` (pass additional pytest args to override)
 
 Environment overrides (`NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `MILVUS_HOST`, `MILVUS_PORT`) are honored, making it easy to target an already running shared stack instead of launching new containers.
 
@@ -135,11 +135,11 @@ poetry run pip install sentence-transformers
 
 ```bash
 # Run all integration tests
-poetry run pytest tests/test_milvus_integration.py -v
+poetry run pytest tests/integration/test_milvus_integration.py -v
 
 # Or run specific tests
-poetry run pytest tests/test_milvus_integration.py::test_embedding_persisted_to_milvus -v
-poetry run pytest tests/test_milvus_integration.py::test_embedding_id_in_neo4j -v
+poetry run pytest tests/integration/test_milvus_integration.py::test_embedding_persisted_to_milvus -v
+poetry run pytest tests/integration/test_milvus_integration.py::test_embedding_id_in_neo4j -v
 ```
 
 ### 5. Cleanup

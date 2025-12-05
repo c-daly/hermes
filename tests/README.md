@@ -5,18 +5,20 @@ This directory contains comprehensive tests for the Hermes API, covering Phase 2
 ## Test Files Overview
 
 ### Unit Tests
-- **`test_embeddings.py`** - Embedding generation tests (vector dimensions, consistency, batching, edge cases)
-- **`test_nlp_operations.py`** - NLP functionality tests (tokenization, POS tagging, NER, etc.)
-- **`test_error_handling.py`** - Error handling and resilience tests
-- **`test_api.py`** - API endpoint and contract tests (existing)
+- **`unit/test_api.py`** - API endpoint and contract tests (existing)
+- **`unit/test_error_handling.py`** - Error handling and resilience tests
+- **`unit/test_llm_provider.py`** - Provider selection and override tests
+- **`unit/test_milvus_client.py`** - Milvus client behaviour with mocks
 
 ### Integration Tests
-- **`test_milvus_integration.py`** - Comprehensive Milvus vector database integration tests
-- **`test_neo4j_linkage.py`** - Neo4j graph database integration and relationship tests
-- **`test_hermes_integration.py`** - End-to-end workflow tests
+- **`integration/test_embeddings.py`** - Embedding generation tests (vector dimensions, consistency, batching, edge cases)
+- **`integration/test_nlp_operations.py`** - NLP functionality tests (tokenization, POS tagging, NER, etc.)
+- **`integration/test_milvus_integration.py`** - Comprehensive Milvus vector database integration tests
+- **`integration/test_neo4j_linkage.py`** - Neo4j graph database integration and relationship tests
+- **`integration/test_hermes_integration.py`** - End-to-end workflow tests
 
 ### Performance Tests
-- **`test_performance.py`** - Latency, throughput, and load testing
+- **`performance/test_performance.py`** - Latency, throughput, and load testing
 
 ### Test Infrastructure
 - **`conftest.py`** - Shared fixtures and test utilities
@@ -45,7 +47,7 @@ Launch the dependencies and run the Milvus/Neo4j integration suite in one step:
 ./scripts/run_integration_stack.sh
 ```
 
-The helper checks for port conflicts, waits for each container to become healthy, streams logs on failure, and finally executes `poetry run pytest tests/test_milvus_integration.py -v`. Pass any additional pytest arguments to the script to override the default command.
+The helper checks for port conflicts, waits for each container to become healthy, streams logs on failure, and finally executes `poetry run pytest tests/integration/test_milvus_integration.py -v`. Pass any additional pytest arguments to the script to override the default command.
 
 Environment overrides such as `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `MILVUS_HOST`, and `MILVUS_PORT` are respected, so you can point the tests at an already running stack without restarting containers.
 
@@ -73,19 +75,19 @@ timeout 120 bash -c 'until curl -f http://localhost:18091/healthz 2>/dev/null; d
 
 Run all integration tests:
 ```bash
-poetry run pytest tests/test_milvus_integration.py -v
+poetry run pytest tests/integration/test_milvus_integration.py -v
 ```
 
 Run specific tests:
 ```bash
 # Test basic metadata response (no external services needed)
-poetry run pytest tests/test_milvus_integration.py::test_embedding_response_includes_metadata -v
+poetry run pytest tests/integration/test_milvus_integration.py::test_embedding_response_includes_metadata -v
 
 # Test Milvus integration (requires Milvus)
-poetry run pytest tests/test_milvus_integration.py::test_embedding_persisted_to_milvus -v
+poetry run pytest tests/integration/test_milvus_integration.py::test_embedding_persisted_to_milvus -v
 
 # Test Neo4j integration (requires both Milvus and Neo4j)
-poetry run pytest tests/test_milvus_integration.py::test_embedding_id_in_neo4j -v
+poetry run pytest tests/integration/test_milvus_integration.py::test_embedding_id_in_neo4j -v
 ```
 
 ### Cleanup

@@ -267,7 +267,7 @@ pytest --cov=hermes --cov-report=html
 pytest tests/test_embeddings.py tests/test_nlp_operations.py tests/test_error_handling.py
 
 # Integration tests (requires services)
-pytest tests/test_milvus_integration.py tests/test_neo4j_linkage.py tests/test_hermes_integration.py
+pytest tests/integration/test_milvus_integration.py tests/integration/test_neo4j_linkage.py tests/integration/test_hermes_integration.py
 
 # Performance tests
 pytest tests/test_performance.py

@@ -154,7 +154,7 @@ export NEO4J_USER=${NEO4J_USER:-"neo4j"}
 export NEO4J_PASSWORD=${NEO4J_PASSWORD:-"neo4jtest"}
 export RUN_HERMES_INTEGRATION=1
 
-default_pytest_args=("tests/test_milvus_integration.py" "-v")
+default_pytest_args=("tests/integration/test_milvus_integration.py" "-v")
 if [[ $# -gt 0 ]]; then
   pytest_args=("$@")
 else

@@ -171,7 +171,7 @@ poetry run mypy src
 poetry run pytest --cov=hermes --cov-report=term --cov-report=xml
 ```
 
-If you need the Milvus/Neo4j integration tests, run `poetry run pytest tests/test_milvus_integration.py -v` with the docker-compose stack described in `.github/workflows/ci.yml`.
+If you need the Milvus/Neo4j integration tests, run `poetry run pytest tests/integration/test_milvus_integration.py -v` with the docker-compose stack described in `.github/workflows/ci.yml`.
 
 ### LLM Provider Configuration
 
@@ -484,7 +484,7 @@ poetry run pytest --cov=hermes --cov-report=html
 Integration tests that rely on Neo4j + Milvus can be run end-to-end with the shared helper:
 
 ```bash
-./scripts/run_integration_stack.sh            # defaults to tests/test_milvus_integration.py -v
+./scripts/run_integration_stack.sh            # defaults to tests/integration/test_milvus_integration.py -v
 ./scripts/run_integration_stack.sh -k milvus  # pass custom pytest args as needed
 ```
 

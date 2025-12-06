@@ -5,6 +5,13 @@
 name: Publish Hermes Container
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'Dockerfile'
+      - 'pyproject.toml'
+      - 'poetry.lock'
   release:
     types: [published]
   workflow_dispatch:

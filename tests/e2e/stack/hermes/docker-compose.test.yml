@@ -73,8 +73,8 @@ services:
     volumes:
     - hermes_test_milvus:/var/lib/milvus
     ports:
-    - 18530:19530
-    - 18091:9091
+    - 29530:19530
+    - 19091:9091
     healthcheck:
       test:
       - CMD
@@ -93,8 +93,8 @@ services:
       - NEO4J_AUTH=neo4j/neo4jtest
       - NEO4J_PLUGINS=["apoc"]
     ports:
-      - "18687:7687"
-      - "18474:7474"
+      - "17687:7687"
+      - "17474:7474"
     volumes:
       - hermes_test_neo4j_data:/data
       - hermes_test_neo4j_logs:/logs

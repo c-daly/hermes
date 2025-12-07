@@ -10,6 +10,36 @@ volumes:
   hermes_test_milvus_minio: {}
   hermes_test_milvus: {}
 services:
+  neo4j:
+    container_name: hermes-test-neo4j
+    image: neo4j:5.14.0
+    ports:
+    - 17474:7474
+    - 17687:7687
+    environment:
+    - NEO4J_AUTH=neo4j/neo4jtest
+    - NEO4J_PLUGINS=["apoc","n10s"]
+    - NEO4JLABS_PLUGINS=["apoc","n10s"]
+    - NEO4J_dbms_security_procedures_unrestricted=apoc.*,n10s.*
+    - NEO4J_dbms_security_procedures_allowlist=apoc.*,n10s.*
+    - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+    volumes:
+    - hermes_test_neo4j_data:/data
+    - hermes_test_neo4j_logs:/logs
+    healthcheck:
+      test:
+      - CMD
+      - cypher-shell
+      - -u
+      - neo4j
+      - -p
+      - neo4jtest
+      - RETURN 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+    - default
   milvus-etcd:
     container_name: hermes-test-milvus-etcd
     image: quay.io/coreos/etcd:v3.5.15
@@ -53,8 +83,8 @@ services:
       timeout: 20s
       retries: 3
     ports:
-    - 9000:9000
-    - 9001:9001
+    - 17900:9000
+    - 17901:9001
     networks:
     - default
   milvus:
@@ -73,8 +103,8 @@ services:
     volumes:
     - hermes_test_milvus:/var/lib/milvus
     ports:
-    - 29530:19530
-    - 19091:9091
+    - 17530:19530
+    - 17091:9091
     healthcheck:
       test:
       - CMD
@@ -86,22 +116,3 @@ services:
       retries: 3
     networks:
     - default
-  neo4j:
-    container_name: hermes-test-neo4j
-    image: neo4j:5.13.0-community
-    environment:
-      - NEO4J_AUTH=neo4j/neo4jtest
-      - NEO4J_PLUGINS=["apoc"]
-    ports:
-      - "17687:7687"
-      - "17474:7474"
-    volumes:
-      - hermes_test_neo4j_data:/data
-      - hermes_test_neo4j_logs:/logs
-    healthcheck:
-      test: ["CMD", "neo4j", "status"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-    networks:
-      - default

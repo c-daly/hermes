@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
 import uuid
 from typing import Any, Dict, List, Optional
 
 import httpx
+from logos_config import get_env_value
 
 logger = logging.getLogger(__name__)
 
@@ -168,11 +168,13 @@ class OpenAIProvider(BaseLLMProvider):
 
 
 def get_default_provider_name() -> str:
-    configured = os.getenv("HERMES_LLM_PROVIDER")
+    configured = get_env_value("HERMES_LLM_PROVIDER")
     if configured:
         return configured.strip().lower() or "echo"
     # Fall back to OpenAI automatically if an API key is present
-    has_openai_key = os.getenv("HERMES_LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
+    has_openai_key = get_env_value("HERMES_LLM_API_KEY") or get_env_value(
+        "OPENAI_API_KEY"
+    )
     if has_openai_key:
         return "openai"
     return "echo"
@@ -213,7 +215,7 @@ def llm_service_health() -> Dict[str, Any]:
     default_provider = get_default_provider_name()
     providers = {
         "echo": True,
-        "openai": bool(os.getenv("HERMES_LLM_API_KEY")),
+        "openai": bool(get_env_value("HERMES_LLM_API_KEY")),
     }
     configured = providers.get(default_provider, False)
     return {
@@ -234,7 +236,8 @@ def _get_provider(name: str) -> Optional[BaseLLMProvider]:
     provider: Optional[BaseLLMProvider]
     if normalized in {"echo", "mock"}:
         provider = EchoProvider(
-            default_model=os.getenv("HERMES_LLM_MODEL", "echo-stub")
+            default_model=get_env_value("HERMES_LLM_MODEL", default="echo-stub")
+            or "echo-stub"
         )
     elif normalized == "openai":
         provider = _build_openai_provider()
@@ -247,14 +250,19 @@ def _get_provider(name: str) -> Optional[BaseLLMProvider]:
 
 
 def _build_openai_provider() -> Optional[OpenAIProvider]:
-    api_key = os.getenv("HERMES_LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
+    api_key = get_env_value("HERMES_LLM_API_KEY") or get_env_value("OPENAI_API_KEY")
     if not api_key:
         logger.warning(
             "OpenAI provider requested but no API key found in HERMES_LLM_API_KEY or OPENAI_API_KEY."
         )
         return None
-    base_url = os.getenv("HERMES_LLM_BASE_URL", "https://api.openai.com/v1")
-    default_model = os.getenv("HERMES_LLM_MODEL", "gpt-4o-mini")
+    base_url = (
+        get_env_value("HERMES_LLM_BASE_URL", default="https://api.openai.com/v1")
+        or "https://api.openai.com/v1"
+    )
+    default_model = (
+        get_env_value("HERMES_LLM_MODEL", default="gpt-4o-mini") or "gpt-4o-mini"
+    )
     return OpenAIProvider(
         api_key=api_key, base_url=base_url, default_model=default_model
     )

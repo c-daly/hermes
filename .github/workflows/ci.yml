@@ -32,6 +32,7 @@ jobs:
       # Start test services (Milvus, Neo4j) for full test coverage
       docker_compose_file: 'tests/e2e/stack/hermes/docker-compose.test.yml'
       docker_compose_wait_script: |
+        # Port values from logos_config.HERMES_PORTS (hardcoded here since Python isn't available yet)
         echo "Waiting for etcd..."
         timeout 60 bash -c 'until docker exec hermes-test-milvus-etcd etcdctl endpoint health 2>/dev/null; do sleep 2; done'
         echo "Waiting for MinIO..."
@@ -41,6 +42,7 @@ jobs:
         echo "Waiting for Neo4j..."
         timeout 60 bash -c 'until curl -f http://localhost:17474 2>/dev/null; do sleep 2; done'
       pytest_env_script: |
+        # Port values from logos_config.HERMES_PORTS
         export MILVUS_HOST=localhost
         export MILVUS_PORT=29530
         export NEO4J_URI=bolt://localhost:17687

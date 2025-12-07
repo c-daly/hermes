@@ -32,18 +32,20 @@ jobs:
       # Start test services (Milvus, Neo4j) for full test coverage
       docker_compose_file: 'tests/e2e/stack/hermes/docker-compose.test.yml'
       docker_compose_wait_script: |
+        # Port values from logos_config.HERMES_PORTS (hardcoded here since Python isn't available yet)
         echo "Waiting for etcd..."
         timeout 60 bash -c 'until docker exec hermes-test-milvus-etcd etcdctl endpoint health 2>/dev/null; do sleep 2; done'
         echo "Waiting for MinIO..."
-        timeout 60 bash -c 'until curl -f http://localhost:9000/minio/health/live 2>/dev/null; do sleep 2; done'
+        timeout 60 bash -c 'until curl -f http://localhost:17900/minio/health/live 2>/dev/null; do sleep 2; done'
         echo "Waiting for Milvus..."
-        timeout 120 bash -c 'until curl -f http://localhost:18091/healthz 2>/dev/null; do sleep 2; done'
+        timeout 120 bash -c 'until curl -f http://localhost:17091/healthz 2>/dev/null; do sleep 2; done'
         echo "Waiting for Neo4j..."
-        timeout 60 bash -c 'until curl -f http://localhost:18474 2>/dev/null; do sleep 2; done'
+        timeout 60 bash -c 'until curl -f http://localhost:17474 2>/dev/null; do sleep 2; done'
       pytest_env_script: |
+        # Port values from logos_config.HERMES_PORTS
         export MILVUS_HOST=localhost
-        export MILVUS_PORT=18530
-        export NEO4J_URI=bolt://localhost:18687
+        export MILVUS_PORT=17530
+        export NEO4J_URI=bolt://localhost:17687
         export NEO4J_USER=neo4j
         export NEO4J_PASSWORD=neo4jtest
       # -r s: show skip reasons, -r S: show skip summary

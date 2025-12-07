@@ -65,8 +65,8 @@ docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
 
 3. Wait for services to be ready:
 ```bash
-# Wait for Milvus (port 18091 for health)
-timeout 120 bash -c 'until curl -f http://localhost:18091/healthz 2>/dev/null; do sleep 2; done'
+# Wait for Milvus (port 17091 for health)
+timeout 120 bash -c 'until curl -f http://localhost:17091/healthz 2>/dev/null; do sleep 2; done'
 ```
 
 ### Running Tests
@@ -109,7 +109,7 @@ Tests automatically skip if required dependencies are not available:
 
 Default connection settings (can be overridden via environment variables):
 
-- **Milvus**: `localhost:18530`
+- **Milvus**: `localhost:17530`
 - **Neo4j**: `bolt://localhost:18687` (user: `neo4j`, password: `neo4jtest`)
 
 ## Milvus Schema
@@ -146,7 +146,7 @@ The CI workflow:
 If Milvus connection fails:
 1. Check if services are running: `docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml ps`
 2. Check Milvus logs: `docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml logs milvus`
-3. Verify port is accessible: `curl http://localhost:18091/healthz`
+3. Verify port is accessible: `curl http://localhost:17091/healthz`
 
 ### Neo4j Connection Failed
 

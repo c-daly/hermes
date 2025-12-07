@@ -115,7 +115,7 @@ def get_milvus_config(env: Mapping[str, str] | None = None) -> dict[str, str]:
     """
     # These all have defaults so they won't be None
     host = get_env_value("MILVUS_HOST", env, "localhost")
-    port = get_env_value("MILVUS_PORT", env, "29530")
+    port = get_env_value("MILVUS_PORT", env, "17530")
     collection_name = get_env_value("MILVUS_COLLECTION_NAME", env, "hermes_embeddings")
     assert host is not None
     assert port is not None

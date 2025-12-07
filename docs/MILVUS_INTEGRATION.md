@@ -17,7 +17,7 @@ Configure Milvus connection via environment variables:
 ```bash
 # .env file or tests/e2e/stack/hermes/.env.test
 MILVUS_HOST=localhost
-MILVUS_PORT=18530
+MILVUS_PORT=17530
 MILVUS_COLLECTION_NAME=hermes_embeddings
 ```
 
@@ -80,7 +80,7 @@ You can query the persisted embeddings using the pymilvus client:
 from pymilvus import connections, Collection
 
 # Connect to Milvus
-connections.connect(host="localhost", port="18530")
+connections.connect(host="localhost", port="17530")
 
 # Get collection
 collection = Collection("hermes_embeddings")
@@ -113,7 +113,7 @@ The production Docker image includes pymilvus. Set Milvus connection in the envi
 docker run -d \
   -p 8080:8080 \
   -e MILVUS_HOST=milvus-host \
-  -e MILVUS_PORT=18530 \
+  -e MILVUS_PORT=17530 \
   hermes:latest
 ```
 
@@ -134,7 +134,7 @@ env:
   - name: MILVUS_HOST
     value: "milvus-service"
   - name: MILVUS_PORT
-    value: "18530"
+    value: "17530"
 ```
 
 ## Testing
@@ -195,7 +195,7 @@ The health endpoint returns Milvus connectivity status:
   "milvus": {
     "connected": true,
     "host": "localhost",
-    "port": "18530",
+    "port": "17530",
     "collection": "hermes_embeddings"
   },
   "queue": {
@@ -210,7 +210,7 @@ Logs will also show initialization status:
 
 ```
 INFO:hermes.milvus_client:Initializing Milvus integration...
-INFO:hermes.milvus_client:Connected to Milvus at localhost:18530
+INFO:hermes.milvus_client:Connected to Milvus at localhost:17530
 INFO:hermes.milvus_client:Milvus integration initialized successfully
 ```
 

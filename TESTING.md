@@ -98,10 +98,10 @@ Run the shared test stack helper (recommended):
 
 The script will:
 
-- Warn you about any conflicting ports (18530/18091 for Milvus)
+- Warn you about any conflicting ports (17530/17091 for Milvus)
 - Start `milvus-etcd`, `milvus-minio`, and `milvus` via `tests/e2e/stack/hermes/docker-compose.test.yml`
 - Wait for each container to report healthy, tailing logs automatically on failure
-- Export the expected `MILVUS_*` variables (port 18530)
+- Export the expected `MILVUS_*` variables (port 17530)
 - Run `poetry run pytest tests/test_milvus_integration.py -v` (pass additional pytest args to override)
 
 Environment overrides (`NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `MILVUS_HOST`, `MILVUS_PORT`) are honored, making it easy to target an already running shared stack instead of launching new containers.
@@ -113,15 +113,15 @@ docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
 ```
 
 This starts:
-- Milvus (with etcd and MinIO dependencies) on port 18530
+- Milvus (with etcd and MinIO dependencies) on port 17530
 
 ### 2. Wait for Services to be Ready
 
 Skip this step if you used `./scripts/run_integration_stack.sh`; it already polls container health and dumps logs on failure.
 
 ```bash
-# Wait for Milvus (port 18091 for health, 18530 for gRPC)
-timeout 120 bash -c 'until curl -f http://localhost:18091/healthz 2>/dev/null; do echo "Waiting for Milvus..."; sleep 2; done'
+# Wait for Milvus (port 17091 for health, 17530 for gRPC)
+timeout 120 bash -c 'until curl -f http://localhost:17091/healthz 2>/dev/null; do echo "Waiting for Milvus..."; sleep 2; done'
 ```
 
 ### 3. Install ML Dependencies
@@ -173,7 +173,7 @@ from pymilvus import connections, Collection
 import time
 
 # Connect to Milvus
-connections.connect(alias="default", host="localhost", port="18530")
+connections.connect(alias="default", host="localhost", port="17530")
 
 # Get the collection (assumes test created it)
 collection = Collection("hermes_embeddings")
@@ -227,7 +227,7 @@ poetry run pip install sentence-transformers
 **Check if Milvus is running:**
 ```bash
 docker ps | grep milvus
-curl http://localhost:18530/healthz
+curl http://localhost:17530/healthz
 ```
 
 **View Milvus logs:**
@@ -253,7 +253,7 @@ If you get "port already in use" errors:
 
 ```bash
 # Check what's using the port
-lsof -i :18530  # Milvus
+lsof -i :17530  # Milvus
 lsof -i :18687   # Neo4j
 lsof -i :8080   # Hermes
 

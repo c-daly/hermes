@@ -4,28 +4,27 @@ Implements the canonical Hermes OpenAPI contract from Project LOGOS.
 See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 """
 
-import os
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import Response
-from pydantic import BaseModel, Field
-from typing import Any, Dict, List, Literal, Optional
-from contextlib import asynccontextmanager
-import logging
 import importlib.util
+import logging
+from contextlib import asynccontextmanager
+from typing import Any, Dict, List, Literal, Optional
 
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
+from logos_config import get_env_value
+from pydantic import BaseModel, Field
 
-from hermes import __version__
+from hermes import __version__, milvus_client
 from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError
 from hermes.services import (
-    transcribe_audio,
-    synthesize_speech,
-    process_nlp,
     generate_embedding,
     generate_llm_response,
     get_llm_health,
+    process_nlp,
+    synthesize_speech,
+    transcribe_audio,
 )
-from hermes import milvus_client
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -54,7 +53,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-raw_origins = os.getenv("HERMES_CORS_ORIGINS", "*")
+raw_origins = get_env_value("HERMES_CORS_ORIGINS", default="*") or "*"
 if raw_origins.strip() == "*":
     cors_origins = ["*"]
 else:
@@ -519,10 +518,10 @@ async def ingest_media(
     media_type = media_type.lower()
 
     # Get Sophia configuration from environment
-    sophia_host = os.getenv("SOPHIA_HOST", "localhost")
-    sophia_port = os.getenv("SOPHIA_PORT", "8001")
+    sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
+    sophia_port = get_env_value("SOPHIA_PORT", default="8001") or "8001"
     sophia_url = f"http://{sophia_host}:{sophia_port}"
-    sophia_token = os.getenv("SOPHIA_API_KEY") or os.getenv("SOPHIA_API_TOKEN")
+    sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
 
     if not sophia_token:
         raise HTTPException(
@@ -623,8 +622,8 @@ def main() -> None:
     """Entry point for running the Hermes server."""
     import uvicorn
 
-    port = int(os.getenv("HERMES_PORT", "8080"))
-    host = os.getenv("HERMES_HOST", "0.0.0.0")
+    port = int(get_env_value("HERMES_PORT", default="8080") or "8080")
+    host = get_env_value("HERMES_HOST", default="0.0.0.0") or "0.0.0.0"
     uvicorn.run(app, host=host, port=port)
 
 

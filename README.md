@@ -65,9 +65,9 @@ Models download on first use. Without ML extras, endpoints return informative er
 
 ## Documentation
 
-- [LOGOS Getting Started](https://github.com/c-daly/logos/blob/main/docs/GETTING_STARTED.md)
-- [Architecture Overview](https://github.com/c-daly/logos/blob/main/docs/ARCHITECTURE.md)
-- [Testing Guide](https://github.com/c-daly/logos/blob/main/docs/TESTING.md)
+- [LOGOS Getting Started](https://github.com/c-daly/logos/blob/main/docs/guides/GETTING_STARTED.md)
+- [Architecture Overview](https://github.com/c-daly/logos/blob/main/docs/architecture/ARCHITECTURE.md)
+- [Testing Guide](https://github.com/c-daly/logos/blob/main/docs/guides/TESTING.md)
 - [Milvus Integration](docs/MILVUS_INTEGRATION.md)
 
 ## License

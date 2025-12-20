@@ -35,7 +35,7 @@ _milvus_collection: Optional[Any] = None
 
 # Configuration - use logos_config for consistency across LOGOS repos
 MILVUS_HOST = get_env_value("MILVUS_HOST", default="localhost") or "localhost"
-MILVUS_PORT = get_env_value("MILVUS_PORT", default="19530") or "19530"
+MILVUS_PORT = get_env_value("MILVUS_PORT", default="17530") or "17530"
 COLLECTION_NAME = (
     get_env_value("MILVUS_COLLECTION_NAME", default="hermes_embeddings")
     or "hermes_embeddings"

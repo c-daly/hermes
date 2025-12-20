@@ -24,10 +24,10 @@ COMPOSE=${COMPOSE_CMD:-"docker compose"}
 SERVICES=("milvus-etcd" "milvus-minio" "milvus")
 HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-180}
 
-# Hermes-specific ports (18530, 18091 to avoid conflicts with other repos)
+# Hermes-specific ports (17530, 17091 to avoid conflicts with other repos)
 PORTS_TO_CHECK=(
-  "18530:Milvus gRPC"
-  "18091:Milvus health"
+  "17530:Milvus gRPC"
+  "17091:Milvus health"
 )
 
 info() {
@@ -148,8 +148,8 @@ done
 
 # Export standard env vars (from .env.test, with localhost for host access)
 export MILVUS_HOST=${MILVUS_HOST:-"localhost"}
-export MILVUS_PORT=${MILVUS_PORT:-"18530"}
-export NEO4J_URI=${NEO4J_URI:-"bolt://localhost:7687"}
+export MILVUS_PORT=${MILVUS_PORT:-"17530"}
+export NEO4J_URI=${NEO4J_URI:-"bolt://localhost:17687"}
 export NEO4J_USER=${NEO4J_USER:-"neo4j"}
 export NEO4J_PASSWORD=${NEO4J_PASSWORD:-"neo4jtest"}
 export RUN_HERMES_INTEGRATION=1

@@ -110,7 +110,7 @@ Tests automatically skip if required dependencies are not available:
 Default connection settings (can be overridden via environment variables):
 
 - **Milvus**: `localhost:17530`
-- **Neo4j**: `bolt://localhost:18687` (user: `neo4j`, password: `neo4jtest`)
+- **Neo4j**: `bolt://localhost:17687` (user: `neo4j`, password: `neo4jtest`)
 
 ## Milvus Schema
 

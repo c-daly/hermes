@@ -316,7 +316,7 @@ class TestNeo4jErrorHandling:
         # Try to connect to non-existent Neo4j instance
         with pytest.raises(Exception):
             driver = GraphDatabase.driver(
-                "bolt://nonexistent:18687", auth=("neo4j", "password")
+                "bolt://nonexistent:17687", auth=("neo4j", "password")
             )
             driver.verify_connectivity()
 

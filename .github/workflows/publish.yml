@@ -31,8 +31,8 @@ jobs:
           sudo rm -rf /opt/hostedtoolcache/*
           sudo apt-get clean
           df -h
-  publish:
-    uses: c-daly/logos/.github/workflows/reusable-publish.yml@main
-    with:
-      image_name: hermes
-    secrets: inherit
+      - name: Free Disk Space
+        uses: c-daly/logos/.github/workflows/reusable-publish.yml@main
+        with:
+          image_name: hermes
+          secrets: inherit

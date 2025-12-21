@@ -21,6 +21,16 @@ permissions:
   packages: write
 
 jobs:
+  free-disk-space:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android
+          sudo docker system prune -af
+          sudo rm -rf /opt/hostedtoolcache/*
+          sudo apt-get clean
+          df -h
   publish:
     uses: c-daly/logos/.github/workflows/reusable-publish.yml@main
     with:

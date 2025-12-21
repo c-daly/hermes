@@ -689,7 +689,7 @@ class TestMilvusErrorHandling:
         # Try to connect to non-existent host
         with pytest.raises(Exception):
             connections.connect(
-                alias="timeout_test", host="nonexistent-host", port="18530", timeout=1
+                alias="timeout_test", host="nonexistent-host", port="17530", timeout=1
             )
 
 

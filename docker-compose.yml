@@ -16,7 +16,7 @@ services:
       # - LOG_LEVEL=INFO
       # Optional: Milvus connection (uncomment if using Milvus)
       # - MILVUS_HOST=milvus
-      # - MILVUS_PORT=18530
+      # - MILVUS_PORT=17530
       # - MILVUS_COLLECTION_NAME=hermes_embeddings
     restart: unless-stopped
     

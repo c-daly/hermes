@@ -27,6 +27,8 @@ docker pull ghcr.io/c-daly/hermes:latest
 docker run -p 8080:8080 -e MILVUS_HOST=localhost -e MILVUS_PORT=17530 ghcr.io/c-daly/hermes:latest
 ```
 
+For ML-enabled builds, use `ghcr.io/c-daly/hermes:ml-latest` (or set `HERMES_IMAGE_TAG=ml-latest` in compose files that reference Hermes).
+
 ## API Endpoints
 
 | Endpoint | Method | Description |

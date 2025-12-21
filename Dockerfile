@@ -16,20 +16,20 @@ WORKDIR /app/hermes
 COPY src/ ./src/
 COPY pyproject.toml README.md ./
 
-# Install CPU-only PyTorch first to avoid downloading CUDA (saves ~4GB)
-# This must be done before poetry install to ensure we get the CPU version
-RUN pip install --no-cache-dir \
-    torch==2.0.1 \
-    torchaudio==2.0.2 \
-    --index-url https://download.pytorch.org/whl/cpu
+# Install ML dependencies only when requested to keep standard images small
+ARG HERMES_INSTALL_ML=0
 
-# Install Hermes dependencies (including ML packages)
 # Note: foundry base already has Poetry and common dependencies
-# PyTorch is already installed above, so this won't re-download CUDA version
-RUN poetry install --only main --extras ml --no-interaction --no-ansi
-
-# Download spaCy model
-RUN poetry run python -m spacy download en_core_web_sm
+RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
+      pip install --no-cache-dir \
+        torch==2.0.1 \
+        torchaudio==2.0.2 \
+        --index-url https://download.pytorch.org/whl/cpu && \
+      poetry install --only main --extras ml --no-interaction --no-ansi && \
+      poetry run python -m spacy download en_core_web_sm; \
+    else \
+      poetry install --only main --no-interaction --no-ansi; \
+    fi
 
 # Expose the API port
 EXPOSE 8080

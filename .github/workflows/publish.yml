@@ -26,3 +26,12 @@ jobs:
       image_name: hermes
       tag_override: latest
     secrets: inherit
+
+  publish-ml:
+    uses: c-daly/logos/.github/workflows/reusable-publish.yml@main
+    with:
+      image_name: hermes
+      tag_override: ml-latest
+      build_args: |
+        HERMES_INSTALL_ML=1
+    secrets: inherit

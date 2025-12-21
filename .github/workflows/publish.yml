@@ -24,12 +24,5 @@ jobs:
     uses: c-daly/logos/.github/workflows/reusable-publish.yml@main
     with:
       image_name: hermes
-    secrets: inherit
-
-  publish-latest:
-    if: github.event_name == 'workflow_dispatch'
-    uses: c-daly/logos/.github/workflows/reusable-publish.yml@main
-    with:
-      image_name: hermes
       tag_override: latest
     secrets: inherit

@@ -1,6 +1,5 @@
 # Publish Hermes Container
 # Uses the standardized reusable workflow from logos
-# Part of c-daly/logos#431 - Standardize CI/CD across LOGOS repos
 
 name: Publish Hermes Container
 
@@ -22,7 +21,7 @@ permissions:
 
 jobs:
   publish:
-    uses: c-daly/logos/. github/workflows/reusable-publish.yml@main
+    uses: c-daly/logos/.github/workflows/reusable-publish.yml@main
     with:
       image_name: hermes
     secrets: inherit

@@ -7,6 +7,7 @@ See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 import importlib.util
 import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
@@ -439,8 +440,81 @@ async def embed_text(request: EmbedTextRequest) -> EmbedTextResponse:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
+async def _forward_llm_to_sophia(
+    result: Dict[str, Any],
+    request_id: str,
+) -> None:
+    """Forward LLM response to Sophia for cognitive processing.
+
+    Sends the LLM response to Sophia's /ingest/hermes_proposal endpoint
+    with appropriate provenance metadata.
+
+    Args:
+        result: The LLM response dict from generate_llm_response
+        request_id: Correlation ID for request tracing
+    """
+    import httpx
+
+    sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
+    sophia_port = get_env_value("SOPHIA_PORT", default="8001") or "8001"
+    sophia_url = f"http://{sophia_host}:{sophia_port}"
+    sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
+
+    if not sophia_token:
+        logger.debug("Sophia API token not configured, skipping LLM forwarding")
+        return
+
+    # Extract the assistant message content
+    choices = result.get("choices", [])
+    if not choices:
+        logger.debug("No choices in LLM response, skipping forwarding")
+        return
+
+    raw_text = choices[0].get("message", {}).get("content", "")
+    if not raw_text:
+        logger.debug("Empty LLM response content, skipping forwarding")
+        return
+
+    # Build HermesProposalRequest payload
+    proposal = {
+        "proposal_id": str(uuid.uuid4()),
+        "correlation_id": request_id,
+        "source_service": "hermes",
+        "llm_provider": result.get("provider", "unknown"),
+        "model": result.get("model", "unknown"),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        # Provenance: LLM-mediated content uses lower confidence
+        "confidence": 0.7,
+        "raw_text": raw_text,
+        "metadata": {
+            "source": "hermes_llm",
+            "derivation": "observed",
+        },
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{sophia_url}/ingest/hermes_proposal",
+                json=proposal,
+                headers={"Authorization": f"Bearer {sophia_token}"},
+            )
+            if response.status_code == 201:
+                logger.info(
+                    f"Forwarded LLM response to Sophia: {proposal['proposal_id']}"
+                )
+            else:
+                logger.warning(
+                    f"Sophia rejected LLM proposal: {response.status_code} - {response.text}"
+                )
+    except httpx.RequestError as exc:
+        logger.warning(f"Failed to forward LLM response to Sophia: {exc}")
+    except Exception as exc:
+        logger.warning(f"Unexpected error forwarding to Sophia: {exc}")
+
+
 @app.post("/llm", response_model=LLMResponse)
-async def llm_generate(request: LLMRequest) -> LLMResponse:
+async def llm_generate(request: LLMRequest, http_request: Request) -> LLMResponse:
     """Proxy language model completions through Hermes."""
     normalized_messages: List[LLMMessage] = list(request.messages or [])
     if not normalized_messages:
@@ -461,6 +535,11 @@ async def llm_generate(request: LLMRequest) -> LLMResponse:
             max_tokens=request.max_tokens,
             metadata=request.metadata,
         )
+
+        # Forward LLM response to Sophia for cognitive processing
+        request_id = getattr(http_request.state, "request_id", str(uuid.uuid4()))
+        await _forward_llm_to_sophia(result, request_id)
+
         return LLMResponse(**result)
     except LLMProviderNotConfiguredError as exc:
         logger.error("LLM provider not configured: %s", exc)
@@ -581,7 +660,12 @@ async def ingest_media(
         # Forward to Sophia for storage and perception
         await file.seek(0)  # Reset file pointer
         files = {"file": (file.filename, file.file, file.content_type)}
-        data = {"media_type": media_type}
+        data = {
+            "media_type": media_type,
+            # Provenance metadata for HCG node attribution
+            "source": "ingestion",
+            "derivation": "observed",
+        }
         if question:
             data["question"] = question
 

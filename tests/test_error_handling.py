@@ -176,13 +176,13 @@ class TestDependencyFailures:
 
         data = response.json()
         assert "status" in data
-        assert "services" in data
+        assert "capabilities" in data
 
-        # Status should be "healthy" or "degraded"
-        assert data["status"] in ["healthy", "degraded"]
+        # Status should be "healthy", "degraded", or "unavailable"
+        assert data["status"] in ["healthy", "degraded", "unavailable"]
 
-        # Each service should report availability
-        for service_name, status in data["services"].items():
+        # Each capability should report availability
+        for cap_name, status in data["capabilities"].items():
             assert status in ["available", "unavailable"]
 
     def test_ml_service_unavailable(self):

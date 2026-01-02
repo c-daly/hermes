@@ -5,15 +5,19 @@ See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 """
 
 import importlib.util
-import logging
+import uuid
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Literal, Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from logos_config import get_env_value
+from logos_config.health import DependencyStatus, HealthResponse
+from logos_test_utils import setup_logging
 from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import Response as StarletteResponse
 
 from hermes import __version__, milvus_client
 from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError
@@ -26,9 +30,23 @@ from hermes.services import (
     transcribe_audio,
 )
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure structured logging for hermes
+logger = setup_logging("hermes")
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Middleware to add request ID to all requests for tracing."""
+
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> StarletteResponse:
+        request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+        # Store request_id in request state for access in handlers
+        request.state.request_id = request_id
+
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
 
 
 @asynccontextmanager
@@ -68,6 +86,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestIDMiddleware)
 
 
 # Request/Response Models
@@ -193,13 +212,7 @@ class LLMRequest(BaseModel):
     )
 
 
-class HealthResponse(BaseModel):
-    status: str = Field(..., description="Overall health status")
-    version: str = Field(..., description="API version")
-    services: Dict[str, str] = Field(..., description="Status of individual services")
-    milvus: Dict[str, Any] = Field(..., description="Milvus connectivity status")
-    queue: Dict[str, Any] = Field(..., description="Internal queue status")
-    llm: Dict[str, Any] = Field(..., description="LLM provider configuration status")
+# Note: HealthResponse is now imported from logos_config.health
 
 
 # API Endpoints
@@ -214,72 +227,71 @@ async def root() -> Dict[str, Any]:
     }
 
 
-@app.get("/health", response_model=HealthResponse)
+@app.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse)
 async def health() -> HealthResponse:
     """Health check endpoint with detailed service status.
 
     Returns the overall health status and availability of ML services,
-    Milvus connectivity, and internal queue status.
-    This is useful for monitoring and integration with other LOGOS components.
+    Milvus connectivity, and LLM provider status.
+    Supports both GET and HEAD methods for health probes.
     """
-    services_status = {}
+    # Build dependency status for Milvus
+    milvus_connected = milvus_client._milvus_connected
+    milvus_dep = DependencyStatus(
+        status="healthy" if milvus_connected else "unavailable",
+        connected=milvus_connected,
+        details={
+            "host": milvus_client.get_milvus_host(),
+            "port": milvus_client.get_milvus_port(),
+            "collection": (
+                milvus_client.get_collection_name() if milvus_connected else None
+            ),
+        },
+    )
 
-    # Check STT (Whisper) availability
-    services_status["stt"] = (
+    # Build dependency status for LLM
+    llm_health = get_llm_health()
+    llm_configured = llm_health.get("configured", False)
+    llm_dep = DependencyStatus(
+        status="healthy" if llm_configured else "unavailable",
+        connected=llm_configured,
+        details=llm_health,
+    )
+
+    # Build capabilities from ML library availability
+    capabilities: Dict[str, str] = {}
+    capabilities["stt"] = (
         "available" if importlib.util.find_spec("whisper") else "unavailable"
     )
-
-    # Check TTS availability
-    services_status["tts"] = (
+    capabilities["tts"] = (
         "available" if importlib.util.find_spec("TTS") else "unavailable"
     )
-
-    # Check NLP (spaCy) availability
-    services_status["nlp"] = (
+    capabilities["nlp"] = (
         "available" if importlib.util.find_spec("spacy") else "unavailable"
     )
-
-    # Check embeddings (sentence-transformers) availability
-    services_status["embeddings"] = (
+    capabilities["embeddings"] = (
         "available"
         if importlib.util.find_spec("sentence_transformers")
         else "unavailable"
     )
 
-    # Check Milvus connectivity
-    milvus_status = {
-        "connected": milvus_client._milvus_connected,
-        "host": milvus_client.MILVUS_HOST,
-        "port": milvus_client.MILVUS_PORT,
-        "collection": (
-            milvus_client.COLLECTION_NAME if milvus_client._milvus_connected else None
-        ),
-    }
-
-    # Internal queue status (placeholder for Phase 2)
-    # Note: Hermes is currently stateless with no internal queues
-    # This is a placeholder for future async processing capabilities
-    queue_status = {
-        "enabled": False,
-        "pending": 0,
-        "processed": 0,
-    }
-
-    # LLM provider status
-    llm_status = get_llm_health()
-    services_status["llm"] = "available" if llm_status["configured"] else "unavailable"
-
-    # Determine overall status
-    all_available = all(status == "available" for status in services_status.values())
-    overall_status = "healthy" if all_available else "degraded"
+    # Determine overall status (Milvus is critical)
+    if not milvus_connected:
+        overall_status: Literal["healthy", "degraded", "unavailable"] = "degraded"
+    elif not llm_configured:
+        overall_status = "degraded"
+    else:
+        overall_status = "healthy"
 
     return HealthResponse(
         status=overall_status,
+        service="hermes",
         version=__version__,
-        services=services_status,
-        milvus=milvus_status,
-        queue=queue_status,
-        llm=llm_status,
+        dependencies={
+            "milvus": milvus_dep,
+            "llm": llm_dep,
+        },
+        capabilities=capabilities,
     )
 
 

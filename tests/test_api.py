@@ -40,47 +40,56 @@ def test_health_endpoint():
     assert response.status_code == 200
     data = response.json()
 
-    # Check required fields
+    # Check required fields (logos_config.health.HealthResponse schema)
     assert "status" in data
     assert "version" in data
-    assert "services" in data
-    assert "milvus" in data
-    assert "queue" in data
+    assert "service" in data
+    assert data["service"] == "hermes"
+    assert "timestamp" in data
 
-    # Status should be "healthy" or "degraded"
-    assert data["status"] in ["healthy", "degraded"]
+    # Status should be "healthy", "degraded", or "unavailable"
+    assert data["status"] in ["healthy", "degraded", "unavailable"]
 
-    # Services should include all ML services
-    services = data["services"]
-    assert "stt" in services
-    assert "tts" in services
-    assert "nlp" in services
-    assert "embeddings" in services
-    assert "llm" in services
+    # Check dependencies structure
+    assert "dependencies" in data
+    deps = data["dependencies"]
+    assert "milvus" in deps
+    assert "llm" in deps
 
-    # Each service should be "available" or "unavailable"
-    for service_name, service_status in services.items():
-        assert service_status in ["available", "unavailable"]
+    # Each dependency should have status and connected fields
+    for dep_name, dep_info in deps.items():
+        assert "status" in dep_info
+        assert dep_info["status"] in ["healthy", "degraded", "unavailable"]
+        assert "connected" in dep_info
 
-    # Check Milvus status structure
-    milvus = data["milvus"]
-    assert "connected" in milvus
-    assert "host" in milvus
-    assert "port" in milvus
-    assert "collection" in milvus
-    assert isinstance(milvus["connected"], bool)
+    # Check Milvus dependency details
+    milvus = deps["milvus"]
+    assert "details" in milvus
+    milvus_details = milvus["details"]
+    assert "host" in milvus_details
+    assert "port" in milvus_details
 
-    # Check queue status structure
-    queue = data["queue"]
-    assert "enabled" in queue
-    assert "pending" in queue
-    assert "processed" in queue
-    assert isinstance(queue["enabled"], bool)
-    assert isinstance(queue["pending"], int)
-    assert isinstance(queue["processed"], int)
-    assert "llm" in data
-    assert "default_provider" in data["llm"]
-    assert "providers" in data["llm"]
+    # Check capabilities structure
+    assert "capabilities" in data
+    caps = data["capabilities"]
+    assert "stt" in caps
+    assert "tts" in caps
+    assert "nlp" in caps
+    assert "embeddings" in caps
+
+    # Each capability should be "available" or "unavailable"
+    for cap_name, cap_status in caps.items():
+        assert cap_status in ["available", "unavailable"]
+
+
+def test_health_endpoint_head():
+    """Test the health endpoint supports HEAD method."""
+    response = client.head("/health")
+    assert response.status_code == 200
+    # HEAD should return no body
+    assert response.content == b""
+    # Should still have X-Request-ID header from middleware
+    assert "x-request-id" in response.headers
 
 
 def test_stt_endpoint_validation():

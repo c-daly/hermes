@@ -33,14 +33,38 @@ except ImportError:
 _milvus_connected = False
 _milvus_collection: Optional[Any] = None
 
-# Configuration - use logos_config for consistency across LOGOS repos
-MILVUS_HOST = get_env_value("MILVUS_HOST", default="localhost") or "localhost"
-MILVUS_PORT = get_env_value("MILVUS_PORT", default="17530") or "17530"
-COLLECTION_NAME = (
-    get_env_value("MILVUS_COLLECTION_NAME", default="hermes_embeddings")
-    or "hermes_embeddings"
-)
+# Lazy-loaded configuration - deferred until first use to avoid import-time env reads
+_milvus_host: Optional[str] = None
+_milvus_port: Optional[str] = None
+_collection_name: Optional[str] = None
 EMBEDDING_DIMENSION = 384  # all-MiniLM-L6-v2 dimension
+
+
+def get_milvus_host() -> str:
+    """Get Milvus host, reading from env on first call."""
+    global _milvus_host
+    if _milvus_host is None:
+        _milvus_host = get_env_value("MILVUS_HOST", default="localhost") or "localhost"
+    return _milvus_host
+
+
+def get_milvus_port() -> str:
+    """Get Milvus port, reading from env on first call."""
+    global _milvus_port
+    if _milvus_port is None:
+        _milvus_port = get_env_value("MILVUS_PORT", default="17530") or "17530"
+    return _milvus_port
+
+
+def get_collection_name() -> str:
+    """Get collection name, reading from env on first call."""
+    global _collection_name
+    if _collection_name is None:
+        _collection_name = (
+            get_env_value("MILVUS_COLLECTION_NAME", default="hermes_embeddings")
+            or "hermes_embeddings"
+        )
+    return _collection_name
 
 
 def is_milvus_available() -> bool:
@@ -84,14 +108,16 @@ def connect_milvus() -> bool:
         return True
 
     try:
+        host = get_milvus_host()
+        port = get_milvus_port()
         connections.connect(
             alias="default",
-            host=MILVUS_HOST,
-            port=MILVUS_PORT,
+            host=host,
+            port=port,
             timeout=5,
         )
         _milvus_connected = True
-        logger.info(f"Connected to Milvus at {MILVUS_HOST}:{MILVUS_PORT}")
+        logger.info(f"Connected to Milvus at {host}:{port}")
         return True
     except Exception as e:
         logger.warning(f"Failed to connect to Milvus: {str(e)}")
@@ -111,15 +137,16 @@ def ensure_collection() -> Optional[Any]:
     global _milvus_collection
 
     try:
+        collection_name = get_collection_name()
         # Check if collection already exists
-        if utility.has_collection(COLLECTION_NAME):
+        if utility.has_collection(collection_name):
             # Always get a fresh collection reference to avoid stale references
             # (e.g., if collection was dropped and recreated externally)
-            _milvus_collection = Collection(name=COLLECTION_NAME)
+            _milvus_collection = Collection(name=collection_name)
             return _milvus_collection
 
         # Create new collection with schema from c-daly/logos#155
-        logger.info(f"Creating Milvus collection: {COLLECTION_NAME}")
+        logger.info(f"Creating Milvus collection: {collection_name}")
 
         fields = [
             FieldSchema(
@@ -140,7 +167,7 @@ def ensure_collection() -> Optional[Any]:
             fields=fields, description="Hermes text embeddings collection"
         )
 
-        collection = Collection(name=COLLECTION_NAME, schema=schema)
+        collection = Collection(name=collection_name, schema=schema)
 
         # Create index for vector field
         index_params = {
@@ -150,7 +177,7 @@ def ensure_collection() -> Optional[Any]:
         }
         collection.create_index(field_name="embedding", index_params=index_params)
 
-        logger.info(f"Collection {COLLECTION_NAME} created successfully")
+        logger.info(f"Collection {collection_name} created successfully")
         _milvus_collection = collection
         return collection
 

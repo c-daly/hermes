@@ -14,7 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from logos_config import get_env_value
 from logos_config.health import DependencyStatus, HealthResponse
-from logos_test_utils import setup_logging
+# TODO: Remove type ignore once logos-foundry publishes py.typed marker (logos #472)
+from logos_test_utils import setup_logging  # type: ignore[import-untyped]
 from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response as StarletteResponse

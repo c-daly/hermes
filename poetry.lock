@@ -2300,7 +2300,7 @@ uvicorn = {version = "^0.32.0", extras = ["standard"]}
 type = "git"
 url = "https://github.com/c-daly/logos.git"
 reference = "main"
-resolved_reference = "81e4367a5bae4e405e9cf419462f4b9eaeac5215"
+resolved_reference = "f4cdb48452deebc39dcc6c6036ffc81abacd38dd"
 
 [[package]]
 name = "marisa-trie"

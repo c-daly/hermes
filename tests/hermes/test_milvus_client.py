@@ -12,12 +12,18 @@ def test_is_milvus_available():
 
 
 def test_milvus_configuration():
-    """Test that Milvus configuration constants are defined."""
-    assert hasattr(milvus_client, "MILVUS_HOST")
-    assert hasattr(milvus_client, "MILVUS_PORT")
-    assert hasattr(milvus_client, "COLLECTION_NAME")
+    """Test that Milvus configuration getters and constants are defined."""
+    # Lazy-loaded getters
+    assert hasattr(milvus_client, "get_milvus_host")
+    assert hasattr(milvus_client, "get_milvus_port")
+    assert hasattr(milvus_client, "get_collection_name")
+    # Direct constant
     assert hasattr(milvus_client, "EMBEDDING_DIMENSION")
     assert milvus_client.EMBEDDING_DIMENSION == 384
+    # Getters return strings
+    assert isinstance(milvus_client.get_milvus_host(), str)
+    assert isinstance(milvus_client.get_milvus_port(), str)
+    assert isinstance(milvus_client.get_collection_name(), str)
 
 
 @patch("hermes.milvus_client.connections")
@@ -63,7 +69,9 @@ def test_ensure_collection_creates_new(mock_collection, mock_utility, mock_conne
 
     # Verify
     assert result == mock_collection_instance
-    mock_utility.has_collection.assert_called_once_with(milvus_client.COLLECTION_NAME)
+    mock_utility.has_collection.assert_called_once_with(
+        milvus_client.get_collection_name()
+    )
     mock_collection_instance.create_index.assert_called_once()
 
 

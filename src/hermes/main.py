@@ -581,7 +581,12 @@ async def ingest_media(
         # Forward to Sophia for storage and perception
         await file.seek(0)  # Reset file pointer
         files = {"file": (file.filename, file.file, file.content_type)}
-        data = {"media_type": media_type}
+        data = {
+            "media_type": media_type,
+            # Provenance metadata for HCG node attribution
+            "source": "ingestion",
+            "derivation": "observed",
+        }
         if question:
             data["question"] = question
 

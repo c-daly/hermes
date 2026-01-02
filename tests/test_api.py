@@ -232,3 +232,48 @@ def test_llm_endpoint_with_messages():
     data = response.json()
     assert data["choices"][0]["message"]["role"] == "assistant"
     assert "hi" in data["choices"][0]["message"]["content"].lower()
+
+
+def test_llm_forwards_to_sophia_with_provenance(monkeypatch):
+    """LLM responses should be forwarded to Sophia with provenance metadata."""
+    import httpx
+    from unittest.mock import AsyncMock, MagicMock
+
+    # Track the call to Sophia
+    captured_request = {}
+
+    class MockResponse:
+        status_code = 201
+        text = "Created"
+
+    async def mock_post(url, json=None, headers=None):
+        captured_request["url"] = url
+        captured_request["json"] = json
+        captured_request["headers"] = headers
+        return MockResponse()
+
+    # Mock httpx.AsyncClient
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+    mock_client.post = mock_post
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **kwargs: mock_client)
+
+    # Set Sophia token to enable forwarding
+    monkeypatch.setenv("SOPHIA_API_TOKEN", "test-token")
+    monkeypatch.setenv("SOPHIA_HOST", "localhost")
+    monkeypatch.setenv("SOPHIA_PORT", "8001")
+
+    # Make LLM request
+    response = client.post("/llm", json={"prompt": "Hello", "provider": "echo"})
+    assert response.status_code == 200
+
+    # Verify Sophia was called with correct provenance
+    assert "hermes_proposal" in captured_request.get("url", "")
+    payload = captured_request.get("json", {})
+    assert payload.get("source_service") == "hermes"
+    assert payload.get("llm_provider") == "echo"
+    assert payload.get("confidence") == 0.7
+    assert payload.get("metadata", {}).get("source") == "hermes_llm"
+    assert payload.get("metadata", {}).get("derivation") == "observed"

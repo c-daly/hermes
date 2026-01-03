@@ -716,6 +716,105 @@ async def ingest_media(
         ) from exc
 
 
+# ---------------------------------------------------------------------
+# Feedback Endpoint (Sophia → Hermes)
+# ---------------------------------------------------------------------
+
+
+class StepResult(BaseModel):
+    """Result of a single plan step execution."""
+
+    step_index: int
+    action: str
+    outcome: Literal["success", "failure", "skipped"]
+    error: Optional[str] = None
+    duration_ms: Optional[int] = None
+
+
+class StateDiff(BaseModel):
+    """Changes to CWM state."""
+
+    added_nodes: List[str] = Field(default_factory=list)
+    removed_nodes: List[str] = Field(default_factory=list)
+    modified_nodes: List[str] = Field(default_factory=list)
+
+
+class FeedbackPayload(BaseModel):
+    """Feedback sent from Sophia to Hermes."""
+
+    # Correlation (at least one required)
+    correlation_id: Optional[str] = None
+    plan_id: Optional[str] = None
+    execution_id: Optional[str] = None
+
+    # Outcome
+    feedback_type: Literal["observation", "plan", "execution", "validation"]
+    outcome: Literal["accepted", "rejected", "created", "success", "failure", "partial"]
+    reason: str
+
+    # Details (optional, type-dependent)
+    state_diff: Optional[StateDiff] = None
+    step_results: Optional[List[StepResult]] = None
+    node_ids_created: Optional[List[str]] = None
+
+    # Metadata
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    source_service: str = "sophia"
+
+    def model_post_init(self, __context: Any) -> None:
+        """Validate at least one correlation key is present."""
+        if not any([self.correlation_id, self.plan_id, self.execution_id]):
+            raise ValueError(
+                "At least one of correlation_id, plan_id, or execution_id required"
+            )
+
+
+class FeedbackResponse(BaseModel):
+    """Response to feedback submission."""
+
+    status: str = "accepted"
+    message: str = "Feedback received"
+
+
+@app.post("/feedback", response_model=FeedbackResponse, status_code=201)
+async def receive_feedback(
+    payload: FeedbackPayload, request: Request
+) -> FeedbackResponse:
+    """Receive feedback from Sophia about proposal/execution outcomes.
+
+    This endpoint accepts structured feedback tied to correlation IDs,
+    plan IDs, or execution IDs. The feedback is logged for observability.
+
+    Args:
+        payload: Feedback payload from Sophia
+        request: HTTP request for correlation ID extraction
+
+    Returns:
+        FeedbackResponse acknowledging receipt
+    """
+    request_id = getattr(request.state, "request_id", "unknown")
+
+    # Log structured feedback for observability
+    logger.info(
+        "Received feedback",
+        extra={
+            "request_id": request_id,
+            "feedback_type": payload.feedback_type,
+            "outcome": payload.outcome,
+            "correlation_id": payload.correlation_id,
+            "plan_id": payload.plan_id,
+            "execution_id": payload.execution_id,
+            "source_service": payload.source_service,
+            "reason": payload.reason,
+        },
+    )
+
+    return FeedbackResponse(
+        status="accepted",
+        message=f"Feedback received for {payload.feedback_type}: {payload.outcome}",
+    )
+
+
 def main() -> None:
     """Entry point for running the Hermes server."""
     import uvicorn

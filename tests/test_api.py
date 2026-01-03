@@ -317,3 +317,126 @@ def test_media_ingestion_sends_provenance(monkeypatch):
         data = captured_request.get("data", {})
         assert data.get("source") == "ingestion"
         assert data.get("derivation") == "observed"
+
+
+# ---------------------------------------------------------------------
+# Feedback Endpoint Tests
+# ---------------------------------------------------------------------
+
+
+class TestFeedbackEndpoint:
+    """Tests for POST /feedback endpoint."""
+
+    def test_feedback_valid_payload_accepted(self):
+        """Test that valid feedback payload returns 201."""
+        payload = {
+            "correlation_id": "test-correlation-123",
+            "feedback_type": "execution",
+            "outcome": "success",
+            "reason": "Plan executed successfully",
+        }
+        response = client.post("/feedback", json=payload)
+        assert response.status_code == 201
+        data = response.json()
+        assert data["status"] == "accepted"
+        assert "Feedback received" in data["message"]
+
+    def test_feedback_with_plan_id(self):
+        """Test feedback with plan_id instead of correlation_id."""
+        payload = {
+            "plan_id": "plan-456",
+            "feedback_type": "plan",
+            "outcome": "created",
+            "reason": "Plan created from proposal",
+        }
+        response = client.post("/feedback", json=payload)
+        assert response.status_code == 201
+
+    def test_feedback_with_execution_id(self):
+        """Test feedback with execution_id instead of correlation_id."""
+        payload = {
+            "execution_id": "exec-789",
+            "feedback_type": "execution",
+            "outcome": "failure",
+            "reason": "Step 3 failed: resource not found",
+        }
+        response = client.post("/feedback", json=payload)
+        assert response.status_code == 201
+
+    def test_feedback_missing_correlation_key_rejected(self):
+        """Test that feedback without any correlation key returns 422."""
+        payload = {
+            "feedback_type": "observation",
+            "outcome": "accepted",
+            "reason": "Some reason",
+        }
+        response = client.post("/feedback", json=payload)
+        assert response.status_code == 422
+
+    def test_feedback_invalid_feedback_type_rejected(self):
+        """Test that invalid feedback_type returns 422."""
+        payload = {
+            "correlation_id": "test-123",
+            "feedback_type": "invalid_type",
+            "outcome": "success",
+            "reason": "Some reason",
+        }
+        response = client.post("/feedback", json=payload)
+        assert response.status_code == 422
+
+    def test_feedback_invalid_outcome_rejected(self):
+        """Test that invalid outcome returns 422."""
+        payload = {
+            "correlation_id": "test-123",
+            "feedback_type": "execution",
+            "outcome": "invalid_outcome",
+            "reason": "Some reason",
+        }
+        response = client.post("/feedback", json=payload)
+        assert response.status_code == 422
+
+    def test_feedback_with_state_diff(self):
+        """Test feedback with state_diff payload."""
+        payload = {
+            "correlation_id": "test-123",
+            "feedback_type": "execution",
+            "outcome": "success",
+            "reason": "State updated",
+            "state_diff": {
+                "added_nodes": ["node-1", "node-2"],
+                "removed_nodes": [],
+                "modified_nodes": ["node-3"],
+            },
+        }
+        response = client.post("/feedback", json=payload)
+        assert response.status_code == 201
+
+    def test_feedback_with_step_results(self):
+        """Test feedback with step_results payload."""
+        payload = {
+            "plan_id": "plan-123",
+            "feedback_type": "execution",
+            "outcome": "partial",
+            "reason": "Some steps failed",
+            "step_results": [
+                {"step_index": 0, "action": "move", "outcome": "success"},
+                {
+                    "step_index": 1,
+                    "action": "grab",
+                    "outcome": "failure",
+                    "error": "Object not found",
+                },
+            ],
+        }
+        response = client.post("/feedback", json=payload)
+        assert response.status_code == 201
+
+    def test_feedback_missing_required_field(self):
+        """Test that missing required field returns 422."""
+        payload = {
+            "correlation_id": "test-123",
+            "feedback_type": "execution",
+            # Missing 'outcome' and 'reason'
+        }
+        response = client.post("/feedback", json=payload)
+        assert response.status_code == 422

@@ -514,6 +514,7 @@ async def _forward_llm_to_sophia(
 
 
 @app.post("/llm", response_model=LLMResponse)
+@app.post("/llm/generate", response_model=LLMResponse, include_in_schema=False)
 async def llm_generate(request: LLMRequest, http_request: Request) -> LLMResponse:
     """Proxy language model completions through Hermes."""
     normalized_messages: List[LLMMessage] = list(request.messages or [])

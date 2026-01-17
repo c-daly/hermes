@@ -4,20 +4,32 @@ Implements the canonical Hermes OpenAPI contract from Project LOGOS.
 See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 """
 
+from dotenv import load_dotenv
+
+# Load .env file before any pydantic-settings models are instantiated
+load_dotenv()
+
 import importlib.util
+import logging
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional
 
+from pathlib import Path
+
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from logos_config import get_env_value
 from logos_config.health import DependencyStatus, HealthResponse
 
 # TODO: Remove type ignore once logos-foundry publishes py.typed marker (logos #472)
-from logos_test_utils import setup_logging  # type: ignore[import-untyped]
+try:
+    from logos_test_utils import setup_logging  # type: ignore[import-untyped]
+except ImportError:
+    setup_logging = None  # type: ignore[assignment]
 from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response as StarletteResponse
@@ -34,7 +46,7 @@ from hermes.services import (
 )
 
 # Configure structured logging for hermes
-logger = setup_logging("hermes")
+logger = setup_logging("hermes") if setup_logging else logging.getLogger("hermes")
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -90,6 +102,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(RequestIDMiddleware)
+
+# Mount static files for test UI
+static_dir = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 # Request/Response Models
@@ -228,6 +244,12 @@ async def root() -> Dict[str, Any]:
         "description": "Stateless language & embedding tools for Project LOGOS",
         "endpoints": ["/stt", "/tts", "/simple_nlp", "/embed_text", "/llm"],
     }
+
+
+@app.get("/ui")
+async def serve_ui() -> FileResponse:
+    """Serve the test UI."""
+    return FileResponse(static_dir / "index.html")
 
 
 @app.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse)

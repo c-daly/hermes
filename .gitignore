@@ -70,3 +70,4 @@ temp/
 
 # Docker volumes
 volumes/
+.claude-state/

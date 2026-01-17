@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hermes API Test UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold">Hermes API Test UI</h1>
+            <div class="flex items-center gap-2">
+                <span>Health:</span>
+                <span id="health-indicator" class="w-3 h-3 rounded-full bg-gray-400"></span>
+                <button onclick="checkHealth()" class="ml-2 px-3 py-1 bg-indigo-500 hover:bg-indigo-400 rounded text-sm">
+                    Check
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar -->
+            <nav class="w-48 bg-white border-r p-4">
+                <h2 class="text-sm font-semibold text-gray-500 uppercase mb-3">Endpoints</h2>
+                <ul class="space-y-1">
+                    <li>
+                        <button onclick="selectEndpoint('health')"
+                                class="endpoint-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+                                data-endpoint="health">
+                            Health
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="selectEndpoint('llm')"
+                                class="endpoint-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100 bg-indigo-100 text-indigo-700"
+                                data-endpoint="llm">
+                            LLM
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="selectEndpoint('tts')"
+                                class="endpoint-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+                                data-endpoint="tts">
+                            TTS
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="selectEndpoint('nlp')"
+                                class="endpoint-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+                                data-endpoint="nlp">
+                            NLP
+                        </button>
+                    </li>
+                    <li>
+                        <button onclick="selectEndpoint('embed')"
+                                class="endpoint-btn w-full text-left px-3 py-2 rounded hover:bg-gray-100"
+                                data-endpoint="embed">
+                            Embed
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="flex-1 flex flex-col overflow-hidden">
+                <!-- Form Area -->
+                <div class="p-6 border-b bg-white">
+                    <!-- Health Form -->
+                    <div id="form-health" class="endpoint-form hidden">
+                        <h3 class="text-lg font-semibold mb-4">GET /health</h3>
+                        <p class="text-gray-600 mb-4">Check API health status and dependencies.</p>
+                        <button onclick="submitHealth()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500">
+                            Check Health
+                        </button>
+                    </div>
+
+                    <!-- LLM Form -->
+                    <div id="form-llm" class="endpoint-form">
+                        <h3 class="text-lg font-semibold mb-4">POST /llm</h3>
+                        <div class="grid gap-4 max-w-xl">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Prompt</label>
+                                <textarea id="llm-prompt" rows="3" required
+                                    class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Enter your prompt..."></textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Provider</label>
+                                    <select id="llm-provider" class="w-full px-3 py-2 border rounded">
+                                        <option value="echo">echo</option>
+                                        <option value="openai">openai</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                                    <input type="text" id="llm-model"
+                                        class="w-full px-3 py-2 border rounded"
+                                        placeholder="Optional model name">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Temperature</label>
+                                    <input type="number" id="llm-temperature"
+                                        class="w-full px-3 py-2 border rounded"
+                                        value="0.7" min="0" max="2" step="0.1">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Max Tokens</label>
+                                    <input type="number" id="llm-max-tokens"
+                                        class="w-full px-3 py-2 border rounded"
+                                        placeholder="Optional">
+                                </div>
+                            </div>
+                            <button onclick="submitLlm()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500">
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TTS Form -->
+                    <div id="form-tts" class="endpoint-form hidden">
+                        <h3 class="text-lg font-semibold mb-4">POST /tts</h3>
+                        <div class="grid gap-4 max-w-xl">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Text</label>
+                                <textarea id="tts-text" rows="3" required
+                                    class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Enter text to synthesize..."></textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Voice</label>
+                                    <input type="text" id="tts-voice"
+                                        class="w-full px-3 py-2 border rounded"
+                                        value="default">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                                    <select id="tts-language" class="w-full px-3 py-2 border rounded">
+                                        <option value="en-US">en-US</option>
+                                        <option value="es-ES">es-ES</option>
+                                        <option value="fr-FR">fr-FR</option>
+                                        <option value="de-DE">de-DE</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button onclick="submitTts()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500">
+                                Synthesize
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- NLP Form -->
+                    <div id="form-nlp" class="endpoint-form hidden">
+                        <h3 class="text-lg font-semibold mb-4">POST /simple_nlp</h3>
+                        <div class="grid gap-4 max-w-xl">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Text</label>
+                                <textarea id="nlp-text" rows="3" required
+                                    class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Enter text to analyze..."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Operations</label>
+                                <div class="flex flex-wrap gap-4">
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="nlp-tokenize" checked class="rounded">
+                                        <span>Tokenize</span>
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="nlp-pos" class="rounded">
+                                        <span>POS Tag</span>
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="nlp-lemma" class="rounded">
+                                        <span>Lemmatize</span>
+                                    </label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="nlp-ner" class="rounded">
+                                        <span>NER</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <button onclick="submitNlp()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500">
+                                Analyze
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Embed Form -->
+                    <div id="form-embed" class="endpoint-form hidden">
+                        <h3 class="text-lg font-semibold mb-4">POST /embed_text</h3>
+                        <div class="grid gap-4 max-w-xl">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Text</label>
+                                <textarea id="embed-text" rows="3" required
+                                    class="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Enter text to embed..."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                                <input type="text" id="embed-model"
+                                    class="w-full px-3 py-2 border rounded"
+                                    value="default">
+                            </div>
+                            <button onclick="submitEmbed()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-500">
+                                Generate Embedding
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Response Area -->
+                <div class="flex-1 overflow-auto p-6 bg-gray-50">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">Response</h3>
+                        <div class="flex gap-2">
+                            <button onclick="setViewMode('formatted')" id="btn-formatted"
+                                class="px-3 py-1 text-sm rounded bg-indigo-600 text-white">
+                                Formatted
+                            </button>
+                            <button onclick="setViewMode('json')" id="btn-json"
+                                class="px-3 py-1 text-sm rounded bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                JSON
+                            </button>
+                        </div>
+                    </div>
+                    <div id="response-area" class="bg-white rounded border p-4 min-h-32">
+                        <p class="text-gray-500 italic">Submit a request to see the response.</p>
+                    </div>
+                    <!-- Audio player for TTS -->
+                    <div id="audio-player" class="hidden mt-4">
+                        <audio id="tts-audio" controls class="w-full"></audio>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

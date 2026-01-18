@@ -3,7 +3,6 @@
 These tests verify the /ui endpoint and static file serving functionality.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 from hermes.main import app
 

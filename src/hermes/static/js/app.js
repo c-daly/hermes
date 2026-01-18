@@ -182,6 +182,10 @@ function renderTts(result) {
         audio.src = url;
         audioPlayer.classList.remove('hidden');
         area.innerHTML = `<p class="text-green-600">Audio generated successfully. Use the player below.</p>`;
+
+        // Clean up the object URL when audio finishes or errors
+        audio.onended = () => URL.revokeObjectURL(url);
+        audio.onerror = () => URL.revokeObjectURL(url);
     } else {
         area.innerHTML = `<p class="text-red-600">No audio in response.</p>`;
     }

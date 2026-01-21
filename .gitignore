@@ -71,3 +71,6 @@ temp/
 # Docker volumes
 volumes/
 .claude-state/
+
+# Local dev overrides
+pyproject.local.toml

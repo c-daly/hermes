@@ -15,6 +15,13 @@ ERROR: Could not find a version that satisfies the requirement logos-foundry
    ```bash
    ./scripts/setup-local-dev.sh
    ```
+   This script runs `poetry install -E dev` followed by `pip install -e ../logos`
+   to install the local logos repository as an editable package, overriding the
+   git-based dependency. Verify with:
+   ```bash
+   poetry run pip show logos-foundry
+   # Location should point to ../logos
+   ```
 
 2. **Clear Poetry cache:**
    ```bash
@@ -87,11 +94,13 @@ Because hermes depends on logos-foundry (v0.1.0) and apollo depends on logos-fou
 
 2. Update all repos to same tag (e.g., `@v0.1.0`)
 
-3. If developing across repos, use local paths:
+3. If developing across repos, use local development mode:
    ```bash
-   # In each repo's pyproject.local.toml:
-   logos-foundry = { path = "../logos", develop = true }
+   # In each repo, run the setup script:
+   ./scripts/setup-local-dev.sh
    ```
+   This installs logos as an editable package, so changes in `../logos`
+   are immediately available without reinstalling.
 
 ## CI-Specific Issues
 

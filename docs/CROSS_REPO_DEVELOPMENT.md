@@ -18,7 +18,7 @@ git clone https://github.com/c-daly/sophia.git
 
 ### Configure Local Dependencies
 
-In each dependent repo, run:
+In each dependent repo, run the setup script:
 
 ```bash
 cd hermes && ./scripts/setup-local-dev.sh
@@ -26,7 +26,19 @@ cd ../apollo && ./scripts/setup-local-dev.sh
 cd ../sophia && ./scripts/setup-local-dev.sh
 ```
 
-This configures each repo to use your local logos clone.
+The setup script performs two steps:
+1. `poetry install -E dev` - Installs project dependencies with dev extras
+2. `pip install -e ../logos` - Installs local logos as an editable package
+
+This means **changes to logos will be immediately reflected** without re-running the setup script.
+
+To verify the local logos is installed correctly:
+
+```bash
+poetry run pip show logos-foundry
+```
+
+The output should show a local path in the `Location` field.
 
 ## Making Cross-Repo Changes
 
@@ -44,7 +56,7 @@ This configures each repo to use your local logos clone.
 2. **Test in hermes (using local logos):**
    ```bash
    cd ../hermes
-   # Already using local logos via pyproject.local.toml
+   # Already using local logos via editable install
    poetry run pytest tests/
    ```
 

@@ -1,9 +1,0 @@
-# Copy this to pyproject.local.toml and adjust paths for your system
-# This file is gitignored and allows local editable installs
-
-[tool.poetry.dependencies]
-# Override logos-foundry to use local path
-logos-foundry = { path = "../logos", develop = true }
-
-# For apollo developers who also work on hermes:
-# logos-hermes-sdk = { path = "../logos/sdk/python/hermes", develop = true }

@@ -21,14 +21,12 @@ class TestUIEndpoint:
 
         # Content-Type should be text/html
         content_type = response.headers.get("content-type", "")
-        assert "text/html" in content_type, (
-            f"Expected content-type to contain 'text/html', got '{content_type}'"
-        )
+        assert (
+            "text/html" in content_type
+        ), f"Expected content-type to contain 'text/html', got '{content_type}'"
 
         # Response body should contain "Hermes"
-        assert "Hermes" in response.text, (
-            "Expected response to contain 'Hermes'"
-        )
+        assert "Hermes" in response.text, "Expected response to contain 'Hermes'"
 
 
 class TestStaticFiles:

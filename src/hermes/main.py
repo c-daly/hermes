@@ -30,7 +30,10 @@ try:
 except ImportError:
     setup_logging = None  # type: ignore[assignment]
 from pydantic import BaseModel, Field  # noqa: E402
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint  # noqa: E402
+from starlette.middleware.base import (  # noqa: E402
+    BaseHTTPMiddleware,
+    RequestResponseEndpoint,
+)
 from starlette.responses import Response as StarletteResponse  # noqa: E402
 
 from hermes import __version__, milvus_client  # noqa: E402
@@ -45,7 +48,11 @@ from hermes.services import (  # noqa: E402
 )
 
 # Configure structured logging for hermes
-logger = setup_logging("hermes") if setup_logging else logging.getLogger("hermes")
+logger = (
+    setup_logging("hermes")
+    if setup_logging is not None
+    else logging.getLogger("hermes")
+)
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):

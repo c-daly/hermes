@@ -27,7 +27,7 @@ dependencies = [
     "python-multipart>=0.0.6",
     "httpx>=0.25.0",
     "pymilvus>=2.3.0",
-    "logos-foundry @ git+https://github.com/c-daly/logos.git@main ; python_version >= \"3.11\" and python_version < \"4.0\"",
+    "logos-foundry @ git+https://github.com/c-daly/logos.git@v0.1.0 ; python_version >= \"3.11\" and python_version < \"4.0\"",
 ]
 
 [project.optional-dependencies]

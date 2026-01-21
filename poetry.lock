@@ -7193,4 +7193,4 @@ ml-gpu = ["TTS", "numpy", "openai-whisper", "sentence-transformers", "spacy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "0805ca79d6eb04422217725fda50cb55bc305fb439497cbcc6ea059552868871"
+content-hash = "1a79374de553dc50296e58f659c1f4c428dd5f873df22b8594fe5a2573aface9"

@@ -4,27 +4,41 @@ Implements the canonical Hermes OpenAPI contract from Project LOGOS.
 See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 """
 
-import importlib.util
-import uuid
-from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Literal, Optional
+from dotenv import load_dotenv
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
-from logos_config import get_env_value
-from logos_config.health import DependencyStatus, HealthResponse
+# Load .env file before any pydantic-settings models are instantiated
+load_dotenv()
+
+import importlib.util  # noqa: E402
+import logging  # noqa: E402
+import uuid  # noqa: E402
+from contextlib import asynccontextmanager  # noqa: E402
+from datetime import datetime, timezone  # noqa: E402
+from pathlib import Path  # noqa: E402
+from typing import Any, Dict, List, Literal, Optional  # noqa: E402
+
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import FileResponse, Response  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+from logos_config import get_env_value  # noqa: E402
+from logos_config.health import DependencyStatus, HealthResponse  # noqa: E402
 
 # TODO: Remove type ignore once logos-foundry publishes py.typed marker (logos #472)
-from logos_test_utils import setup_logging  # type: ignore[import-untyped]
-from pydantic import BaseModel, Field
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response as StarletteResponse
+try:
+    from logos_test_utils import setup_logging  # type: ignore[import-untyped,import-not-found]  # noqa: E402
+except ImportError:
+    setup_logging = None  # type: ignore[assignment]
+from pydantic import BaseModel, Field  # noqa: E402
+from starlette.middleware.base import (  # noqa: E402
+    BaseHTTPMiddleware,
+    RequestResponseEndpoint,
+)
+from starlette.responses import Response as StarletteResponse  # noqa: E402
 
-from hermes import __version__, milvus_client
-from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError
-from hermes.services import (
+from hermes import __version__, milvus_client  # noqa: E402
+from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError  # noqa: E402
+from hermes.services import (  # noqa: E402
     generate_embedding,
     generate_llm_response,
     get_llm_health,
@@ -34,7 +48,11 @@ from hermes.services import (
 )
 
 # Configure structured logging for hermes
-logger = setup_logging("hermes")
+logger = (
+    setup_logging("hermes")
+    if setup_logging is not None
+    else logging.getLogger("hermes")
+)
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -90,6 +108,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(RequestIDMiddleware)
+
+# Mount static files for test UI
+static_dir = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 # Request/Response Models
@@ -228,6 +250,12 @@ async def root() -> Dict[str, Any]:
         "description": "Stateless language & embedding tools for Project LOGOS",
         "endpoints": ["/stt", "/tts", "/simple_nlp", "/embed_text", "/llm"],
     }
+
+
+@app.get("/ui")
+async def serve_ui() -> FileResponse:
+    """Serve the test UI."""
+    return FileResponse(static_dir / "index.html")
 
 
 @app.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse)

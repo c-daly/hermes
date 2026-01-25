@@ -1,0 +1,87 @@
+{
+  "queue_meta": {
+    "created": "2026-01-23",
+    "description": "Hermes task queue with dependency graph for agent iteration",
+    "version": 1
+  },
+  "tasks": [
+    {
+      "id": "logos-337",
+      "repo": "logos",
+      "issue_number": 337,
+      "title": "Add OpenTelemetry SDK Integration",
+      "priority": "critical",
+      "type": "feature",
+      "group": "observability",
+      "blockedBy": [],
+      "blocks": ["logos-338"],
+      "status": "pending",
+      "pr": null
+    },
+    {
+      "id": "logos-338",
+      "repo": "logos",
+      "issue_number": 338,
+      "title": "Instrument API Endpoints with OTel Spans",
+      "priority": "high",
+      "type": "feature",
+      "group": "observability",
+      "blockedBy": ["logos-337"],
+      "blocks": ["logos-339"],
+      "status": "pending",
+      "pr": null
+    },
+    {
+      "id": "logos-339",
+      "repo": "logos",
+      "issue_number": 339,
+      "title": "Add OTel Testing & Documentation",
+      "priority": "medium",
+      "type": "testing",
+      "group": "observability",
+      "blockedBy": ["logos-338"],
+      "blocks": [],
+      "status": "pending",
+      "pr": null
+    },
+    {
+      "id": "logos-91",
+      "repo": "logos",
+      "issue_number": 91,
+      "title": "Add OpenAPI validation tests",
+      "priority": "high",
+      "type": "testing",
+      "group": "testing",
+      "blockedBy": [],
+      "blocks": [],
+      "status": "pending",
+      "pr": null
+    },
+    {
+      "id": "hermes-42",
+      "repo": "hermes",
+      "issue_number": 42,
+      "title": "Improve test coverage",
+      "priority": "medium",
+      "type": "testing",
+      "group": "testing",
+      "blockedBy": ["hermes-38"],
+      "blocks": [],
+      "status": "pending",
+      "pr": null
+    },
+    {
+      "id": "hermes-38",
+      "repo": "hermes",
+      "issue_number": 38,
+      "title": "Fix integration test scripts: service name mismatch and missing utility scripts",
+      "priority": "medium",
+      "type": "bug",
+      "group": "testing",
+      "blockedBy": [],
+      "blocks": ["hermes-42"],
+      "status": "pending",
+      "pr": null
+    }
+  ]
+}

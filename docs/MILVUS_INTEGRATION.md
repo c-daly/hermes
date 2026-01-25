@@ -223,7 +223,7 @@ If Hermes can't connect to Milvus:
 1. Check Milvus is running: `docker ps --filter "name=milvus"`
 2. Check network connectivity: `curl http://localhost:9091/healthz`
 3. Verify environment variables: `echo $MILVUS_HOST`
-4. Check logs: `docker logs milvus-standalone`
+4. Check logs: `docker logs hermes-test-milvus`
 
 ### Collection Issues
 

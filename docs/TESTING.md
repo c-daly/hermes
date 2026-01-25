@@ -232,7 +232,7 @@ curl http://localhost:17530/healthz
 
 **View Milvus logs:**
 ```bash
-docker logs milvus-standalone
+docker logs hermes-test-milvus
 ```
 
 ### Issue: Cannot Connect to Neo4j

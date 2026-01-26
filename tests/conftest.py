@@ -5,6 +5,16 @@ This module provides reusable fixtures for:
 - Database connections (Milvus, Neo4j)
 - Mock services
 - Test client configuration
+
+Standardization Note:
+    logos_test_utils.fixtures provides shared fixtures for all LOGOS repos:
+    - stack_env: Parsed .env.test environment
+    - neo4j_config: Neo4jConfig dataclass
+    - neo4j_driver: Session-scoped driver with wait_for_neo4j
+
+    Hermes-specific fixtures use dict-based configs from hermes.env for
+    compatibility with existing tests. New tests should prefer the standardized
+    fixtures when possible.
 """
 
 import pytest
@@ -13,7 +23,11 @@ from fastapi.testclient import TestClient
 from hermes.main import app
 from hermes.env import get_milvus_config, get_neo4j_config, load_env_file
 
-# Load environment configuration at module level
+# Re-export shared fixtures from logos_test_utils
+# These can be used directly in tests that need the standardized interface
+from logos_test_utils.fixtures import stack_env  # noqa: F401
+
+# Load environment configuration at module level (dict-based for compatibility)
 _env = load_env_file()
 _milvus_config = get_milvus_config(_env)
 _neo4j_config = get_neo4j_config(_env)

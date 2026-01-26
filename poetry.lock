@@ -2341,7 +2341,7 @@ uvicorn = {version = "^0.32.0", extras = ["standard"]}
 [package.source]
 type = "git"
 url = "https://github.com/c-daly/logos.git"
-reference = "main"
+reference = "v0.2.0"
 resolved_reference = "849ddb4ed47c3911da305e175e4cec9c01ab5a0f"
 
 [[package]]
@@ -7290,4 +7290,4 @@ ml-gpu = ["TTS", "numpy", "openai-whisper", "sentence-transformers", "spacy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "a3e66fe14dd8bc7b5ce01805e9a2d3c91b0d2a14d4eee8166c7a58c5e7f07b4c"
+content-hash = "d35983a1fbb2021075824b95cc0e0946e4b4fcd15829ab28ee2499a3943615c2"

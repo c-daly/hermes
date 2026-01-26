@@ -2322,6 +2322,29 @@ files = [
 ]
 
 [[package]]
+name = "logos-foundry"
+version = "0.1.0"
+description = "LOGOS Foundry - Canonical source of truth for Project LOGOS specifications, ontology, and infrastructure"
+optional = false
+python-versions = "^3.11"
+groups = ["main"]
+markers = "python_version < \"4.0\""
+files = []
+develop = false
+
+[package.dependencies]
+fastapi = "^0.115.0"
+pydantic = "^2.0.0"
+pydantic-settings = "^2.0.0"
+uvicorn = {version = "^0.32.0", extras = ["standard"]}
+
+[package.source]
+type = "git"
+url = "https://github.com/c-daly/logos.git"
+reference = "v0.2.0"
+resolved_reference = "849ddb4ed47c3911da305e175e4cec9c01ab5a0f"
+
+[[package]]
 name = "marisa-trie"
 version = "1.3.1"
 description = "Static memory-efficient and fast Trie-like structures for Python."
@@ -4489,6 +4512,31 @@ files = [
 
 [package.dependencies]
 typing-extensions = ">=4.14.1"
+
+[[package]]
+name = "pydantic-settings"
+version = "2.12.0"
+description = "Settings management using Pydantic"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+markers = "python_version < \"4.0\""
+files = [
+    {file = "pydantic_settings-2.12.0-py3-none-any.whl", hash = "sha256:fddb9fd99a5b18da837b29710391e945b1e30c135477f484084ee513adb93809"},
+    {file = "pydantic_settings-2.12.0.tar.gz", hash = "sha256:005538ef951e3c2a68e1c08b292b5f2e71490def8589d4221b95dab00dafcfd0"},
+]
+
+[package.dependencies]
+pydantic = ">=2.7.0"
+python-dotenv = ">=0.21.0"
+typing-inspection = ">=0.4.0"
+
+[package.extras]
+aws-secrets-manager = ["boto3 (>=1.35.0)", "boto3-stubs[secretsmanager]"]
+azure-key-vault = ["azure-identity (>=1.16.0)", "azure-keyvault-secrets (>=4.8.0)"]
+gcp-secret-manager = ["google-cloud-secret-manager (>=2.23.1)"]
+toml = ["tomli (>=2.0.1)"]
+yaml = ["pyyaml (>=6.0.1)"]
 
 [[package]]
 name = "pygments"
@@ -7242,4 +7290,4 @@ ml-gpu = ["TTS", "numpy", "openai-whisper", "sentence-transformers", "spacy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "b7e6d627c70053342f7e9745a734134778fc9f990fc3907e39cbd57b84f30d8d"
+content-hash = "d35983a1fbb2021075824b95cc0e0946e4b4fcd15829ab28ee2499a3943615c2"

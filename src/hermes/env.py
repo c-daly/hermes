@@ -142,7 +142,9 @@ def get_neo4j_config(env: Mapping[str, str] | None = None) -> dict[str, str]:
         Dictionary with uri, user, and password
     """
     # These all have defaults so they won't be None
-    uri = get_env_value("NEO4J_URI", env, f"bolt://localhost:{_HERMES_PORTS.neo4j_bolt}")
+    uri = get_env_value(
+        "NEO4J_URI", env, f"bolt://localhost:{_HERMES_PORTS.neo4j_bolt}"
+    )
     user = get_env_value("NEO4J_USER", env, "neo4j")
     password = get_env_value("NEO4J_PASSWORD", env, "password")
     assert uri is not None

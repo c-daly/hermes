@@ -26,7 +26,7 @@ jobs:
       python_versions: '["3.11","3.12"]'
       python_package_manager: 'poetry'
       python_command_prefix: 'poetry run '
-      poetry_install_args: '--with dev'
+      poetry_install_args: '-E dev'
       python_lint_paths: 'src tests'
       mypy_targets: 'src'
       # Start test services (Milvus, Neo4j) for full test coverage
@@ -129,7 +129,7 @@ jobs:
 
     - name: Install dependencies with ML extras
       run: |
-        poetry install --with dev,ml
+        poetry install -E dev -E ml
         # Install CPU-only torch to save time/space
         poetry run pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu --force-reinstall
 

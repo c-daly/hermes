@@ -1,13 +1,10 @@
-[project]
+[tool.poetry]
 name = "hermes"
 version = "0.1.0"
 description = "Stateless language & embedding tools for Project LOGOS"
 readme = "README.md"
-requires-python = ">=3.11"
 license = "MIT"
-authors = [
-    {name = "Project LOGOS Team"}
-]
+authors = ["Project LOGOS Team"]
 keywords = ["nlp", "embeddings", "speech", "tts", "stt"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -16,59 +13,53 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-dependencies = [
-    "fastapi>=0.104.0",
-    "uvicorn[standard]>=0.24.0",
-    "pydantic>=2.0.0",
-    "python-multipart>=0.0.6",
-    "httpx>=0.25.0",
-    "pymilvus>=2.3.0",
-    # logos-foundry provides logos_config and logos_test_utils
-    "logos-foundry @ git+https://github.com/c-daly/logos.git@v0.2.0 ; python_version >= '3.11' and python_version < '4.0'",
-]
-
-[project.optional-dependencies]
-# ML dependencies with CPU-only PyTorch (default, faster install, no CUDA)
-ml = [
-    "torch>=2.0.0,<2.10.0",
-    "torchaudio>=2.0.0,<2.10.0",
-    "openai-whisper>=20231117",
-    "TTS>=0.22.0; python_version < '3.12'",
-    "spacy>=3.7.0",
-    "sentence-transformers>=2.2.0",
-    "numpy>=1.24.0",
-]
-# ML dependencies with GPU support (CUDA, larger download)
-ml-gpu = [
-    "openai-whisper>=20231117",
-    "TTS>=0.22.0; python_version < '3.12'",
-    "spacy>=3.7.0",
-    "sentence-transformers>=2.2.0",
-    "numpy>=1.24.0",
-]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-benchmark>=4.0.0",
-    "httpx>=0.25.0",
-    "black>=23.0.0",
-    "ruff>=0.1.0",
-    "mypy>=1.0.0",
-    "pymilvus>=2.3.0",
-    "neo4j>=5.0.0",
-    "pre-commit>=3.0.0",
-]
-
-[project.scripts]
-hermes = "hermes.main:main"
-
-[tool.poetry]
 packages = [{include = "hermes", from = "src"}]
 
+[tool.poetry.scripts]
+hermes = "hermes.main:main"
+
 [tool.poetry.dependencies]
-# logos-foundry must be declared here for Poetry to resolve git deps
+python = ">=3.11,<4.0"
+fastapi = ">=0.104.0"
+uvicorn = {extras = ["standard"], version = ">=0.24.0"}
+pydantic = ">=2.0.0"
+python-multipart = ">=0.0.6"
+httpx = ">=0.25.0"
+pymilvus = ">=2.3.0"
+python-dotenv = ">=1.0.0"
 logos-foundry = {git = "https://github.com/c-daly/logos.git", tag = "v0.2.0"}
+
+[tool.poetry.extras]
+# ML dependencies with CPU-only PyTorch (default, faster install, no CUDA)
+ml = ["torch", "torchaudio", "openai-whisper", "TTS", "spacy", "sentence-transformers", "numpy"]
+# ML dependencies with GPU support (CUDA, larger download)
+ml-gpu = ["openai-whisper", "TTS", "spacy", "sentence-transformers", "numpy"]
+
+[tool.poetry.group.ml]
+optional = true
+
+[tool.poetry.group.ml.dependencies]
+torch = ">=2.0.0,<2.10.0"
+torchaudio = ">=2.0.0,<2.10.0"
+openai-whisper = ">=20231117"
+TTS = {version = ">=0.22.0", python = "<3.12"}
+spacy = ">=3.7.0"
+sentence-transformers = ">=2.2.0"
+numpy = ">=1.24.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.0.0"
+pytest-cov = ">=4.0.0"
+pytest-asyncio = ">=0.21.0"
+pytest-benchmark = ">=4.0.0"
+httpx = ">=0.25.0"
+black = ">=23.0.0"
+ruff = ">=0.1.0"
+mypy = ">=1.0.0"
+pymilvus = ">=2.3.0"
+neo4j = ">=5.0.0"
+pre-commit = ">=3.0.0"
+logos-test-utils = {path = "../logos", develop = true}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

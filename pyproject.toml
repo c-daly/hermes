@@ -29,12 +29,6 @@ pymilvus = ">=2.3.0"
 python-dotenv = ">=1.0.0"
 logos-foundry = {git = "https://github.com/c-daly/logos.git", tag = "v0.2.0"}
 
-[tool.poetry.extras]
-# ML dependencies with CPU-only PyTorch (default, faster install, no CUDA)
-ml = ["torch", "torchaudio", "openai-whisper", "TTS", "spacy", "sentence-transformers", "numpy"]
-# ML dependencies with GPU support (CUDA, larger download)
-ml-gpu = ["openai-whisper", "TTS", "spacy", "sentence-transformers", "numpy"]
-
 [tool.poetry.group.ml]
 optional = true
 

@@ -13,34 +13,42 @@ from fastapi.testclient import TestClient
 
 from hermes.main import app
 
-# Re-export shared fixtures from logos_test_utils
-from logos_test_utils.fixtures import stack_env  # noqa: F401
-from logos_test_utils.neo4j import (
-    Neo4jConfig,
-    get_neo4j_config,
-    get_neo4j_driver,
-    wait_for_neo4j,
-)
+# Re-export shared fixtures from logos_test_utils (optional dependency)
+try:
+    from logos_test_utils.fixtures import stack_env  # noqa: F401
+    from logos_test_utils.neo4j import (
+        Neo4jConfig,
+        get_neo4j_config,
+        get_neo4j_driver,
+        wait_for_neo4j,
+    )
+
+    _HAS_TEST_UTILS = True
+except ImportError:
+    _HAS_TEST_UTILS = False
 
 
 # ---------------------------------------------------------------------------
 # Neo4j fixtures (hermes-specific: repo="hermes" for correct port defaults)
 # ---------------------------------------------------------------------------
 
+if _HAS_TEST_UTILS:
 
-@pytest.fixture(scope="session")
-def neo4j_config(stack_env: dict[str, str]) -> Neo4jConfig:  # noqa: F811
-    """Return hermes-specific Neo4j configuration."""
-    return get_neo4j_config(stack_env, repo="hermes")
+    @pytest.fixture(scope="session")
+    def neo4j_config(stack_env: dict[str, str]) -> Neo4jConfig:  # noqa: F811
+        """Return hermes-specific Neo4j configuration."""
+        return get_neo4j_config(stack_env, repo="hermes")
 
-
-@pytest.fixture(scope="session")
-def neo4j_driver(neo4j_config: Neo4jConfig):
-    """Provide a shared Neo4j driver for hermes tests."""
-    wait_for_neo4j(neo4j_config)
-    driver = get_neo4j_driver(neo4j_config)
-    yield driver
-    driver.close()
+    @pytest.fixture(scope="session")
+    def neo4j_driver(neo4j_config: Neo4jConfig):
+        """Provide a shared Neo4j driver for hermes tests."""
+        try:
+            wait_for_neo4j(neo4j_config)
+        except Exception:
+            pytest.skip("Neo4j is not available")
+        driver = get_neo4j_driver(neo4j_config)
+        yield driver
+        driver.close()
 
 
 # ---------------------------------------------------------------------------

@@ -49,8 +49,18 @@ from hermes.services import (  # noqa: E402
 )
 
 # Centralized port defaults from logos_config
-_HERMES_PORTS = get_repo_ports("hermes")
-_SOPHIA_PORTS = get_repo_ports("sophia")
+try:
+    _HERMES_PORTS = get_repo_ports("hermes")
+    _SOPHIA_PORTS = get_repo_ports("sophia")
+except Exception:
+    from collections import namedtuple
+
+    _FallbackPorts = namedtuple(
+        "_FallbackPorts",
+        ["neo4j_http", "neo4j_bolt", "milvus_grpc", "milvus_metrics", "api"],
+    )
+    _HERMES_PORTS = _FallbackPorts(17474, 17687, 17530, 17091, 17000)
+    _SOPHIA_PORTS = _FallbackPorts(47474, 47687, 47530, 47091, 47000)
 
 # Configure structured logging for hermes
 logger = (

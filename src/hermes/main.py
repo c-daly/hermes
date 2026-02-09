@@ -23,6 +23,7 @@ from fastapi.responses import FileResponse, Response  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from logos_config import get_env_value  # noqa: E402
 from logos_config.health import DependencyStatus, HealthResponse  # noqa: E402
+from logos_config.ports import get_repo_ports  # noqa: E402
 
 # TODO: Remove type ignore once logos-foundry publishes py.typed marker (logos #472)
 try:
@@ -46,6 +47,10 @@ from hermes.services import (  # noqa: E402
     synthesize_speech,
     transcribe_audio,
 )
+
+# Centralized port defaults from logos_config
+_HERMES_PORTS = get_repo_ports("hermes")
+_SOPHIA_PORTS = get_repo_ports("sophia")
 
 # Configure structured logging for hermes
 logger = (
@@ -484,7 +489,7 @@ async def _forward_llm_to_sophia(
     import httpx
 
     sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
-    sophia_port = get_env_value("SOPHIA_PORT", default="8001") or "8001"
+    sophia_port = get_env_value("SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)) or str(_SOPHIA_PORTS.api)
     sophia_url = f"http://{sophia_host}:{sophia_port}"
     sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
 
@@ -640,7 +645,7 @@ async def ingest_media(
 
     # Get Sophia configuration from environment
     sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
-    sophia_port = get_env_value("SOPHIA_PORT", default="8001") or "8001"
+    sophia_port = get_env_value("SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)) or str(_SOPHIA_PORTS.api)
     sophia_url = f"http://{sophia_host}:{sophia_port}"
     sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
 
@@ -847,7 +852,7 @@ def main() -> None:
     """Entry point for running the Hermes server."""
     import uvicorn
 
-    port = int(get_env_value("HERMES_PORT", default="8080") or "8080")
+    port = int(get_env_value("HERMES_PORT", default=str(_HERMES_PORTS.api)) or str(_HERMES_PORTS.api))
     host = get_env_value("HERMES_HOST", default="0.0.0.0") or "0.0.0.0"
     uvicorn.run(app, host=host, port=port)
 

@@ -489,7 +489,9 @@ async def _forward_llm_to_sophia(
     import httpx
 
     sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
-    sophia_port = get_env_value("SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)) or str(_SOPHIA_PORTS.api)
+    sophia_port = get_env_value("SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)) or str(
+        _SOPHIA_PORTS.api
+    )
     sophia_url = f"http://{sophia_host}:{sophia_port}"
     sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
 
@@ -645,7 +647,9 @@ async def ingest_media(
 
     # Get Sophia configuration from environment
     sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
-    sophia_port = get_env_value("SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)) or str(_SOPHIA_PORTS.api)
+    sophia_port = get_env_value("SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)) or str(
+        _SOPHIA_PORTS.api
+    )
     sophia_url = f"http://{sophia_host}:{sophia_port}"
     sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
 
@@ -852,7 +856,10 @@ def main() -> None:
     """Entry point for running the Hermes server."""
     import uvicorn
 
-    port = int(get_env_value("HERMES_PORT", default=str(_HERMES_PORTS.api)) or str(_HERMES_PORTS.api))
+    port = int(
+        get_env_value("HERMES_PORT", default=str(_HERMES_PORTS.api))
+        or str(_HERMES_PORTS.api)
+    )
     host = get_env_value("HERMES_HOST", default="0.0.0.0") or "0.0.0.0"
     uvicorn.run(app, host=host, port=port)
 

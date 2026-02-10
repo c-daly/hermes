@@ -53,7 +53,7 @@ except ImportError:
         ["neo4j_http", "neo4j_bolt", "milvus_grpc", "milvus_metrics", "api"],
     )
 
-    def get_repo_ports(repo: str):  # type: ignore[misc]
+    def get_repo_ports(repo: str) -> Any:  # type: ignore[misc]
         _defaults = {
             "hermes": _FallbackPorts(17474, 17687, 17530, 17091, 17000),
             "sophia": _FallbackPorts(47474, 47687, 47530, 47091, 47000),

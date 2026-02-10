@@ -2323,7 +2323,7 @@ files = [
 
 [[package]]
 name = "logos-foundry"
-version = "0.1.0"
+version = "0.4.0"
 description = "LOGOS Foundry - Canonical source of truth for Project LOGOS specifications, ontology, and infrastructure"
 optional = false
 python-versions = "^3.11"
@@ -2341,8 +2341,8 @@ uvicorn = {version = "^0.32.0", extras = ["standard"]}
 [package.source]
 type = "git"
 url = "https://github.com/c-daly/logos.git"
-reference = "v0.2.0"
-resolved_reference = "849ddb4ed47c3911da305e175e4cec9c01ab5a0f"
+reference = "v0.4.0"
+resolved_reference = "916d6424e3659ab8a5542567cf1317d4a2832317"
 
 [[package]]
 name = "marisa-trie"
@@ -7290,4 +7290,4 @@ ml-gpu = ["TTS", "numpy", "openai-whisper", "sentence-transformers", "spacy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "d35983a1fbb2021075824b95cc0e0946e4b4fcd15829ab28ee2499a3943615c2"
+content-hash = "4dce50bd21f7909388f1084534c2284b37527c7f37ea361d07f6d2725ddd3897"

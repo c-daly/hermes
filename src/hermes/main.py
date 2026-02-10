@@ -108,8 +108,6 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # type: ignore
     """Lifespan event handler for application startup and shutdown."""
-    # Load .env at startup (not at import time)
-    load_dotenv()
     # Startup
     logger.info("Starting Hermes API...")
     # Initialize Milvus connection and collection
@@ -120,6 +118,9 @@ async def lifespan(app: FastAPI):  # type: ignore
     logger.info("Shutting down Hermes API...")
     milvus_client.disconnect_milvus()
 
+
+# Load .env before any env-dependent config (CORS below reads HERMES_CORS_ORIGINS)
+load_dotenv()
 
 # Create FastAPI app
 app = FastAPI(

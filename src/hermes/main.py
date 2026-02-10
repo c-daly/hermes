@@ -60,6 +60,7 @@ except ImportError:
         }
         return _defaults.get(repo, _FallbackPorts(7474, 7687, 19530, 9091, 8000))
 
+
 # TODO: Remove type ignore once logos-foundry publishes py.typed marker (logos #472)
 try:
     from logos_test_utils import setup_logging  # type: ignore[import-untyped,import-not-found]  # noqa: E402

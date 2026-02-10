@@ -21,16 +21,50 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile  # noqa: E
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import FileResponse, Response  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
-from logos_config import get_env_value  # noqa: E402
-from logos_config.health import DependencyStatus, HealthResponse  # noqa: E402
-from logos_config.ports import get_repo_ports  # noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
+
+try:
+    from logos_config import get_env_value  # noqa: E402
+    from logos_config.health import DependencyStatus, HealthResponse  # noqa: E402
+    from logos_config.ports import get_repo_ports  # noqa: E402
+except ImportError:
+    import os  # noqa: E402
+
+    def get_env_value(key: str, default: str | None = None) -> str | None:  # type: ignore[misc]
+        return os.environ.get(key, default)
+
+    # Minimal Pydantic stubs so the health endpoint still works
+    class DependencyStatus(BaseModel):  # type: ignore[no-redef]
+        status: str = "unavailable"
+        connected: bool = False
+        details: Dict[str, Any] = Field(default_factory=dict)
+
+    class HealthResponse(BaseModel):  # type: ignore[no-redef]
+        status: str = "degraded"
+        service: str = ""
+        version: str = ""
+        dependencies: Dict[str, Any] = Field(default_factory=dict)
+        capabilities: Dict[str, str] = Field(default_factory=dict)
+
+    from collections import namedtuple  # noqa: E402
+
+    _FallbackPorts = namedtuple(
+        "_FallbackPorts",
+        ["neo4j_http", "neo4j_bolt", "milvus_grpc", "milvus_metrics", "api"],
+    )
+
+    def get_repo_ports(repo: str):  # type: ignore[misc]
+        _defaults = {
+            "hermes": _FallbackPorts(17474, 17687, 17530, 17091, 17000),
+            "sophia": _FallbackPorts(47474, 47687, 47530, 47091, 47000),
+        }
+        return _defaults.get(repo, _FallbackPorts(7474, 7687, 19530, 9091, 8000))
 
 # TODO: Remove type ignore once logos-foundry publishes py.typed marker (logos #472)
 try:
     from logos_test_utils import setup_logging  # type: ignore[import-untyped,import-not-found]  # noqa: E402
 except ImportError:
     setup_logging = None  # type: ignore[assignment]
-from pydantic import BaseModel, Field  # noqa: E402
 from starlette.middleware.base import (  # noqa: E402
     BaseHTTPMiddleware,
     RequestResponseEndpoint,
@@ -49,18 +83,8 @@ from hermes.services import (  # noqa: E402
 )
 
 # Centralized port defaults from logos_config
-try:
-    _HERMES_PORTS = get_repo_ports("hermes")
-    _SOPHIA_PORTS = get_repo_ports("sophia")
-except Exception:
-    from collections import namedtuple
-
-    _FallbackPorts = namedtuple(
-        "_FallbackPorts",
-        ["neo4j_http", "neo4j_bolt", "milvus_grpc", "milvus_metrics", "api"],
-    )
-    _HERMES_PORTS = _FallbackPorts(17474, 17687, 17530, 17091, 17000)
-    _SOPHIA_PORTS = _FallbackPorts(47474, 47687, 47530, 47091, 47000)
+_HERMES_PORTS = get_repo_ports("hermes")
+_SOPHIA_PORTS = get_repo_ports("sophia")
 
 # Configure structured logging for hermes
 logger = (

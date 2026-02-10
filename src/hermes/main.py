@@ -119,9 +119,6 @@ async def lifespan(app: FastAPI):  # type: ignore
     milvus_client.disconnect_milvus()
 
 
-# Load .env before any env-dependent config (CORS below reads HERMES_CORS_ORIGINS)
-load_dotenv()
-
 # Create FastAPI app
 app = FastAPI(
     title="Hermes API",

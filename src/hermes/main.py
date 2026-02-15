@@ -6,12 +6,14 @@ See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 
 import importlib.util
 import logging
+import os
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,7 +26,6 @@ try:
     from logos_config.health import DependencyStatus, HealthResponse
     from logos_config.ports import get_repo_ports
 except ImportError:
-    import os
 
     def get_env_value(key: str, default: str | None = None) -> str | None:  # type: ignore[misc]
         return os.environ.get(key, default)
@@ -98,7 +99,6 @@ except ImportError:
     FastAPIInstrumentor = None  # type: ignore[assignment,misc]
     StatusCode = SimpleNamespace(ERROR=None, OK=None)  # type: ignore[assignment,misc]
     _OTEL_AVAILABLE = False
-import httpx  # noqa: E402
 
 try:
     from logos_test_utils import setup_logging  # type: ignore[import-not-found]
@@ -155,10 +155,13 @@ async def lifespan(app: FastAPI):  # type: ignore
     # Startup
     # Initialize OpenTelemetry
     if _OTEL_AVAILABLE:
-        otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+        otlp_endpoint = get_env_value("OTEL_EXPORTER_OTLP_ENDPOINT")
         setup_telemetry(
-            service_name=os.getenv("OTEL_SERVICE_NAME", "hermes"),
-            export_to_console=os.getenv("OTEL_CONSOLE_EXPORT", "false").lower()
+            service_name=get_env_value("OTEL_SERVICE_NAME", default="hermes")
+            or "hermes",
+            export_to_console=(
+                get_env_value("OTEL_CONSOLE_EXPORT", default="false") or "false"
+            ).lower()
             == "true",
             otlp_endpoint=otlp_endpoint,
         )
@@ -664,17 +667,17 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
         span.set_attribute("llm.provider", request.provider or "default")
         span.set_attribute("llm.model", request.model or "default")
         span.set_attribute("llm.max_tokens", request.max_tokens or 0)
-        normalized_messages: List[LLMMessage] = list(request.messages or [])
-        if not normalized_messages:
-            prompt = (request.prompt or "").strip()
-            if not prompt:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Either 'prompt' or 'messages' must be provided.",
-                )
-            normalized_messages = [LLMMessage(role="user", content=prompt)]
-
         try:
+            normalized_messages: List[LLMMessage] = list(request.messages or [])
+            if not normalized_messages:
+                prompt = (request.prompt or "").strip()
+                if not prompt:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Either 'prompt' or 'messages' must be provided.",
+                    )
+                normalized_messages = [LLMMessage(role="user", content=prompt)]
+
             result = await generate_llm_response(
                 messages=[
                     msg.model_dump(exclude_none=True) for msg in normalized_messages
@@ -690,16 +693,20 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
             await _forward_llm_to_sophia(result, request_id)
 
             return LLMResponse(**result)
+        except HTTPException:
+            raise
         except LLMProviderNotConfiguredError as exc:
             span.record_exception(exc)
             span.set_status(StatusCode.ERROR, str(exc))
             logger.error("LLM provider not configured: %s", exc)
-            raise HTTPException(status_code=503, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=503, detail="LLM provider not configured"
+            ) from exc
         except LLMProviderError as exc:
             span.record_exception(exc)
             span.set_status(StatusCode.ERROR, str(exc))
             logger.error("LLM provider error: %s", exc)
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
+            raise HTTPException(status_code=502, detail="LLM provider error") from exc
         except Exception as exc:
             span.record_exception(exc)
             span.set_status(StatusCode.ERROR, str(exc))

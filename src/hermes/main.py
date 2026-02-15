@@ -66,11 +66,11 @@ try:
 except ImportError:
     from types import SimpleNamespace  # noqa: E402
 
-    def get_tracer(name):  # type: ignore[misc]
+    def get_tracer(name: str) -> Any:  # type: ignore[misc]
         """No-op tracer stub."""
 
         class _NoopTracer:
-            def start_as_current_span(self, name, **kw):
+            def start_as_current_span(self, name: str, **kw: Any) -> Any:
                 return SimpleNamespace(
                     __enter__=lambda s: SimpleNamespace(
                         set_attribute=lambda *a: None,

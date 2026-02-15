@@ -24,7 +24,11 @@ dependencies = [
     "httpx>=0.25.0",
     "pymilvus>=2.3.0",
     # logos-foundry provides logos_config and logos_test_utils
-    "logos-foundry @ git+https://github.com/c-daly/logos.git@v0.2.0 ; python_version >= '3.11' and python_version < '4.0'",
+    "logos-foundry @ git+https://github.com/c-daly/logos.git@v0.3.0 ; python_version >= '3.11' and python_version < '4.0'",
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-instrumentation-fastapi>=0.41b0",
+    "opentelemetry-exporter-otlp>=1.20.0",
 ]
 
 [project.optional-dependencies]
@@ -68,7 +72,7 @@ packages = [{include = "hermes", from = "src"}]
 
 [tool.poetry.dependencies]
 # logos-foundry must be declared here for Poetry to resolve git deps
-logos-foundry = {git = "https://github.com/c-daly/logos.git", tag = "v0.2.0"}
+logos-foundry = {git = "https://github.com/c-daly/logos.git", tag = "v0.3.0"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -105,6 +109,10 @@ module = [
     "logos_config.*",
     "logos_test_utils",
     "logos_test_utils.*",
+    "logos_observability",
+    "logos_observability.*",
+    "opentelemetry",
+    "opentelemetry.*",
 ]
 ignore_missing_imports = true
 

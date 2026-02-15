@@ -11,6 +11,7 @@ load_dotenv()
 
 import importlib.util  # noqa: E402
 import logging  # noqa: E402
+import os  # noqa: E402
 import uuid  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
 from datetime import datetime, timezone  # noqa: E402
@@ -23,6 +24,8 @@ from fastapi.responses import FileResponse, Response  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from logos_config import get_env_value  # noqa: E402
 from logos_config.health import DependencyStatus, HealthResponse  # noqa: E402
+from logos_observability import setup_telemetry  # noqa: E402
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # noqa: E402
 
 # TODO: Remove type ignore once logos-foundry publishes py.typed marker (logos #472)
 try:
@@ -74,6 +77,14 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 async def lifespan(app: FastAPI):  # type: ignore
     """Lifespan event handler for application startup and shutdown."""
     # Startup
+    # Initialize OpenTelemetry
+    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    setup_telemetry(
+        service_name="hermes",
+        export_to_console=os.getenv("OTEL_CONSOLE_EXPORT", "false").lower() == "true",
+        otlp_endpoint=otlp_endpoint,
+    )
+    logger.info("OpenTelemetry initialized", extra={"otlp_endpoint": otlp_endpoint or "none"})
     logger.info("Starting Hermes API...")
     # Initialize Milvus connection and collection
     milvus_client.initialize_milvus()
@@ -91,6 +102,7 @@ app = FastAPI(
     description="Stateless language & embedding tools for Project LOGOS",
     lifespan=lifespan,
 )
+FastAPIInstrumentor.instrument_app(app)
 
 raw_origins = get_env_value("HERMES_CORS_ORIGINS", default="*") or "*"
 if raw_origins.strip() == "*":

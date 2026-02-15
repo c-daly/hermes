@@ -26,14 +26,17 @@ dependencies = [
     "pandas>=2.0.0; python_version >= '3.12'",
     # logos-foundry provides logos_config and logos_test_utils
     "logos-foundry @ git+https://github.com/c-daly/logos.git@v0.4.0 ; python_version >= '3.11' and python_version < '4.0'",
-    "opentelemetry-api>=1.20.0",
-    "opentelemetry-sdk>=1.20.0",
-    "opentelemetry-instrumentation-fastapi>=0.41b0",
-    "opentelemetry-exporter-otlp>=1.20.0",
     "numpy>=1.24.0,<2.0.0",
 ]
 
 [project.optional-dependencies]
+# OpenTelemetry observability (optional, graceful fallback when absent)
+otel = [
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-instrumentation-fastapi>=0.41b0",
+    "opentelemetry-exporter-otlp>=1.20.0",
+]
 # ML dependencies with CPU-only PyTorch (default, faster install, no CUDA)
 ml = [
     "torch>=2.0.0,<2.10.0",

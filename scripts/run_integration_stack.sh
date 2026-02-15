@@ -124,6 +124,13 @@ for mapping in "${PORTS_TO_CHECK[@]}"; do
 
 done
 
+# Start OTel observability stack if available
+OTEL_COMPOSE="${HERMES_REPO_ROOT}/../logos/infra/docker-compose.otel.yml"
+if [[ -f "${OTEL_COMPOSE}" ]]; then
+    info "Starting OTel observability stack..."
+    docker compose -f "${OTEL_COMPOSE}" up -d 2>/dev/null &&         info "OTel stack started (Collector, Tempo, Grafana)" ||         warn "OTel stack failed to start (traces will not be collected)"
+fi
+
 echo "Starting Milvus stack for Hermes integration tests..."
 if ! $COMPOSE -f "$COMPOSE_FILE" up -d "${SERVICES[@]}"; then
   error "docker compose failed to start services"

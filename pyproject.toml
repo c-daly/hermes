@@ -23,8 +23,9 @@ dependencies = [
     "python-multipart>=0.0.6",
     "httpx>=0.25.0",
     "pymilvus>=2.3.0",
+    "pandas>=2.0.0; python_version >= '3.12'",
     # logos-foundry provides logos_config and logos_test_utils
-    "logos-foundry @ git+https://github.com/c-daly/logos.git@v0.3.0 ; python_version >= '3.11' and python_version < '4.0'",
+    "logos-foundry @ git+https://github.com/c-daly/logos.git@v0.4.0 ; python_version >= '3.11' and python_version < '4.0'",
     "opentelemetry-api>=1.20.0",
     "opentelemetry-sdk>=1.20.0",
     "opentelemetry-instrumentation-fastapi>=0.41b0",
@@ -72,7 +73,7 @@ packages = [{include = "hermes", from = "src"}]
 
 [tool.poetry.dependencies]
 # logos-foundry must be declared here for Poetry to resolve git deps
-logos-foundry = {git = "https://github.com/c-daly/logos.git", tag = "v0.3.0"}
+logos-foundry = {git = "https://github.com/c-daly/logos.git", tag = "v0.4.0"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -117,8 +118,15 @@ module = [
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --cov=hermes --cov-report=term-missing --cov-fail-under=60"
+markers = [
+    "unit: fast tests with no external services",
+    "integration: tests requiring infrastructure services (Neo4j, Milvus)",
+    "e2e: end-to-end tests requiring full stack",
+    "slow: marks tests as slow",
+]

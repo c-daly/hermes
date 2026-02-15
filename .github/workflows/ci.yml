@@ -42,6 +42,9 @@ jobs:
         echo "Waiting for Neo4j..."
         timeout 60 bash -c 'until curl -f http://localhost:7474 2>/dev/null; do sleep 2; done'
       pytest_env_script: |
+        # Poetry may install multiple pandas versions due to marker resolution.
+        # Ensure only one version is present to avoid import-time crashes.
+        .venv/bin/python -c "import pandas" 2>/dev/null || .venv/bin/pip install 'pandas>=2.0,<4' --quiet
         # Port values from logos_config.HERMES_PORTS
         export MILVUS_HOST=localhost
         export MILVUS_PORT=17530

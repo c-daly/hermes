@@ -57,9 +57,35 @@ except ImportError:
         return _defaults.get(repo, _FallbackPorts(7474, 7687, 19530, 9091, 8000))
 
 
-from logos_observability import get_tracer, setup_telemetry  # noqa: E402
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # noqa: E402
-from opentelemetry.trace import StatusCode  # noqa: E402
+try:
+    from logos_observability import get_tracer, setup_telemetry  # noqa: E402
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # noqa: E402
+    from opentelemetry.trace import StatusCode  # noqa: E402
+
+    _OTEL_AVAILABLE = True
+except ImportError:
+    from types import SimpleNamespace  # noqa: E402
+
+    def get_tracer(name):  # type: ignore[misc]
+        """No-op tracer stub."""
+
+        class _NoopTracer:
+            def start_as_current_span(self, name, **kw):
+                return SimpleNamespace(
+                    __enter__=lambda s: SimpleNamespace(
+                        set_attribute=lambda *a: None,
+                        set_status=lambda *a: None,
+                        record_exception=lambda *a: None,
+                    ),
+                    __exit__=lambda s, *a: None,
+                )
+
+        return _NoopTracer()
+
+    setup_telemetry = None  # type: ignore[assignment]
+    FastAPIInstrumentor = None  # type: ignore[assignment,misc]
+    StatusCode = None  # type: ignore[assignment,misc]
+    _OTEL_AVAILABLE = False
 import httpx  # noqa: E402
 
 try:

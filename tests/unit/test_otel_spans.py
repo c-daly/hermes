@@ -1,7 +1,5 @@
 """Tests for OpenTelemetry span creation in Hermes API endpoints."""
 
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
-
 import pytest
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor

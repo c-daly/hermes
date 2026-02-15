@@ -27,6 +27,7 @@ from logos_config.health import DependencyStatus, HealthResponse  # noqa: E402
 from logos_observability import get_tracer, setup_telemetry  # noqa: E402
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # noqa: E402
 from opentelemetry.trace import StatusCode  # noqa: E402
+import httpx  # noqa: E402
 
 # TODO: Remove type ignore once logos-foundry publishes py.typed marker (logos #472)
 try:
@@ -82,7 +83,7 @@ async def lifespan(app: FastAPI):  # type: ignore
     # Initialize OpenTelemetry
     otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
     setup_telemetry(
-        service_name="hermes",
+        service_name=os.getenv("OTEL_SERVICE_NAME", "hermes"),
         export_to_console=os.getenv("OTEL_CONSOLE_EXPORT", "false").lower() == "true",
         otlp_endpoint=otlp_endpoint,
     )
@@ -380,7 +381,7 @@ async def speech_to_text(
             span.record_exception(e)
             span.set_status(StatusCode.ERROR, str(e))
             logger.error(f"STT error: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/tts")
@@ -415,7 +416,7 @@ async def text_to_speech(request: TTSRequest) -> Response:
             span.record_exception(e)
             span.set_status(StatusCode.ERROR, str(e))
             logger.error(f"TTS error: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/simple_nlp", response_model=SimpleNLPResponse)
@@ -458,7 +459,7 @@ async def simple_nlp(request: SimpleNLPRequest) -> SimpleNLPResponse:
             span.record_exception(e)
             span.set_status(StatusCode.ERROR, str(e))
             logger.error(f"NLP error: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/embed_text", response_model=EmbedTextResponse)
@@ -498,7 +499,7 @@ async def embed_text(request: EmbedTextRequest) -> EmbedTextResponse:
             span.record_exception(e)
             span.set_status(StatusCode.ERROR, str(e))
             logger.error(f"Embedding error: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 async def _forward_llm_to_sophia(
@@ -514,7 +515,6 @@ async def _forward_llm_to_sophia(
         result: The LLM response dict from generate_llm_response
         request_id: Correlation ID for request tracing
     """
-    import httpx
 
     sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
     sophia_port = get_env_value("SOPHIA_PORT", default="8001") or "8001"
@@ -592,8 +592,6 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
             normalized_messages = [LLMMessage(role="user", content=prompt)]
 
         try:
-            import time as _time
-            _t0 = _time.monotonic()
             result = await generate_llm_response(
                 messages=[msg.model_dump(exclude_none=True) for msg in normalized_messages],
                 provider=request.provider,
@@ -602,9 +600,6 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                 max_tokens=request.max_tokens,
                 metadata=request.metadata,
             )
-            _duration_ms = int((_time.monotonic() - _t0) * 1000)
-            span.set_attribute("llm.duration_ms", _duration_ms)
-
             # Forward LLM response to Sophia for cognitive processing
             request_id = getattr(http_request.state, "request_id", str(uuid.uuid4()))
             await _forward_llm_to_sophia(result, request_id)
@@ -682,7 +677,6 @@ async def ingest_media(
     """
     with tracer.start_as_current_span("hermes.ingest.media") as span:
         span.set_attribute("ingest.content_type", file.content_type or "unknown")
-        import httpx
 
         # Normalize media_type to lowercase for Sophia compatibility
         media_type = media_type.lower()
@@ -772,18 +766,22 @@ async def ingest_media(
             return result
 
         except httpx.HTTPStatusError as exc:
+            span.record_exception(exc)
+            span.set_status(StatusCode.ERROR, str(exc))
             logger.error(
                 f"Sophia rejected media: {exc.response.status_code} - {exc.response.text}"
             )
             raise HTTPException(
                 status_code=exc.response.status_code,
-                detail=f"Sophia ingestion failed: {exc.response.text}",
+                detail="Sophia ingestion failed",
             ) from exc
         except httpx.RequestError as exc:
+            span.record_exception(exc)
+            span.set_status(StatusCode.ERROR, str(exc))
             logger.error(f"Cannot connect to Sophia: {exc}")
             raise HTTPException(
                 status_code=503,
-                detail=f"Cannot connect to Sophia service: {str(exc)}",
+                detail="Cannot connect to Sophia service",
             ) from exc
         except Exception as exc:
             span.record_exception(exc)
@@ -791,7 +789,7 @@ async def ingest_media(
             logger.error(f"Media ingestion failed: {exc}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Media ingestion failed: {str(exc)}",
+                detail="Media ingestion failed",
             ) from exc
 
 

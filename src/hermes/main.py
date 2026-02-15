@@ -4,31 +4,27 @@ Implements the canonical Hermes OpenAPI contract from Project LOGOS.
 See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 """
 
+import importlib.util
+import logging
+import uuid
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional
+
 from dotenv import load_dotenv
-
-# Load .env file before any pydantic-settings models are instantiated
-load_dotenv()
-
-import importlib.util  # noqa: E402
-import logging  # noqa: E402
-import uuid  # noqa: E402
-from contextlib import asynccontextmanager  # noqa: E402
-from datetime import datetime, timezone  # noqa: E402
-from pathlib import Path  # noqa: E402
-from typing import Any, Dict, List, Literal, Optional  # noqa: E402
-
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile  # noqa: E402
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import FileResponse, Response  # noqa: E402
-from fastapi.staticfiles import StaticFiles  # noqa: E402
-from pydantic import BaseModel, Field  # noqa: E402
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 try:
-    from logos_config import get_env_value  # noqa: E402
-    from logos_config.health import DependencyStatus, HealthResponse  # noqa: E402
-    from logos_config.ports import get_repo_ports  # noqa: E402
+    from logos_config import get_env_value
+    from logos_config.health import DependencyStatus, HealthResponse
+    from logos_config.ports import get_repo_ports
 except ImportError:
-    import os  # noqa: E402
+    import os
 
     def get_env_value(key: str, default: str | None = None) -> str | None:  # type: ignore[misc]
         return os.environ.get(key, default)
@@ -46,7 +42,7 @@ except ImportError:
         dependencies: Dict[str, Any] = Field(default_factory=dict)
         capabilities: Dict[str, str] = Field(default_factory=dict)
 
-    from collections import namedtuple  # noqa: E402
+    from collections import namedtuple
 
     _FallbackPorts = namedtuple(
         "_FallbackPorts",
@@ -61,20 +57,19 @@ except ImportError:
         return _defaults.get(repo, _FallbackPorts(7474, 7687, 19530, 9091, 8000))
 
 
-# TODO: Remove type ignore once logos-foundry publishes py.typed marker (logos #472)
 try:
-    from logos_test_utils import setup_logging  # type: ignore[import-untyped,import-not-found]  # noqa: E402
+    from logos_test_utils import setup_logging  # type: ignore[import-not-found]
 except ImportError:
     setup_logging = None  # type: ignore[assignment]
-from starlette.middleware.base import (  # noqa: E402
+from starlette.middleware.base import (
     BaseHTTPMiddleware,
     RequestResponseEndpoint,
 )
-from starlette.responses import Response as StarletteResponse  # noqa: E402
+from starlette.responses import Response as StarletteResponse
 
-from hermes import __version__, milvus_client  # noqa: E402
-from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError  # noqa: E402
-from hermes.services import (  # noqa: E402
+from hermes import __version__, milvus_client
+from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError
+from hermes.services import (
     generate_embedding,
     generate_llm_response,
     get_llm_health,
@@ -891,6 +886,7 @@ def main() -> None:
     """Entry point for running the Hermes server."""
     import uvicorn
 
+    load_dotenv()
     port = int(
         get_env_value("HERMES_PORT", default=str(_HERMES_PORTS.api))
         or str(_HERMES_PORTS.api)

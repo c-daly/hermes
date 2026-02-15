@@ -24,8 +24,9 @@ from fastapi.responses import FileResponse, Response  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from logos_config import get_env_value  # noqa: E402
 from logos_config.health import DependencyStatus, HealthResponse  # noqa: E402
-from logos_observability import setup_telemetry  # noqa: E402
+from logos_observability import get_tracer, setup_telemetry  # noqa: E402
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # noqa: E402
+from opentelemetry.trace import StatusCode  # noqa: E402
 
 # TODO: Remove type ignore once logos-foundry publishes py.typed marker (logos #472)
 try:
@@ -56,6 +57,7 @@ logger = (
     if setup_logging is not None
     else logging.getLogger("hermes")
 )
+tracer = get_tracer("hermes.api")
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -351,30 +353,34 @@ async def speech_to_text(
     Returns:
         STTResponse with transcribed text and confidence score
     """
-    try:
-        # Validate audio file
-        if not audio.content_type or not audio.content_type.startswith("audio/"):
-            raise HTTPException(
-                status_code=400, detail="Invalid file type. Expected audio file."
-            )
+    with tracer.start_as_current_span("hermes.stt") as span:
+        span.set_attribute("stt.format", audio.content_type or "unknown")
+        try:
+            # Validate audio file
+            if not audio.content_type or not audio.content_type.startswith("audio/"):
+                raise HTTPException(
+                    status_code=400, detail="Invalid file type. Expected audio file."
+                )
 
-        # Read audio bytes
-        audio_bytes = await audio.read()
+            # Read audio bytes
+            audio_bytes = await audio.read()
 
-        # Extract language code (e.g., "en-US" -> "en")
-        lang_code = language.split("-")[0] if language else "en"
+            # Extract language code (e.g., "en-US" -> "en")
+            lang_code = language.split("-")[0] if language else "en"
 
-        # Transcribe
-        result = await transcribe_audio(audio_bytes, lang_code)
+            # Transcribe
+            result = await transcribe_audio(audio_bytes, lang_code)
 
-        logger.info(f"STT request completed for language: {language}")
-        return STTResponse(text=result["text"], confidence=result["confidence"])
+            logger.info(f"STT request completed for language: {language}")
+            return STTResponse(text=result["text"], confidence=result["confidence"])
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"STT error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            span.record_exception(e)
+            span.set_status(StatusCode.ERROR, str(e))
+            logger.error(f"STT error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @app.post("/tts")
@@ -387,25 +393,29 @@ async def text_to_speech(request: TTSRequest) -> Response:
     Returns:
         Audio file in WAV format
     """
-    try:
-        # Validate request
-        if not request.text or len(request.text.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Text cannot be empty")
+    with tracer.start_as_current_span("hermes.tts") as span:
+        span.set_attribute("tts.text_length", len(request.text))
+        try:
+            # Validate request
+            if not request.text or len(request.text.strip()) == 0:
+                raise HTTPException(status_code=400, detail="Text cannot be empty")
 
-        logger.info(f"TTS request received for text: {request.text[:50]}...")
+            logger.info(f"TTS request received for text: {request.text[:50]}...")
 
-        # Synthesize speech
-        audio_bytes = await synthesize_speech(
-            request.text, request.voice, request.language
-        )
+            # Synthesize speech
+            audio_bytes = await synthesize_speech(
+                request.text, request.voice, request.language
+            )
 
-        return Response(content=audio_bytes, media_type="audio/wav")
+            return Response(content=audio_bytes, media_type="audio/wav")
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"TTS error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            span.record_exception(e)
+            span.set_status(StatusCode.ERROR, str(e))
+            logger.error(f"TTS error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @app.post("/simple_nlp", response_model=SimpleNLPResponse)
@@ -418,32 +428,37 @@ async def simple_nlp(request: SimpleNLPRequest) -> SimpleNLPResponse:
     Returns:
         SimpleNLPResponse with requested NLP results
     """
-    try:
-        # Validate request
-        if not request.text or len(request.text.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Text cannot be empty")
+    with tracer.start_as_current_span("hermes.nlp") as span:
+        span.set_attribute("nlp.operations", str(request.operations))
+        span.set_attribute("nlp.text_length", len(request.text))
+        try:
+            # Validate request
+            if not request.text or len(request.text.strip()) == 0:
+                raise HTTPException(status_code=400, detail="Text cannot be empty")
 
-        # Validate operations
-        valid_operations = {"tokenize", "pos_tag", "lemmatize", "ner"}
-        invalid_ops = set(request.operations) - valid_operations
-        if invalid_ops:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid operations: {invalid_ops}. Valid operations are: {valid_operations}",
-            )
+            # Validate operations
+            valid_operations = {"tokenize", "pos_tag", "lemmatize", "ner"}
+            invalid_ops = set(request.operations) - valid_operations
+            if invalid_ops:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid operations: {invalid_ops}. Valid operations are: {valid_operations}",
+                )
 
-        logger.info(f"NLP request received with operations: {request.operations}")
+            logger.info(f"NLP request received with operations: {request.operations}")
 
-        # Process NLP
-        result = await process_nlp(request.text, request.operations)
+            # Process NLP
+            result = await process_nlp(request.text, request.operations)
 
-        return SimpleNLPResponse(**result)
+            return SimpleNLPResponse(**result)
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"NLP error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            span.record_exception(e)
+            span.set_status(StatusCode.ERROR, str(e))
+            logger.error(f"NLP error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @app.post("/embed_text", response_model=EmbedTextResponse)
@@ -456,28 +471,34 @@ async def embed_text(request: EmbedTextRequest) -> EmbedTextResponse:
     Returns:
         EmbedTextResponse with embedding vector
     """
-    try:
-        # Validate request
-        if not request.text or len(request.text.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Text cannot be empty")
+    with tracer.start_as_current_span("hermes.embed_text") as span:
+        span.set_attribute("embedding.model", request.model)
+        span.set_attribute("embedding.text_length", len(request.text))
+        try:
+            # Validate request
+            if not request.text or len(request.text.strip()) == 0:
+                raise HTTPException(status_code=400, detail="Text cannot be empty")
 
-        logger.info(f"Embedding request received for text: {request.text[:50]}...")
+            logger.info(f"Embedding request received for text: {request.text[:50]}...")
 
-        # Generate embedding
-        result = await generate_embedding(request.text, request.model)
+            # Generate embedding
+            result = await generate_embedding(request.text, request.model)
+            span.set_attribute("embedding.dimension", result.get("dimension", 0))
 
-        return EmbedTextResponse(
-            embedding=result["embedding"],
-            dimension=result["dimension"],
-            model=result["model"],
-            embedding_id=result["embedding_id"],
-        )
+            return EmbedTextResponse(
+                embedding=result["embedding"],
+                dimension=result["dimension"],
+                model=result["model"],
+                embedding_id=result["embedding_id"],
+            )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Embedding error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            span.record_exception(e)
+            span.set_status(StatusCode.ERROR, str(e))
+            logger.error(f"Embedding error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 async def _forward_llm_to_sophia(
@@ -556,40 +577,54 @@ async def _forward_llm_to_sophia(
 @app.post("/llm", response_model=LLMResponse)
 async def llm_generate(request: LLMRequest, http_request: Request) -> LLMResponse:
     """Proxy language model completions through Hermes."""
-    normalized_messages: List[LLMMessage] = list(request.messages or [])
-    if not normalized_messages:
-        prompt = (request.prompt or "").strip()
-        if not prompt:
-            raise HTTPException(
-                status_code=400,
-                detail="Either 'prompt' or 'messages' must be provided.",
+    with tracer.start_as_current_span("hermes.llm") as span:
+        span.set_attribute("llm.provider", request.provider or "default")
+        span.set_attribute("llm.model", request.model or "default")
+        span.set_attribute("llm.max_tokens", request.max_tokens or 0)
+        normalized_messages: List[LLMMessage] = list(request.messages or [])
+        if not normalized_messages:
+            prompt = (request.prompt or "").strip()
+            if not prompt:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Either 'prompt' or 'messages' must be provided.",
+                )
+            normalized_messages = [LLMMessage(role="user", content=prompt)]
+
+        try:
+            import time as _time
+            _t0 = _time.monotonic()
+            result = await generate_llm_response(
+                messages=[msg.model_dump(exclude_none=True) for msg in normalized_messages],
+                provider=request.provider,
+                model=request.model,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens,
+                metadata=request.metadata,
             )
-        normalized_messages = [LLMMessage(role="user", content=prompt)]
+            _duration_ms = int((_time.monotonic() - _t0) * 1000)
+            span.set_attribute("llm.duration_ms", _duration_ms)
 
-    try:
-        result = await generate_llm_response(
-            messages=[msg.model_dump(exclude_none=True) for msg in normalized_messages],
-            provider=request.provider,
-            model=request.model,
-            temperature=request.temperature,
-            max_tokens=request.max_tokens,
-            metadata=request.metadata,
-        )
+            # Forward LLM response to Sophia for cognitive processing
+            request_id = getattr(http_request.state, "request_id", str(uuid.uuid4()))
+            await _forward_llm_to_sophia(result, request_id)
 
-        # Forward LLM response to Sophia for cognitive processing
-        request_id = getattr(http_request.state, "request_id", str(uuid.uuid4()))
-        await _forward_llm_to_sophia(result, request_id)
-
-        return LLMResponse(**result)
-    except LLMProviderNotConfiguredError as exc:
-        logger.error("LLM provider not configured: %s", exc)
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except LLMProviderError as exc:
-        logger.error("LLM provider error: %s", exc)
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-    except Exception as exc:
-        logger.error("LLM endpoint failure: %s", str(exc))
-        raise HTTPException(status_code=500, detail="LLM provider failure") from exc
+            return LLMResponse(**result)
+        except LLMProviderNotConfiguredError as exc:
+            span.record_exception(exc)
+            span.set_status(StatusCode.ERROR, str(exc))
+            logger.error("LLM provider not configured: %s", exc)
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        except LLMProviderError as exc:
+            span.record_exception(exc)
+            span.set_status(StatusCode.ERROR, str(exc))
+            logger.error("LLM provider error: %s", exc)
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+        except Exception as exc:
+            span.record_exception(exc)
+            span.set_status(StatusCode.ERROR, str(exc))
+            logger.error("LLM endpoint failure: %s", str(exc))
+            raise HTTPException(status_code=500, detail="LLM provider failure") from exc
 
 
 # ---------------------------------------------------------------------
@@ -645,115 +680,119 @@ async def ingest_media(
     Returns:
         MediaIngestResponse with sample_id and processing results
     """
-    import httpx
+    with tracer.start_as_current_span("hermes.ingest.media") as span:
+        span.set_attribute("ingest.content_type", file.content_type or "unknown")
+        import httpx
 
-    # Normalize media_type to lowercase for Sophia compatibility
-    media_type = media_type.lower()
+        # Normalize media_type to lowercase for Sophia compatibility
+        media_type = media_type.lower()
 
-    # Get Sophia configuration from environment
-    sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
-    sophia_port = get_env_value("SOPHIA_PORT", default="8001") or "8001"
-    sophia_url = f"http://{sophia_host}:{sophia_port}"
-    sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
+        # Get Sophia configuration from environment
+        sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
+        sophia_port = get_env_value("SOPHIA_PORT", default="8001") or "8001"
+        sophia_url = f"http://{sophia_host}:{sophia_port}"
+        sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
 
-    if not sophia_token:
-        raise HTTPException(
-            status_code=503,
-            detail="Sophia API token not configured. Set SOPHIA_API_KEY or SOPHIA_API_TOKEN.",
-        )
-
-    transcription: Optional[str] = None
-    embedding_id: Optional[str] = None
-
-    try:
-        # Read file content
-        file_content = await file.read()
-        await file.seek(0)  # Reset for forwarding
-
-        # Process based on media type
-        if media_type == "audio":
-            # Transcribe audio using Hermes STT
-            try:
-                stt_result = await transcribe_audio(file_content)
-                transcription = stt_result.get("text")
-                logger.info(
-                    f"Transcribed audio: {transcription[:100] if transcription else 'empty'}..."
-                )
-
-                # Generate embedding for transcription
-                if transcription:
-                    embed_result = await generate_embedding(transcription, "default")
-                    embedding_id = embed_result.get("embedding_id")
-            except Exception as e:
-                logger.warning(f"Audio processing failed, continuing with forward: {e}")
-
-        elif media_type == "video":
-            # For video, we could extract audio and transcribe
-            # For now, just log and forward
-            logger.info(f"Video ingestion: {file.filename}")
-
-        elif media_type == "image":
-            # For images, we could generate description/caption
-            # For now, just log and forward
-            logger.info(f"Image ingestion: {file.filename}")
-
-        # Forward to Sophia for storage and perception
-        await file.seek(0)  # Reset file pointer
-        files = {"file": (file.filename, file.file, file.content_type)}
-        data = {
-            "media_type": media_type,
-            # Provenance metadata for HCG node attribution
-            "source": "ingestion",
-            "derivation": "observed",
-        }
-        if question:
-            data["question"] = question
-
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                f"{sophia_url}/ingest/media",
-                files=files,
-                data=data,
-                headers={"Authorization": f"Bearer {sophia_token}"},
+        if not sophia_token:
+            raise HTTPException(
+                status_code=503,
+                detail="Sophia API token not configured. Set SOPHIA_API_KEY or SOPHIA_API_TOKEN.",
             )
-            response.raise_for_status()
-            sophia_result = response.json()
 
-        # Merge Hermes processing with Sophia result
-        result = MediaIngestResponse(
-            sample_id=sophia_result.get("sample_id", "unknown"),
-            file_path=sophia_result.get("file_path", ""),
-            media_type=media_type,
-            metadata=sophia_result.get("metadata", {}),
-            neo4j_node_id=sophia_result.get("neo4j_node_id"),
-            embedding_id=embedding_id,
-            transcription=transcription,
-            message=f"Media ingested via Hermes. {sophia_result.get('message', '')}",
-        )
+        transcription: Optional[str] = None
+        embedding_id: Optional[str] = None
 
-        logger.info(f"Media ingested: {result.sample_id} ({media_type})")
-        return result
+        try:
+            # Read file content
+            file_content = await file.read()
+            await file.seek(0)  # Reset for forwarding
 
-    except httpx.HTTPStatusError as exc:
-        logger.error(
-            f"Sophia rejected media: {exc.response.status_code} - {exc.response.text}"
-        )
-        raise HTTPException(
-            status_code=exc.response.status_code,
-            detail=f"Sophia ingestion failed: {exc.response.text}",
-        ) from exc
-    except httpx.RequestError as exc:
-        logger.error(f"Cannot connect to Sophia: {exc}")
-        raise HTTPException(
-            status_code=503,
-            detail=f"Cannot connect to Sophia service: {str(exc)}",
-        ) from exc
-    except Exception as exc:
-        logger.error(f"Media ingestion failed: {exc}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Media ingestion failed: {str(exc)}",
-        ) from exc
+            # Process based on media type
+            if media_type == "audio":
+                # Transcribe audio using Hermes STT
+                try:
+                    stt_result = await transcribe_audio(file_content)
+                    transcription = stt_result.get("text")
+                    logger.info(
+                        f"Transcribed audio: {transcription[:100] if transcription else 'empty'}..."
+                    )
+
+                    # Generate embedding for transcription
+                    if transcription:
+                        embed_result = await generate_embedding(transcription, "default")
+                        embedding_id = embed_result.get("embedding_id")
+                except Exception as e:
+                    logger.warning(f"Audio processing failed, continuing with forward: {e}")
+
+            elif media_type == "video":
+                # For video, we could extract audio and transcribe
+                # For now, just log and forward
+                logger.info(f"Video ingestion: {file.filename}")
+
+            elif media_type == "image":
+                # For images, we could generate description/caption
+                # For now, just log and forward
+                logger.info(f"Image ingestion: {file.filename}")
+
+            # Forward to Sophia for storage and perception
+            await file.seek(0)  # Reset file pointer
+            files = {"file": (file.filename, file.file, file.content_type)}
+            data = {
+                "media_type": media_type,
+                # Provenance metadata for HCG node attribution
+                "source": "ingestion",
+                "derivation": "observed",
+            }
+            if question:
+                data["question"] = question
+
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{sophia_url}/ingest/media",
+                    files=files,
+                    data=data,
+                    headers={"Authorization": f"Bearer {sophia_token}"},
+                )
+                response.raise_for_status()
+                sophia_result = response.json()
+
+            # Merge Hermes processing with Sophia result
+            result = MediaIngestResponse(
+                sample_id=sophia_result.get("sample_id", "unknown"),
+                file_path=sophia_result.get("file_path", ""),
+                media_type=media_type,
+                metadata=sophia_result.get("metadata", {}),
+                neo4j_node_id=sophia_result.get("neo4j_node_id"),
+                embedding_id=embedding_id,
+                transcription=transcription,
+                message=f"Media ingested via Hermes. {sophia_result.get('message', '')}",
+            )
+
+            logger.info(f"Media ingested: {result.sample_id} ({media_type})")
+            return result
+
+        except httpx.HTTPStatusError as exc:
+            logger.error(
+                f"Sophia rejected media: {exc.response.status_code} - {exc.response.text}"
+            )
+            raise HTTPException(
+                status_code=exc.response.status_code,
+                detail=f"Sophia ingestion failed: {exc.response.text}",
+            ) from exc
+        except httpx.RequestError as exc:
+            logger.error(f"Cannot connect to Sophia: {exc}")
+            raise HTTPException(
+                status_code=503,
+                detail=f"Cannot connect to Sophia service: {str(exc)}",
+            ) from exc
+        except Exception as exc:
+            span.record_exception(exc)
+            span.set_status(StatusCode.ERROR, str(exc))
+            logger.error(f"Media ingestion failed: {exc}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Media ingestion failed: {str(exc)}",
+            ) from exc
 
 
 # ---------------------------------------------------------------------
@@ -832,27 +871,30 @@ async def receive_feedback(
     Returns:
         FeedbackResponse acknowledging receipt
     """
-    request_id = getattr(request.state, "request_id", "unknown")
+    with tracer.start_as_current_span("hermes.feedback") as span:
+        span.set_attribute("feedback.type", payload.feedback_type)
+        span.set_attribute("feedback.correlation_id", payload.correlation_id or "")
+        request_id = getattr(request.state, "request_id", "unknown")
 
-    # Log structured feedback for observability
-    logger.info(
-        "Received feedback",
-        extra={
-            "request_id": request_id,
-            "feedback_type": payload.feedback_type,
-            "outcome": payload.outcome,
-            "correlation_id": payload.correlation_id,
-            "plan_id": payload.plan_id,
-            "execution_id": payload.execution_id,
-            "source_service": payload.source_service,
-            "reason": payload.reason,
-        },
-    )
+        # Log structured feedback for observability
+        logger.info(
+            "Received feedback",
+            extra={
+                "request_id": request_id,
+                "feedback_type": payload.feedback_type,
+                "outcome": payload.outcome,
+                "correlation_id": payload.correlation_id,
+                "plan_id": payload.plan_id,
+                "execution_id": payload.execution_id,
+                "source_service": payload.source_service,
+                "reason": payload.reason,
+            },
+        )
 
-    return FeedbackResponse(
-        status="accepted",
-        message=f"Feedback received for {payload.feedback_type}: {payload.outcome}",
-    )
+        return FeedbackResponse(
+            status="accepted",
+            message=f"Feedback received for {payload.feedback_type}: {payload.outcome}",
+        )
 
 
 def main() -> None:

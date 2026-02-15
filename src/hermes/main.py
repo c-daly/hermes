@@ -66,25 +66,37 @@ try:
 except ImportError:
     from types import SimpleNamespace  # noqa: E402
 
+    class _NoopSpan:
+        """No-op span stub when OTel is not installed."""
+
+        def set_attribute(self, *a: Any) -> None:
+            pass
+
+        def set_status(self, *a: Any) -> None:
+            pass
+
+        def record_exception(self, *a: Any) -> None:
+            pass
+
+        def __enter__(self) -> "_NoopSpan":
+            return self
+
+        def __exit__(self, *a: Any) -> None:
+            pass
+
+    class _NoopTracer:
+        """No-op tracer stub when OTel is not installed."""
+
+        def start_as_current_span(self, name: str, **kw: Any) -> "_NoopSpan":
+            return _NoopSpan()
+
     def get_tracer(name: str) -> Any:  # type: ignore[misc]
-        """No-op tracer stub."""
-
-        class _NoopTracer:
-            def start_as_current_span(self, name: str, **kw: Any) -> Any:
-                return SimpleNamespace(
-                    __enter__=lambda s: SimpleNamespace(
-                        set_attribute=lambda *a: None,
-                        set_status=lambda *a: None,
-                        record_exception=lambda *a: None,
-                    ),
-                    __exit__=lambda s, *a: None,
-                )
-
+        """Return no-op tracer when OTel is not installed."""
         return _NoopTracer()
 
     setup_telemetry = None  # type: ignore[assignment]
     FastAPIInstrumentor = None  # type: ignore[assignment,misc]
-    StatusCode = None  # type: ignore[assignment,misc]
+    StatusCode = SimpleNamespace(ERROR=None, OK=None)  # type: ignore[assignment,misc]
     _OTEL_AVAILABLE = False
 import httpx  # noqa: E402
 
@@ -142,15 +154,20 @@ async def lifespan(app: FastAPI):  # type: ignore
     """Lifespan event handler for application startup and shutdown."""
     # Startup
     # Initialize OpenTelemetry
-    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-    setup_telemetry(
-        service_name=os.getenv("OTEL_SERVICE_NAME", "hermes"),
-        export_to_console=os.getenv("OTEL_CONSOLE_EXPORT", "false").lower() == "true",
-        otlp_endpoint=otlp_endpoint,
-    )
-    logger.info(
-        "OpenTelemetry initialized", extra={"otlp_endpoint": otlp_endpoint or "none"}
-    )
+    if _OTEL_AVAILABLE:
+        otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+        setup_telemetry(
+            service_name=os.getenv("OTEL_SERVICE_NAME", "hermes"),
+            export_to_console=os.getenv("OTEL_CONSOLE_EXPORT", "false").lower()
+            == "true",
+            otlp_endpoint=otlp_endpoint,
+        )
+        logger.info(
+            "OpenTelemetry initialized",
+            extra={"otlp_endpoint": otlp_endpoint or "none"},
+        )
+    else:
+        logger.info("OpenTelemetry not available, skipping initialization")
     logger.info("Starting Hermes API...")
     # Initialize Milvus connection and collection
     milvus_client.initialize_milvus()
@@ -168,7 +185,8 @@ app = FastAPI(
     description="Stateless language & embedding tools for Project LOGOS",
     lifespan=lifespan,
 )
-FastAPIInstrumentor.instrument_app(app)
+if _OTEL_AVAILABLE:
+    FastAPIInstrumentor.instrument_app(app)
 
 raw_origins = get_env_value("HERMES_CORS_ORIGINS", default="*") or "*"
 if raw_origins.strip() == "*":

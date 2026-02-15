@@ -865,6 +865,8 @@ async def ingest_media(
             logger.info(f"Media ingested: {result.sample_id} ({media_type})")
             return result
 
+        except HTTPException:
+            raise
         except httpx.HTTPStatusError as exc:
             span.record_exception(exc)
             span.set_status(StatusCode.ERROR, str(exc))

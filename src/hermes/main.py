@@ -56,6 +56,7 @@ except ImportError:
         }
         return _defaults.get(repo, _FallbackPorts(7474, 7687, 19530, 9091, 8000))
 
+
 from logos_observability import get_tracer, setup_telemetry  # noqa: E402
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # noqa: E402
 from opentelemetry.trace import StatusCode  # noqa: E402
@@ -121,7 +122,9 @@ async def lifespan(app: FastAPI):  # type: ignore
         export_to_console=os.getenv("OTEL_CONSOLE_EXPORT", "false").lower() == "true",
         otlp_endpoint=otlp_endpoint,
     )
-    logger.info("OpenTelemetry initialized", extra={"otlp_endpoint": otlp_endpoint or "none"})
+    logger.info(
+        "OpenTelemetry initialized", extra={"otlp_endpoint": otlp_endpoint or "none"}
+    )
     logger.info("Starting Hermes API...")
     # Initialize Milvus connection and collection
     milvus_client.initialize_milvus()
@@ -629,7 +632,9 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
 
         try:
             result = await generate_llm_response(
-                messages=[msg.model_dump(exclude_none=True) for msg in normalized_messages],
+                messages=[
+                    msg.model_dump(exclude_none=True) for msg in normalized_messages
+                ],
                 provider=request.provider,
                 model=request.model,
                 temperature=request.temperature,
@@ -719,11 +724,13 @@ async def ingest_media(
 
         # Get Sophia configuration from environment
         sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
-        sophia_port = get_env_value("SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)) or str(
-            _SOPHIA_PORTS.api
-        )
+        sophia_port = get_env_value(
+            "SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)
+        ) or str(_SOPHIA_PORTS.api)
         sophia_url = f"http://{sophia_host}:{sophia_port}"
-        sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
+        sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value(
+            "SOPHIA_API_TOKEN"
+        )
 
         if not sophia_token:
             raise HTTPException(
@@ -751,10 +758,14 @@ async def ingest_media(
 
                     # Generate embedding for transcription
                     if transcription:
-                        embed_result = await generate_embedding(transcription, "default")
+                        embed_result = await generate_embedding(
+                            transcription, "default"
+                        )
                         embedding_id = embed_result.get("embedding_id")
                 except Exception as e:
-                    logger.warning(f"Audio processing failed, continuing with forward: {e}")
+                    logger.warning(
+                        f"Audio processing failed, continuing with forward: {e}"
+                    )
 
             elif media_type == "video":
                 # For video, we could extract audio and transcribe

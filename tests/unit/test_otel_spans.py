@@ -23,9 +23,9 @@ def test_hermes_tracer_exists():
     """Verify hermes main.py defines a module-level tracer."""
     import hermes.main as main_module
 
-    assert hasattr(main_module, "tracer"), (
-        "main.py must define a module-level tracer via get_tracer"
-    )
+    assert hasattr(
+        main_module, "tracer"
+    ), "main.py must define a module-level tracer via get_tracer"
 
 
 def test_span_names_defined():
@@ -44,9 +44,9 @@ def test_span_names_defined():
         "hermes.feedback",
     ]
     for span_name in expected_spans:
-        assert span_name in source, (
-            f"Expected span name {span_name!r} not found in hermes/main.py"
-        )
+        assert (
+            span_name in source
+        ), f"Expected span name {span_name!r} not found in hermes/main.py"
 
 
 def test_stt_span_creation(span_capture):

@@ -40,14 +40,14 @@ jobs:
         echo "Waiting for Milvus..."
         timeout 120 bash -c 'until curl -f http://localhost:17091/healthz 2>/dev/null; do sleep 2; done'
         echo "Waiting for Neo4j..."
-        timeout 60 bash -c 'until curl -f http://localhost:17474 2>/dev/null; do sleep 2; done'
+        timeout 60 bash -c 'until curl -f http://localhost:7474 2>/dev/null; do sleep 2; done'
       pytest_env_script: |
         # Port values from logos_config.HERMES_PORTS
         export MILVUS_HOST=localhost
         export MILVUS_PORT=17530
-        export NEO4J_URI=bolt://localhost:17687
+        export NEO4J_URI=bolt://localhost:7687
         export NEO4J_USER=neo4j
-        export NEO4J_PASSWORD=neo4jtest
+        export NEO4J_PASSWORD=logosdev
       # -r s: show skip reasons, -r S: show skip summary
       # --cov-fail-under=60: Enforce 60% minimum coverage
       # Runs ALL tests with services available
@@ -120,7 +120,7 @@ jobs:
         timeout 120 bash -c 'until curl -f http://localhost:17091/healthz 2>/dev/null; do sleep 2; done'
         
         echo "Waiting for Neo4j..."
-        timeout 60 bash -c 'until curl -f http://localhost:17474 2>/dev/null; do sleep 2; done'
+        timeout 60 bash -c 'until curl -f http://localhost:7474 2>/dev/null; do sleep 2; done'
 
     - name: Install Poetry
       run: |
@@ -137,9 +137,9 @@ jobs:
       env:
         MILVUS_HOST: localhost
         MILVUS_PORT: "17530"
-        NEO4J_URI: bolt://localhost:17687
+        NEO4J_URI: bolt://localhost:7687
         NEO4J_USER: neo4j
-        NEO4J_PASSWORD: neo4jtest
+        NEO4J_PASSWORD: logosdev
       run: |
         # Run ALL tests with ML dependencies installed
         # This should have minimal skips

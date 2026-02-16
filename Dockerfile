@@ -20,6 +20,9 @@ COPY pyproject.toml poetry.lock README.md ./
 ARG HERMES_INSTALL_ML=0
 
 # Note: foundry base already has Poetry and common dependencies
+# Remove pandas from base image to avoid overlay FS conflicts during Poetry install
+RUN pip uninstall pandas -y 2>/dev/null || true
+
 RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
       pip install --no-cache-dir \
         torch==2.0.1 \

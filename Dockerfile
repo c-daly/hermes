@@ -14,7 +14,7 @@ WORKDIR /app/hermes
 
 # Copy application code and configuration
 COPY src/ ./src/
-COPY pyproject.toml README.md ./
+COPY pyproject.toml poetry.lock README.md ./
 
 # Install ML dependencies only when requested to keep standard images small
 ARG HERMES_INSTALL_ML=0

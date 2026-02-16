@@ -74,5 +74,3 @@ examples/
 # Tests
 tests/
 
-# Poetry lock (we're using pyproject.toml only)
-poetry.lock

@@ -1,6 +1,6 @@
 # Production-ready Dockerfile for Hermes API server
 # Optimized for FastAPI/uvicorn with stateless design
-FROM ghcr.io/c-daly/logos-foundry:0.1.0
+FROM ghcr.io/c-daly/logos-foundry:0.4.0
 
 # Add metadata labels following OCI standards
 LABEL org.opencontainers.image.title="Hermes API" \
@@ -25,10 +25,10 @@ RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
         torch==2.0.1 \
         torchaudio==2.0.2 \
         --index-url https://download.pytorch.org/whl/cpu && \
-      poetry install --only main --extras ml --no-interaction --no-ansi && \
+      poetry install --only main --extras ml --extras otel --no-interaction --no-ansi && \
       poetry run python -m spacy download en_core_web_sm; \
     else \
-      poetry install --only main --no-interaction --no-ansi; \
+      poetry install --only main --extras otel --no-interaction --no-ansi; \
     fi
 
 # Expose the API port

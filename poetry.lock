@@ -2424,7 +2424,7 @@ files = [
 
 [[package]]
 name = "logos-foundry"
-version = "0.4.1"
+version = "0.4.2"
 description = "LOGOS Foundry - Canonical source of truth for Project LOGOS specifications, ontology, and infrastructure"
 optional = false
 python-versions = "^3.11"
@@ -2447,8 +2447,8 @@ uvicorn = {version = "^0.32.0", extras = ["standard"]}
 [package.source]
 type = "git"
 url = "https://github.com/c-daly/logos.git"
-reference = "v0.4.1"
-resolved_reference = "4025f8d0e59d8373227d5c79099d909bde9f7c29"
+reference = "v0.4.2"
+resolved_reference = "ec35e799ae4927f57a09d3611cb9b4e04cb0a70f"
 
 [[package]]
 name = "marisa-trie"
@@ -6853,7 +6853,7 @@ description = "A language and compiler for custom Deep Learning operations"
 optional = true
 python-versions = "<3.15,>=3.10"
 groups = ["main"]
-markers = "(platform_machine == \"x86_64\" or sys_platform == \"linux2\") and (extra == \"ml\" or extra == \"ml-gpu\") and python_version < \"3.14\" and (platform_system == \"Linux\" or sys_platform == \"linux\" or sys_platform == \"linux2\") or platform_system == \"Linux\" and platform_machine == \"x86_64\" and extra == \"ml\" and python_version <= \"3.13\""
+markers = "(platform_machine == \"x86_64\" or sys_platform == \"linux2\") and (extra == \"ml\" or extra == \"ml-gpu\") and python_version < \"3.14\" and (platform_system == \"Linux\" or sys_platform == \"linux\" or sys_platform == \"linux2\") or platform_system == \"Linux\" and platform_machine == \"x86_64\" and extra == \"ml\" and python_version < \"3.14\""
 files = [
     {file = "triton-3.5.1-cp310-cp310-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f63e34dcb32d7bd3a1d0195f60f30d2aee8b08a69a0424189b71017e23dfc3d2"},
     {file = "triton-3.5.1-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:5fc53d849f879911ea13f4a877243afc513187bc7ee92d1f2c0f1ba3169e3c94"},
@@ -7846,4 +7846,4 @@ otel = ["opentelemetry-api", "opentelemetry-exporter-otlp", "opentelemetry-instr
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "3dcee63f139da11793eef9d8960c8468d139ee69446055bd29ad5f2e13f0a75e"
+content-hash = "c23820375578998e03c042e273e35a49c40a01b1cbff56a34f230ab3f9f2e16c"

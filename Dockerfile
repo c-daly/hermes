@@ -1,6 +1,6 @@
 # Production-ready Dockerfile for Hermes API server
 # Optimized for FastAPI/uvicorn with stateless design
-FROM ghcr.io/c-daly/logos-foundry:0.4.1
+FROM ghcr.io/c-daly/logos-foundry:0.4.2
 
 # Add metadata labels following OCI standards
 LABEL org.opencontainers.image.title="Hermes API" \
@@ -20,10 +20,6 @@ COPY pyproject.toml poetry.lock README.md ./
 ARG HERMES_INSTALL_ML=0
 
 # Note: foundry base already has Poetry and common dependencies
-# Force-remove pandas from base image to avoid version conflicts (overlay FS issue)
-RUN pip uninstall pandas -y 2>/dev/null || true && \
-    rm -rf /usr/local/lib/python3.11/site-packages/pandas* 2>/dev/null || true
-
 RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
       pip install --no-cache-dir \
         torch==2.0.1 \
@@ -34,9 +30,6 @@ RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
     else \
       poetry install --only main --extras otel --no-interaction --no-ansi; \
     fi
-
-# pymilvus imports pandas unconditionally — ensure a clean version is installed
-RUN pip install --no-cache-dir --force-reinstall "pandas>=2.0.0" 
 
 # Expose the API port
 EXPOSE 8080

@@ -21,14 +21,14 @@ permissions:
 
 jobs:
   publish:
-    uses: c-daly/logos/.github/workflows/reusable-publish.yml@main
+    uses: c-daly/logos/.github/workflows/reusable-publish.yml@ci/v1
     with:
       image_name: hermes
       tag_override: latest
     secrets: inherit
 
   publish-ml:
-    uses: c-daly/logos/.github/workflows/reusable-publish.yml@main
+    uses: c-daly/logos/.github/workflows/reusable-publish.yml@ci/v1
     with:
       image_name: hermes
       tag_override: ml-latest

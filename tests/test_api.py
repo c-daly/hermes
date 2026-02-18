@@ -245,7 +245,9 @@ def test_llm_sends_proposal_to_sophia_before_generation(monkeypatch):
     with patch("hermes.main._get_sophia_context", new_callable=AsyncMock) as mock_ctx:
         mock_ctx.return_value = mock_context
 
-        response = client.post("/llm", json={"prompt": "Tell me about Paris", "provider": "echo"})
+        response = client.post(
+            "/llm", json={"prompt": "Tell me about Paris", "provider": "echo"}
+        )
         assert response.status_code == 200
 
         # Verify _get_sophia_context was called with the user text

@@ -4,6 +4,7 @@ Hermes is the only component that understands language. The ProposalBuilder
 translates text into structured data (entities + embeddings) that Sophia
 can process without reading text.
 """
+
 import logging
 import uuid as uuid_mod
 from datetime import UTC, datetime
@@ -86,15 +87,17 @@ class ProposalBuilder:
             try:
                 emb = await generate_embedding(entity["text"])
                 ontology_type = SPACY_TO_ONTOLOGY.get(entity["label"], "entity")
-                proposed_nodes.append({
-                    "name": entity["text"],
-                    "type": ontology_type,
-                    "embedding": emb["embedding"],
-                    "embedding_id": emb["embedding_id"],
-                    "dimension": emb["dimension"],
-                    "model": emb["model"],
-                    "properties": {"start": entity["start"], "end": entity["end"]},
-                })
+                proposed_nodes.append(
+                    {
+                        "name": entity["text"],
+                        "type": ontology_type,
+                        "embedding": emb["embedding"],
+                        "embedding_id": emb["embedding_id"],
+                        "dimension": emb["dimension"],
+                        "model": emb["model"],
+                        "properties": {"start": entity["start"], "end": entity["end"]},
+                    }
+                )
             except Exception:
                 logger.warning(f"Embedding failed for entity '{entity['text']}'")
         return proposed_nodes

@@ -156,12 +156,16 @@ async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> lis
     sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
 
     if not sophia_token:
-        logger.debug("SOPHIA_API_KEY/SOPHIA_API_TOKEN not configured -- context disabled")
+        logger.debug(
+            "SOPHIA_API_KEY/SOPHIA_API_TOKEN not configured -- context disabled"
+        )
         return []
 
     try:
         proposal = await _proposal_builder.build(
-            text=text, metadata=metadata or {}, correlation_id=request_id,
+            text=text,
+            metadata=metadata or {},
+            correlation_id=request_id,
         )
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
             response = await client.post(
@@ -204,9 +208,14 @@ def _build_context_message(context: list[dict]) -> dict | None:
         prop_str = ", ".join(
             f"{k}={v}"
             for k, v in props.items()
-            if k not in (
-                "source", "derivation", "confidence", "raw_text",
-                "created_at", "updated_at",
+            if k
+            not in (
+                "source",
+                "derivation",
+                "confidence",
+                "raw_text",
+                "created_at",
+                "updated_at",
             )
         )
         if prop_str:
@@ -705,7 +714,9 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
 
             if user_text:
                 sophia_context = await _get_sophia_context(
-                    user_text, request_id, request.metadata or {},
+                    user_text,
+                    request_id,
+                    request.metadata or {},
                 )
                 context_msg = _build_context_message(sophia_context)
                 if context_msg:

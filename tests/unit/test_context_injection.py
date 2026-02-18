@@ -1,11 +1,11 @@
 """Tests for context injection — the loop-closing flow."""
+
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
 
 @pytest.mark.asyncio
 class TestContextInjection:
-
     async def test_build_context_message(self):
         from hermes.main import _build_context_message
 
@@ -20,6 +20,7 @@ class TestContextInjection:
 
     async def test_build_context_message_empty(self):
         from hermes.main import _build_context_message
+
         assert _build_context_message([]) is None
 
     async def test_build_context_message_with_properties(self):
@@ -67,17 +68,27 @@ class TestContextInjection:
         """When Sophia is unavailable, _get_sophia_context should return empty list."""
         from hermes.main import _get_sophia_context
 
-        with patch("hermes.main._proposal_builder") as mock_builder, \
-             patch("hermes.main.httpx") as mock_httpx:
-            mock_builder.build = AsyncMock(return_value={
-                "proposal_id": "p1", "proposed_nodes": [],
-                "document_embedding": None, "source_service": "hermes",
-                "metadata": {},
-            })
+        with (
+            patch("hermes.main._proposal_builder") as mock_builder,
+            patch("hermes.main.httpx") as mock_httpx,
+        ):
+            mock_builder.build = AsyncMock(
+                return_value={
+                    "proposal_id": "p1",
+                    "proposed_nodes": [],
+                    "document_embedding": None,
+                    "source_service": "hermes",
+                    "metadata": {},
+                }
+            )
             mock_client = AsyncMock()
             mock_client.post.side_effect = Exception("Connection refused")
-            mock_httpx.AsyncClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_httpx.AsyncClient.return_value.__aexit__ = AsyncMock(return_value=False)
+            mock_httpx.AsyncClient.return_value.__aenter__ = AsyncMock(
+                return_value=mock_client
+            )
+            mock_httpx.AsyncClient.return_value.__aexit__ = AsyncMock(
+                return_value=False
+            )
 
             context = await _get_sophia_context("Hello", "req-1", {})
 
@@ -107,16 +118,26 @@ class TestContextInjection:
         mock_client = AsyncMock()
         mock_client.post = AsyncMock(return_value=mock_response)
 
-        with patch("hermes.main._proposal_builder") as mock_builder, \
-             patch("hermes.main.httpx") as mock_httpx, \
-             patch("hermes.main.get_env_value") as mock_env:
-            mock_builder.build = AsyncMock(return_value={
-                "proposal_id": "p1", "proposed_nodes": [],
-                "document_embedding": None, "source_service": "hermes",
-                "metadata": {},
-            })
-            mock_httpx.AsyncClient.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_httpx.AsyncClient.return_value.__aexit__ = AsyncMock(return_value=False)
+        with (
+            patch("hermes.main._proposal_builder") as mock_builder,
+            patch("hermes.main.httpx") as mock_httpx,
+            patch("hermes.main.get_env_value") as mock_env,
+        ):
+            mock_builder.build = AsyncMock(
+                return_value={
+                    "proposal_id": "p1",
+                    "proposed_nodes": [],
+                    "document_embedding": None,
+                    "source_service": "hermes",
+                    "metadata": {},
+                }
+            )
+            mock_httpx.AsyncClient.return_value.__aenter__ = AsyncMock(
+                return_value=mock_client
+            )
+            mock_httpx.AsyncClient.return_value.__aexit__ = AsyncMock(
+                return_value=False
+            )
             mock_httpx.Timeout = MagicMock()
             mock_httpx.ConnectError = ConnectionError
             mock_httpx.TimeoutException = TimeoutError

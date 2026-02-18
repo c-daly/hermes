@@ -71,6 +71,7 @@ class TestContextInjection:
         with (
             patch("hermes.main._proposal_builder") as mock_builder,
             patch("hermes.main.httpx") as mock_httpx,
+            patch("hermes.main.get_env_value") as mock_env,
         ):
             mock_builder.build = AsyncMock(
                 return_value={
@@ -89,6 +90,17 @@ class TestContextInjection:
             mock_httpx.AsyncClient.return_value.__aexit__ = AsyncMock(
                 return_value=False
             )
+
+            def env_side_effect(key, default=None):
+                mapping = {
+                    "SOPHIA_HOST": "localhost",
+                    "SOPHIA_PORT": "47000",
+                    "SOPHIA_API_KEY": "test-token",
+                    "SOPHIA_API_TOKEN": None,
+                }
+                return mapping.get(key, default)
+
+            mock_env.side_effect = env_side_effect
 
             context = await _get_sophia_context("Hello", "req-1", {})
 

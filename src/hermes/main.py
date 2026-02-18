@@ -167,6 +167,11 @@ async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> lis
             metadata=metadata or {},
             correlation_id=request_id,
         )
+    except Exception as e:
+        logger.warning(f"Proposal building failed: {e}")
+        return []
+
+    try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
             response = await client.post(
                 f"http://{sophia_host}:{sophia_port}/ingest/hermes_proposal",
@@ -174,7 +179,7 @@ async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> lis
                 headers={"Authorization": f"Bearer {sophia_token}"},
             )
             if response.status_code == 201:
-                data: dict[str, list[dict[str, str]]] = response.json()
+                data: dict[str, list[dict[str, Any]]] = response.json()
                 return list(data.get("relevant_context", []))
             logger.warning(
                 f"Sophia returned {response.status_code}: {response.text[:200]}"
@@ -202,7 +207,7 @@ def _build_context_message(context: list[dict]) -> dict | None:
     for item in context:
         name = item.get("name", "unknown")
         node_type = item.get("type", "")
-        props = item.get("properties", {})
+        props = item.get("properties") or {}
         desc = f"- {name}"
         if node_type:
             desc += f" ({node_type})"
@@ -722,10 +727,10 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                 context_msg = _build_context_message(sophia_context)
                 if context_msg:
                     span.set_attribute("llm.sophia_context_items", len(sophia_context))
-                    # Inject the context system message right before the first user message
+                    # Inject the context system message right before the last user message
                     inject_idx = 0
-                    for i, msg in enumerate(normalized_messages):
-                        if msg.role == "user":
+                    for i in range(len(normalized_messages) - 1, -1, -1):
+                        if normalized_messages[i].role == "user":
                             inject_idx = i
                             break
                     normalized_messages.insert(

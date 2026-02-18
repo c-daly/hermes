@@ -174,7 +174,8 @@ async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> lis
                 headers={"Authorization": f"Bearer {sophia_token}"},
             )
             if response.status_code == 201:
-                return response.json().get("relevant_context", [])
+                data: dict[str, list[dict[str, str]]] = response.json()
+                return list(data.get("relevant_context", []))
             logger.warning(
                 f"Sophia returned {response.status_code}: {response.text[:200]}"
             )

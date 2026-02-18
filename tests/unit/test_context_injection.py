@@ -1,5 +1,6 @@
 """Tests for context injection — the loop-closing flow."""
 
+import httpx
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -70,7 +71,7 @@ class TestContextInjection:
 
         with (
             patch("hermes.main._proposal_builder") as mock_builder,
-            patch("hermes.main.httpx") as mock_httpx,
+            patch("hermes.main.httpx.AsyncClient") as mock_async_client,
             patch("hermes.main.get_env_value") as mock_env,
         ):
             mock_builder.build = AsyncMock(
@@ -83,11 +84,11 @@ class TestContextInjection:
                 }
             )
             mock_client = AsyncMock()
-            mock_client.post.side_effect = Exception("Connection refused")
-            mock_httpx.AsyncClient.return_value.__aenter__ = AsyncMock(
+            mock_client.post.side_effect = httpx.ConnectError("Connection refused")
+            mock_async_client.return_value.__aenter__ = AsyncMock(
                 return_value=mock_client
             )
-            mock_httpx.AsyncClient.return_value.__aexit__ = AsyncMock(
+            mock_async_client.return_value.__aexit__ = AsyncMock(
                 return_value=False
             )
 
@@ -132,7 +133,7 @@ class TestContextInjection:
 
         with (
             patch("hermes.main._proposal_builder") as mock_builder,
-            patch("hermes.main.httpx") as mock_httpx,
+            patch("hermes.main.httpx.AsyncClient") as mock_async_client,
             patch("hermes.main.get_env_value") as mock_env,
         ):
             mock_builder.build = AsyncMock(
@@ -144,15 +145,12 @@ class TestContextInjection:
                     "metadata": {},
                 }
             )
-            mock_httpx.AsyncClient.return_value.__aenter__ = AsyncMock(
+            mock_async_client.return_value.__aenter__ = AsyncMock(
                 return_value=mock_client
             )
-            mock_httpx.AsyncClient.return_value.__aexit__ = AsyncMock(
+            mock_async_client.return_value.__aexit__ = AsyncMock(
                 return_value=False
             )
-            mock_httpx.Timeout = MagicMock()
-            mock_httpx.ConnectError = ConnectionError
-            mock_httpx.TimeoutException = TimeoutError
 
             def env_side_effect(key, default=None):
                 mapping = {

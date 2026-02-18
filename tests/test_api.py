@@ -234,50 +234,29 @@ def test_llm_endpoint_with_messages():
     assert "hi" in data["choices"][0]["message"]["content"].lower()
 
 
-def test_llm_forwards_to_sophia_with_provenance(monkeypatch):
-    """LLM responses should be forwarded to Sophia with provenance metadata."""
-    import httpx
-    from unittest.mock import AsyncMock, MagicMock
+def test_llm_sends_proposal_to_sophia_before_generation(monkeypatch):
+    """LLM endpoint sends proposal to Sophia BEFORE generation (cognitive loop)."""
+    from unittest.mock import AsyncMock, patch
 
-    # Track the call to Sophia
-    captured_request = {}
+    mock_context = [
+        {"name": "Paris", "type": "location", "properties": {}, "score": 0.1},
+    ]
 
-    class MockResponse:
-        status_code = 201
-        text = "Created"
+    with patch("hermes.main._get_sophia_context", new_callable=AsyncMock) as mock_ctx:
+        mock_ctx.return_value = mock_context
 
-    async def mock_post(url, json=None, headers=None):
-        captured_request["url"] = url
-        captured_request["json"] = json
-        captured_request["headers"] = headers
-        return MockResponse()
+        response = client.post("/llm", json={"prompt": "Tell me about Paris", "provider": "echo"})
+        assert response.status_code == 200
 
-    # Mock httpx.AsyncClient
-    mock_client = MagicMock()
-    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = AsyncMock(return_value=None)
-    mock_client.post = mock_post
+        # Verify _get_sophia_context was called with the user text
+        mock_ctx.assert_called_once()
+        call_args = mock_ctx.call_args
+        assert "Paris" in call_args[0][0]  # first positional arg is user text
 
-    monkeypatch.setattr(httpx, "AsyncClient", lambda **kwargs: mock_client)
-
-    # Set Sophia token to enable forwarding
-    monkeypatch.setenv("SOPHIA_API_TOKEN", "test-token")
-    monkeypatch.setenv("SOPHIA_HOST", "localhost")
-    monkeypatch.setenv("SOPHIA_PORT", "8001")
-
-    # Make LLM request
-    response = client.post("/llm", json={"prompt": "Hello", "provider": "echo"})
-    assert response.status_code == 200
-
-    # Verify Sophia was called with correct provenance
-    assert "hermes_proposal" in captured_request.get("url", "")
-    payload = captured_request.get("json", {})
-    assert payload.get("source_service") == "hermes"
-    assert payload.get("llm_provider") == "echo"
-    assert payload.get("confidence") == 0.7
-    assert payload.get("correlation_id") is not None  # Request ID for tracing
-    assert payload.get("metadata", {}).get("source") == "hermes_llm"
-    assert payload.get("metadata", {}).get("derivation") == "observed"
+        # Verify the echo response still works (context was injected but echo provider ignores it)
+        data = response.json()
+        assert data["provider"] == "echo"
+        assert data["choices"][0]["message"]["role"] == "assistant"
 
 
 def test_media_ingestion_sends_provenance(monkeypatch):

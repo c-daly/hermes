@@ -88,9 +88,7 @@ class TestContextInjection:
             mock_async_client.return_value.__aenter__ = AsyncMock(
                 return_value=mock_client
             )
-            mock_async_client.return_value.__aexit__ = AsyncMock(
-                return_value=False
-            )
+            mock_async_client.return_value.__aexit__ = AsyncMock(return_value=False)
 
             def env_side_effect(key, default=None):
                 mapping = {
@@ -148,9 +146,7 @@ class TestContextInjection:
             mock_async_client.return_value.__aenter__ = AsyncMock(
                 return_value=mock_client
             )
-            mock_async_client.return_value.__aexit__ = AsyncMock(
-                return_value=False
-            )
+            mock_async_client.return_value.__aexit__ = AsyncMock(return_value=False)
 
             def env_side_effect(key, default=None):
                 mapping = {

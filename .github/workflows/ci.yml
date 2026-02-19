@@ -23,7 +23,7 @@ jobs:
   standard:
     uses: c-daly/logos/.github/workflows/reusable-standard-ci.yml@main
     with:
-      python_versions: '["3.11","3.12"]'
+      python_versions: '["3.12"]'
       python_package_manager: 'poetry'
       python_command_prefix: 'poetry run '
       poetry_install_args: '-E dev -E otel'
@@ -69,7 +69,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
     - name: Install Poetry
       run: |
         curl -sSL https://install.python-poetry.org | python3 -
@@ -105,7 +105,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
 
     - name: Start services
       run: |

@@ -100,7 +100,17 @@ class ProposalBuilder:
             *[_process_entity(e) for e in entities],
             return_exceptions=True,
         )
-        return [r for r in results if isinstance(r, dict)]
+        processed = []
+        for entity, result in zip(entities, results):
+            if isinstance(result, dict):
+                processed.append(result)
+            elif isinstance(result, Exception):
+                logger.warning(
+                    "Failed to process entity '%s': %s",
+                    entity.get("text", "<unknown>"),
+                    result,
+                )
+        return processed
 
     async def _generate_document_embedding(self, text: str) -> dict | None:
         """Generate embedding for the full text."""

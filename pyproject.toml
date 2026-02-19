@@ -24,7 +24,7 @@ dependencies = [
     "pymilvus>=2.3.0",
     "pandas>=2.0.0",
     # logos-foundry provides logos_config and logos_test_utils
-    "logos-foundry @ git+https://github.com/c-daly/logos.git@feat/cognitive-loop ; python_version >= '3.12' and python_version < '4.0'",
+    "logos-foundry @ git+https://github.com/c-daly/logos.git@main ; python_version >= '3.12' and python_version < '4.0'",
     "numpy>=1.24.0",
 ]
 
@@ -76,7 +76,7 @@ packages = [{include = "hermes", from = "src"}]
 
 [tool.poetry.dependencies]
 # logos-foundry must be declared here for Poetry to resolve git deps
-logos-foundry = {git = "https://github.com/c-daly/logos.git", branch = "feat/cognitive-loop"}
+logos-foundry = {git = "https://github.com/c-daly/logos.git", branch = "main"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -25,7 +25,7 @@ dependencies = [
     "pandas>=2.0.0",
     # logos-foundry provides logos_config and logos_test_utils
     "logos-foundry @ git+https://github.com/c-daly/logos.git@feat/cognitive-loop ; python_version >= '3.12' and python_version < '4.0'",
-    "numpy>=1.24.0,<2.0.0",
+    "numpy>=1.24.0",
 ]
 
 [project.optional-dependencies]
@@ -42,17 +42,17 @@ ml = [
     "torchaudio>=2.0.0,<2.10.0",
     "openai-whisper>=20231117",
     "TTS>=0.22.0; python_version < '3.12'",
-    "spacy>=3.7.0",
+    "spacy>=3.7.0; python_version < '3.14'",
     "sentence-transformers>=2.2.0",
-    "numpy>=1.24.0,<2.0.0",
+    "numpy>=1.24.0",
 ]
 # ML dependencies with GPU support (CUDA, larger download)
 ml-gpu = [
     "openai-whisper>=20231117",
     "TTS>=0.22.0; python_version < '3.12'",
-    "spacy>=3.7.0",
+    "spacy>=3.7.0; python_version < '3.14'",
     "sentence-transformers>=2.2.0",
-    "numpy>=1.24.0,<2.0.0",
+    "numpy>=1.24.0",
 ]
 dev = [
     "pytest>=7.0.0",

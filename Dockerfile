@@ -1,6 +1,6 @@
 # Production-ready Dockerfile for Hermes API server
 # Optimized for FastAPI/uvicorn with stateless design
-FROM ghcr.io/c-daly/logos-foundry:0.4.2
+FROM ghcr.io/c-daly/logos-foundry:0.5.0
 
 # Add metadata labels following OCI standards
 LABEL org.opencontainers.image.title="Hermes API" \

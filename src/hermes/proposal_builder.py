@@ -83,7 +83,7 @@ class ProposalBuilder:
             logger.warning("NER extraction failed, returning empty entities")
             return []
 
-        async def _process_entity(entity):
+        async def _process_entity(entity: dict) -> dict:
             emb = await generate_embedding(entity["text"])
             ontology_type = SPACY_TO_ONTOLOGY.get(entity["label"], "entity")
             return {

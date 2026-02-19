@@ -5,6 +5,7 @@ translates text into structured data (entities + embeddings) that Sophia
 can process without reading text.
 """
 
+import asyncio
 import logging
 import uuid as uuid_mod
 from datetime import UTC, datetime
@@ -82,25 +83,24 @@ class ProposalBuilder:
             logger.warning("NER extraction failed, returning empty entities")
             return []
 
-        proposed_nodes = []
-        for entity in entities:
-            try:
-                emb = await generate_embedding(entity["text"])
-                ontology_type = SPACY_TO_ONTOLOGY.get(entity["label"], "entity")
-                proposed_nodes.append(
-                    {
-                        "name": entity["text"],
-                        "type": ontology_type,
-                        "embedding": emb["embedding"],
-                        "embedding_id": emb["embedding_id"],
-                        "dimension": emb["dimension"],
-                        "model": emb["model"],
-                        "properties": {"start": entity["start"], "end": entity["end"]},
-                    }
-                )
-            except Exception:
-                logger.warning(f"Embedding failed for entity '{entity['text']}'")
-        return proposed_nodes
+        async def _process_entity(entity):
+            emb = await generate_embedding(entity["text"])
+            ontology_type = SPACY_TO_ONTOLOGY.get(entity["label"], "entity")
+            return {
+                "name": entity["text"],
+                "type": ontology_type,
+                "embedding": emb["embedding"],
+                "embedding_id": emb["embedding_id"],
+                "dimension": emb["dimension"],
+                "model": emb["model"],
+                "properties": {"start": entity["start"], "end": entity["end"]},
+            }
+
+        results = await asyncio.gather(
+            *[_process_entity(e) for e in entities],
+            return_exceptions=True,
+        )
+        return [r for r in results if isinstance(r, dict)]
 
     async def _generate_document_embedding(self, text: str) -> dict | None:
         """Generate embedding for the full text."""

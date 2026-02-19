@@ -21,6 +21,7 @@ ARG HERMES_INSTALL_ML=0
 
 # Note: foundry base already has Poetry and common dependencies
 RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
+      pip install --no-cache-dir --force-reinstall numpy && \
       pip install --no-cache-dir \
         torch==2.2.2 \
         torchaudio==2.2.2 \

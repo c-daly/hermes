@@ -24,8 +24,8 @@ dependencies = [
     "pymilvus>=2.3.0",
     "pandas>=2.0.0",
     # logos-foundry provides logos_config and logos_test_utils
-    "logos-foundry @ git+https://github.com/c-daly/logos.git@main ; python_version >= '3.12' and python_version < '4.0'",
-    "numpy>=1.24.0",
+    "logos-foundry @ git+https://github.com/c-daly/logos.git@v0.5.0 ; python_version >= '3.12' and python_version < '4.0'",
+    "numpy>=1.24.0,<2.4",
 ]
 
 [project.optional-dependencies]
@@ -44,7 +44,7 @@ ml = [
     "TTS>=0.22.0; python_version < '3.12'",
     "spacy>=3.7.0; python_version < '3.14'",
     "sentence-transformers>=2.2.0",
-    "numpy>=1.24.0",
+    "numpy>=1.24.0,<2.4",
 ]
 # ML dependencies with GPU support (CUDA, larger download)
 ml-gpu = [
@@ -52,7 +52,7 @@ ml-gpu = [
     "TTS>=0.22.0; python_version < '3.12'",
     "spacy>=3.7.0; python_version < '3.14'",
     "sentence-transformers>=2.2.0",
-    "numpy>=1.24.0",
+    "numpy>=1.24.0,<2.4",
 ]
 dev = [
     "pytest>=7.0.0",
@@ -76,7 +76,7 @@ packages = [{include = "hermes", from = "src"}]
 
 [tool.poetry.dependencies]
 # logos-foundry must be declared here for Poetry to resolve git deps
-logos-foundry = {git = "https://github.com/c-daly/logos.git", branch = "main"}
+logos-foundry = {git = "https://github.com/c-daly/logos.git", tag = "v0.5.0"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

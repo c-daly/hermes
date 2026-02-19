@@ -250,10 +250,10 @@ class TestConcurrentHandling:
         print(f"Duration: {duration_seconds}s")
         print(f"Requests: {request_count}")
         print(f"RPS: {requests_per_second:.2f}")
-        print(f"Error rate: {error_rate*100:.2f}%")
+        print(f"Error rate: {error_rate * 100:.2f}%")
 
         # Should handle sustained load with low error rate
-        assert error_rate < 0.05, f"Error rate too high: {error_rate*100}%"
+        assert error_rate < 0.05, f"Error rate too high: {error_rate * 100}%"
 
     def test_burst_load(self):
         """Test handling burst of requests."""
@@ -274,10 +274,10 @@ class TestConcurrentHandling:
         print("\nBurst load test:")
         print(f"Burst size: {burst_size}")
         print(f"Duration: {duration:.2f}s")
-        print(f"Success rate: {success_rate*100:.2f}%")
+        print(f"Success rate: {success_rate * 100:.2f}%")
 
         # Most requests should succeed
-        assert success_rate > 0.9, f"Success rate too low: {success_rate*100}%"
+        assert success_rate > 0.9, f"Success rate too low: {success_rate * 100}%"
 
 
 @pytest.mark.skipif(not NLP_AVAILABLE, reason="NLP dependencies not installed")

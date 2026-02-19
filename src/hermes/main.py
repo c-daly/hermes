@@ -112,6 +112,7 @@ from starlette.responses import Response as StarletteResponse
 
 from hermes import __version__, milvus_client
 from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError
+from hermes.proposal_builder import ProposalBuilder
 from hermes.services import (
     generate_embedding,
     generate_llm_response,
@@ -132,6 +133,102 @@ logger = (
     else logging.getLogger("hermes")
 )
 tracer = get_tracer("hermes.api")
+
+# Proposal builder for cognitive-loop context injection
+_proposal_builder = ProposalBuilder()
+
+
+# -------------------------------------------------------------------
+# Cognitive-loop helpers: context retrieval from Sophia
+# -------------------------------------------------------------------
+
+
+async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> list[dict]:
+    """Send proposal to Sophia, get relevant context back.
+
+    Never raises -- if Sophia is unavailable, returns empty list.
+    LLM generation proceeds regardless.
+    """
+    sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
+    sophia_port = get_env_value("SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)) or str(
+        _SOPHIA_PORTS.api
+    )
+    sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
+
+    if not sophia_token:
+        logger.debug(
+            "SOPHIA_API_KEY/SOPHIA_API_TOKEN not configured -- context disabled"
+        )
+        return []
+
+    try:
+        proposal = await _proposal_builder.build(
+            text=text,
+            metadata=metadata or {},
+            correlation_id=request_id,
+        )
+    except Exception as e:
+        logger.warning(f"Proposal building failed: {e}")
+        return []
+
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
+            response = await client.post(
+                f"http://{sophia_host}:{sophia_port}/ingest/hermes_proposal",
+                json=proposal,
+                headers={"Authorization": f"Bearer {sophia_token}"},
+            )
+            if response.status_code == 201:
+                data: dict[str, list[dict[str, Any]]] = response.json()
+                return list(data.get("relevant_context", []))
+            logger.warning(
+                f"Sophia returned {response.status_code}: {response.text[:200]}"
+            )
+            return []
+    except httpx.ConnectError as e:
+        logger.warning(f"Cannot reach Sophia at {sophia_host}:{sophia_port}: {e}")
+        return []
+    except httpx.TimeoutException:
+        logger.warning(f"Sophia request timed out ({sophia_host}:{sophia_port})")
+        return []
+    except Exception as e:
+        logger.error(
+            f"Unexpected error during Sophia context retrieval: {e}", exc_info=True
+        )
+        return []
+
+
+def _build_context_message(context: list[dict]) -> dict | None:
+    """Translate Sophia's graph context into a system message for the LLM."""
+    if not context:
+        return None
+
+    lines = ["Relevant knowledge from memory:"]
+    for item in context:
+        name = item.get("name", "unknown")
+        node_type = item.get("type", "")
+        props = item.get("properties") or {}
+        desc = f"- {name}"
+        if node_type:
+            desc += f" ({node_type})"
+        prop_str = ", ".join(
+            f"{k}={v}"
+            for k, v in props.items()
+            if k
+            not in (
+                "source",
+                "derivation",
+                "confidence",
+                "raw_text",
+                "created_at",
+                "updated_at",
+            )
+        )
+        if prop_str:
+            desc += f": {prop_str}"
+        lines.append(desc)
+
+    return {"role": "system", "content": "\n".join(lines)}
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -586,83 +683,16 @@ async def embed_text(request: EmbedTextRequest) -> EmbedTextResponse:
             raise HTTPException(status_code=500, detail="Internal server error")
 
 
-async def _forward_llm_to_sophia(
-    result: Dict[str, Any],
-    request_id: str,
-) -> None:
-    """Forward LLM response to Sophia for cognitive processing.
-
-    Sends the LLM response to Sophia's /ingest/hermes_proposal endpoint
-    with appropriate provenance metadata.
-
-    Args:
-        result: The LLM response dict from generate_llm_response
-        request_id: Correlation ID for request tracing
-    """
-
-    sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
-    sophia_port = get_env_value("SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)) or str(
-        _SOPHIA_PORTS.api
-    )
-    sophia_url = f"http://{sophia_host}:{sophia_port}"
-    sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
-
-    if not sophia_token:
-        logger.debug("Sophia API token not configured, skipping LLM forwarding")
-        return
-
-    # Extract the assistant message content
-    choices = result.get("choices", [])
-    if not choices:
-        logger.debug("No choices in LLM response, skipping forwarding")
-        return
-
-    raw_text = choices[0].get("message", {}).get("content", "")
-    if not raw_text:
-        logger.debug("Empty LLM response content, skipping forwarding")
-        return
-
-    # Build HermesProposalRequest payload
-    proposal = {
-        "proposal_id": str(uuid.uuid4()),
-        "correlation_id": request_id,
-        "source_service": "hermes",
-        "llm_provider": result.get("provider", "unknown"),
-        "model": result.get("model", "unknown"),
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        # Provenance: LLM-mediated content uses lower confidence
-        "confidence": 0.7,
-        "raw_text": raw_text,
-        "metadata": {
-            "source": "hermes_llm",
-            "derivation": "observed",
-        },
-    }
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                f"{sophia_url}/ingest/hermes_proposal",
-                json=proposal,
-                headers={"Authorization": f"Bearer {sophia_token}"},
-            )
-            if response.status_code == 201:
-                logger.info(
-                    f"Forwarded LLM response to Sophia: {proposal['proposal_id']}"
-                )
-            else:
-                logger.warning(
-                    f"Sophia rejected LLM proposal: {response.status_code} - {response.text}"
-                )
-    except httpx.RequestError as exc:
-        logger.warning(f"Failed to forward LLM response to Sophia: {exc}")
-    except Exception as exc:
-        logger.warning(f"Unexpected error forwarding to Sophia: {exc}")
-
-
 @app.post("/llm", response_model=LLMResponse)
 async def llm_generate(request: LLMRequest, http_request: Request) -> LLMResponse:
-    """Proxy language model completions through Hermes."""
+    """Proxy language model completions through Hermes.
+
+    Flow (cognitive loop):
+    1. Extract user text from the request
+    2. Send structured proposal to Sophia, get relevant context back
+    3. Inject context as a system message into the LLM prompt
+    4. Generate LLM response with enriched context
+    """
     with tracer.start_as_current_span("hermes.llm") as span:
         span.set_attribute("llm.provider", request.provider or "default")
         span.set_attribute("llm.model", request.model or "default")
@@ -678,6 +708,36 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                     )
                 normalized_messages = [LLMMessage(role="user", content=prompt)]
 
+            # --- Cognitive loop: retrieve context from Sophia BEFORE generation ---
+            request_id = getattr(http_request.state, "request_id", str(uuid.uuid4()))
+
+            # Extract user text from the last user message for proposal building
+            user_text = ""
+            for msg in reversed(normalized_messages):
+                if msg.role == "user":
+                    user_text = msg.content
+                    break
+
+            if user_text:
+                sophia_context = await _get_sophia_context(
+                    user_text,
+                    request_id,
+                    request.metadata or {},
+                )
+                context_msg = _build_context_message(sophia_context)
+                if context_msg:
+                    span.set_attribute("llm.sophia_context_items", len(sophia_context))
+                    # Inject the context system message right before the last user message
+                    inject_idx = 0
+                    for i in range(len(normalized_messages) - 1, -1, -1):
+                        if normalized_messages[i].role == "user":
+                            inject_idx = i
+                            break
+                    normalized_messages.insert(
+                        inject_idx,
+                        LLMMessage(role="system", content=context_msg["content"]),
+                    )
+
             result = await generate_llm_response(
                 messages=[
                     msg.model_dump(exclude_none=True) for msg in normalized_messages
@@ -688,9 +748,6 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                 max_tokens=request.max_tokens,
                 metadata=request.metadata,
             )
-            # Forward LLM response to Sophia for cognitive processing
-            request_id = getattr(http_request.state, "request_id", str(uuid.uuid4()))
-            await _forward_llm_to_sophia(result, request_id)
 
             return LLMResponse(**result)
         except HTTPException:

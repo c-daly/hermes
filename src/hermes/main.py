@@ -175,7 +175,7 @@ async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> lis
         return []
 
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
             response = await client.post(
                 f"http://{sophia_host}:{sophia_port}/ingest/hermes_proposal",
                 json=proposal,

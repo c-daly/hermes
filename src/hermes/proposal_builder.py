@@ -7,9 +7,11 @@ can process without reading text.
 
 import asyncio
 import logging
+import time
 import uuid as uuid_mod
 from datetime import UTC, datetime
 
+from hermes.embedding_provider import get_embedding_provider
 from hermes.ner_provider import get_ner_provider
 from hermes.relation_extractor import get_relation_extractor
 from hermes.services import generate_embedding
@@ -33,13 +35,35 @@ class ProposalBuilder:
         """Build a structured proposal from text.
 
         Returns dict matching HermesProposalRequest schema.
+        Injects ``metadata["pipeline"]`` with provider info and timing.
         """
         proposal_id = str(uuid_mod.uuid4())
         now = datetime.now(UTC).isoformat()
 
+        t0 = time.monotonic()
+
         proposed_nodes = await self._extract_entities(text)
+        t_ner = time.monotonic()
+
         proposed_edges = await self._extract_relations(text, proposed_nodes)
+        t_rel = time.monotonic()
+
         document_embedding = await self._generate_document_embedding(text)
+        t_emb = time.monotonic()
+
+        # Build pipeline metadata for experiment tracking
+        pipeline = self._build_pipeline_metadata(
+            ner_duration_ms=round((t_ner - t0) * 1000, 1),
+            relation_duration_ms=round((t_rel - t_ner) * 1000, 1),
+            embedding_duration_ms=round((t_emb - t_rel) * 1000, 1),
+            total_duration_ms=round((t_emb - t0) * 1000, 1),
+            entity_count=len(proposed_nodes),
+            edge_count=len(proposed_edges),
+        )
+
+        # Merge pipeline into metadata (preserving existing keys)
+        enriched_metadata = dict(metadata) if metadata else {}
+        enriched_metadata["pipeline"] = pipeline
 
         return {
             "proposal_id": proposal_id,
@@ -53,7 +77,42 @@ class ProposalBuilder:
             "proposed_nodes": proposed_nodes,
             "proposed_edges": proposed_edges,
             "document_embedding": document_embedding,
-            "metadata": metadata,
+            "metadata": enriched_metadata,
+        }
+
+    def _build_pipeline_metadata(
+        self,
+        *,
+        ner_duration_ms: float,
+        relation_duration_ms: float,
+        embedding_duration_ms: float,
+        total_duration_ms: float,
+        entity_count: int,
+        edge_count: int,
+    ) -> dict:
+        """Build pipeline metadata dict with provider info and timing."""
+        # Safely read provider names
+        try:
+            ner = get_ner_provider()
+            ner_provider_name = getattr(ner, "name", type(ner).__name__)
+        except Exception:
+            ner_provider_name = "unknown"
+
+        try:
+            emb = get_embedding_provider()
+            embedding_provider_name = emb.model_name
+        except Exception:
+            embedding_provider_name = "unknown"
+
+        return {
+            "ner_provider": ner_provider_name,
+            "embedding_provider": embedding_provider_name,
+            "ner_duration_ms": ner_duration_ms,
+            "relation_duration_ms": relation_duration_ms,
+            "embedding_duration_ms": embedding_duration_ms,
+            "total_duration_ms": total_duration_ms,
+            "entity_count": entity_count,
+            "edge_count": edge_count,
         }
 
     async def _extract_entities(self, text: str) -> list[dict]:

@@ -104,3 +104,89 @@ class TestProposalBuilder:
 
         assert proposal["proposed_nodes"] == []
         assert proposal["document_embedding"] is not None
+
+    async def test_pipeline_metadata_populated(self):
+        from hermes.proposal_builder import ProposalBuilder
+
+        builder = ProposalBuilder()
+
+        mock_ner = MagicMock()
+        mock_ner.name = "spacy"
+        mock_ner.extract_entities = AsyncMock(
+            return_value=[
+                {"name": "Paris", "type": "location", "start": 0, "end": 5},
+            ]
+        )
+
+        mock_emb_provider = MagicMock()
+        mock_emb_provider.model_name = "all-MiniLM-L6-v2"
+
+        with (
+            patch(
+                "hermes.proposal_builder.get_ner_provider",
+                return_value=mock_ner,
+            ),
+            patch(
+                "hermes.proposal_builder.get_embedding_provider",
+                return_value=mock_emb_provider,
+            ),
+            patch(
+                "hermes.proposal_builder.generate_embedding", new_callable=AsyncMock
+            ) as mock_emb,
+        ):
+            mock_emb.return_value = {
+                "embedding": [0.1] * 384,
+                "dimension": 384,
+                "model": "all-MiniLM-L6-v2",
+                "embedding_id": "test-id",
+            }
+            proposal = await builder.build(text="Paris", metadata={"foo": "bar"})
+
+        pipeline = proposal["metadata"]["pipeline"]
+        assert pipeline["ner_provider"] == "spacy"
+        assert pipeline["embedding_provider"] == "all-MiniLM-L6-v2"
+        assert pipeline["entity_count"] == 1
+        assert pipeline["edge_count"] == 0
+        assert "ner_duration_ms" in pipeline
+        assert "total_duration_ms" in pipeline
+        # Original metadata preserved
+        assert proposal["metadata"]["foo"] == "bar"
+
+    async def test_experiment_tags_passed_through(self):
+        from hermes.proposal_builder import ProposalBuilder
+
+        builder = ProposalBuilder()
+
+        mock_ner = MagicMock()
+        mock_ner.name = "spacy"
+        mock_ner.extract_entities = AsyncMock(return_value=[])
+
+        mock_emb_provider = MagicMock()
+        mock_emb_provider.model_name = "test-model"
+
+        with (
+            patch(
+                "hermes.proposal_builder.get_ner_provider",
+                return_value=mock_ner,
+            ),
+            patch(
+                "hermes.proposal_builder.get_embedding_provider",
+                return_value=mock_emb_provider,
+            ),
+            patch(
+                "hermes.proposal_builder.generate_embedding", new_callable=AsyncMock
+            ) as mock_emb,
+        ):
+            mock_emb.return_value = {
+                "embedding": [0.1] * 384,
+                "dimension": 384,
+                "model": "test-model",
+                "embedding_id": "id",
+            }
+            proposal = await builder.build(
+                text="Hello",
+                metadata={"experiment_tags": ["baseline", "v2"]},
+            )
+
+        assert proposal["metadata"]["experiment_tags"] == ["baseline", "v2"]
+        assert "pipeline" in proposal["metadata"]

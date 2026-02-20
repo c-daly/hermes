@@ -434,6 +434,10 @@ class LLMRequest(BaseModel):
         default=None,
         description="Additional metadata stored alongside the request.",
     )
+    experiment_tags: Optional[List[str]] = Field(
+        default=None,
+        description="Tags for experiment tracking (e.g. ['baseline', 'v2-ner']).",
+    )
 
 
 # Note: HealthResponse is now imported from logos_config.health
@@ -722,10 +726,14 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                     break
 
             if user_text:
+                # Merge experiment_tags into metadata for pipeline tracking
+                ctx_metadata = dict(request.metadata or {})
+                if request.experiment_tags:
+                    ctx_metadata["experiment_tags"] = request.experiment_tags
                 sophia_context = await _get_sophia_context(
                     user_text,
                     request_id,
-                    request.metadata or {},
+                    ctx_metadata,
                 )
                 context_msg = _build_context_message(sophia_context)
                 if context_msg:

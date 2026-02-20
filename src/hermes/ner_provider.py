@@ -70,6 +70,8 @@ class NERProvider(Protocol):
 class SpacyNERProvider:
     """Local provider using spaCy NER pipeline."""
 
+    name: str = "spacy"
+
     def __init__(self) -> None:
         self._nlp: Any = None
 
@@ -100,6 +102,8 @@ class OpenAINERProvider:
     Reuses hermes.llm.generate_completion for auth, base URL, and model
     config — no raw httpx calls needed.
     """
+
+    name: str = "openai"
 
     _SYSTEM_PROMPT = (
         "You are a named-entity recognition system for the LOGOS robotics "

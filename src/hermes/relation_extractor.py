@@ -9,8 +9,9 @@ using spaCy dependency parsing. The active extractor is selected via:
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any, Protocol, runtime_checkable
+
+from logos_config import get_env_value
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +189,7 @@ def get_relation_extractor() -> RelationExtractor:
     if _extractor is not None:
         return _extractor
 
-    backend = os.environ.get("RELATION_EXTRACTOR", "spacy")
+    backend = get_env_value("RELATION_EXTRACTOR", default="spacy") or "spacy"
 
     if backend == "spacy":
         _extractor = SpacyRelationExtractor()

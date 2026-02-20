@@ -11,6 +11,7 @@ selected via env vars:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Protocol, runtime_checkable
 
@@ -61,7 +62,7 @@ class SentenceTransformerProvider:
 
     async def embed(self, text: str) -> list[float]:
         model = self._load()
-        vec = model.encode(text)
+        vec = await asyncio.to_thread(model.encode, text)
         return vec.tolist()
 
 

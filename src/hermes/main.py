@@ -16,6 +16,9 @@ from typing import Any, Dict, List, Literal, Optional
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+
+# Load .env early so all module-level config reads see the values.
+load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles

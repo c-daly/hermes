@@ -215,7 +215,9 @@ def llm_service_health() -> Dict[str, Any]:
     default_provider = get_default_provider_name()
     providers = {
         "echo": True,
-        "openai": bool(get_env_value("HERMES_LLM_API_KEY")),
+        "openai": bool(
+            get_env_value("HERMES_LLM_API_KEY") or get_env_value("OPENAI_API_KEY")
+        ),
     }
     configured = providers.get(default_provider, False)
     return {

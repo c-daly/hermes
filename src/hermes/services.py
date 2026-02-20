@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from hermes import milvus_client
+from hermes.embedding_provider import get_embedding_provider
 from hermes.llm import generate_completion, llm_service_health
 
 logger = logging.getLogger(__name__)
@@ -115,7 +116,11 @@ def get_spacy_model() -> Any:
 
 
 def get_embedding_model() -> Any:
-    """Get or initialize the sentence embedding model."""
+    """Get or initialize the sentence embedding model.
+
+    .. deprecated:: Prefer ``get_embedding_provider()`` from
+       ``hermes.embedding_provider`` for new code.
+    """
     if not SENTENCE_TRANSFORMERS_AVAILABLE:
         raise RuntimeError(
             "sentence-transformers not installed. Install ML dependencies with: pip install -e '.[ml]'"
@@ -124,7 +129,6 @@ def get_embedding_model() -> Any:
     global _embedding_model
     if _embedding_model is None:
         logger.info("Loading sentence-transformers model...")
-        # Use a lightweight but effective model
         _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
         logger.info("Embedding model loaded successfully")
     return _embedding_model
@@ -256,28 +260,21 @@ async def process_nlp(text: str, operations: List[str]) -> Dict[str, Any]:
 
 
 async def generate_embedding(text: str, model_name: str = "default") -> Dict[str, Any]:
-    """Generate text embedding using sentence-transformers.
+    """Generate text embedding using the configured embedding provider.
 
     Args:
         text: Text to embed
-        model_name: Model identifier (currently ignored, uses default)
+        model_name: Model identifier (currently ignored, uses configured provider)
 
     Returns:
         Dictionary with 'embedding', 'dimension', 'model', and 'embedding_id' keys
     """
     try:
-        model = get_embedding_model()
+        provider = get_embedding_provider()
+        embedding_list = await provider.embed(text)
 
-        # Generate embedding
-        embedding = model.encode(text)
-
-        # Convert to list of floats
-        embedding_list = embedding.tolist()
-
-        # Generate a unique embedding ID
         embedding_id = str(uuid.uuid4())
-
-        model_name_used = "all-MiniLM-L6-v2"
+        model_name_used = provider.model_name
 
         # Persist to Milvus if available
         await milvus_client.persist_embedding(

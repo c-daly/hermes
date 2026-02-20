@@ -17,9 +17,9 @@ def test_milvus_configuration():
     assert hasattr(milvus_client, "get_milvus_host")
     assert hasattr(milvus_client, "get_milvus_port")
     assert hasattr(milvus_client, "get_collection_name")
-    # Direct constant
-    assert hasattr(milvus_client, "EMBEDDING_DIMENSION")
-    assert milvus_client.EMBEDDING_DIMENSION == 384
+    # Lazy dimension accessor
+    assert hasattr(milvus_client, "get_embedding_dimension")
+    assert milvus_client.get_embedding_dimension() == 384
     # Getters return strings
     assert isinstance(milvus_client.get_milvus_host(), str)
     assert isinstance(milvus_client.get_milvus_port(), str)

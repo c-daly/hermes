@@ -63,7 +63,8 @@ class SentenceTransformerProvider:
     async def embed(self, text: str) -> list[float]:
         model = self._load()
         vec = await asyncio.to_thread(model.encode, text)
-        return vec.tolist()
+        result: list[float] = vec.tolist()
+        return result
 
 
 class OpenAIEmbeddingProvider:
@@ -122,7 +123,8 @@ class OpenAIEmbeddingProvider:
             response.raise_for_status()
 
         data = response.json()
-        return data["data"][0]["embedding"]
+        result: list[float] = data["data"][0]["embedding"]
+        return result
 
 
 # ---------------------------------------------------------------------------

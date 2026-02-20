@@ -166,7 +166,9 @@ def ensure_collection() -> Optional[Any]:
                 max_length=64,
             ),
             FieldSchema(
-                name="embedding", dtype=DataType.FLOAT_VECTOR, dim=get_embedding_dimension()
+                name="embedding",
+                dtype=DataType.FLOAT_VECTOR,
+                dim=get_embedding_dimension(),
             ),
             FieldSchema(name="model", dtype=DataType.VARCHAR, max_length=256),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),

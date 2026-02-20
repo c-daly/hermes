@@ -34,6 +34,7 @@ except ImportError:
 # Embedding provider: force local model for deterministic, API-free tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True, scope="session")
 def _force_local_providers():
     """Use local providers in tests so we don't hit external APIs."""

@@ -151,9 +151,7 @@ def get_embedding_provider() -> EmbeddingProvider:
     backend = _detect_backend()
 
     if backend == "openai":
-        api_key = get_env_value("HERMES_LLM_API_KEY") or get_env_value(
-            "OPENAI_API_KEY"
-        )
+        api_key = get_env_value("HERMES_LLM_API_KEY") or get_env_value("OPENAI_API_KEY")
         if not api_key:
             raise RuntimeError(
                 "OpenAI embedding provider selected but no API key found "

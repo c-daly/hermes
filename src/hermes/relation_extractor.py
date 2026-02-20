@@ -32,18 +32,18 @@ _VERB_TO_RELATION: dict[str, str] = {
 }
 
 # Relations that are inherently symmetric.
-_SYMMETRIC_RELATIONS: frozenset[str] = frozenset({
-    "COLLABORATES_WITH",
-})
+_SYMMETRIC_RELATIONS: frozenset[str] = frozenset(
+    {
+        "COLLABORATES_WITH",
+    }
+)
 
 
 @runtime_checkable
 class RelationExtractor(Protocol):
     """Protocol for relation extractors."""
 
-    async def extract(
-        self, text: str, entities: list[dict]
-    ) -> list[dict]: ...
+    async def extract(self, text: str, entities: list[dict]) -> list[dict]: ...
 
 
 class SpacyRelationExtractor:
@@ -64,9 +64,7 @@ class SpacyRelationExtractor:
             self._nlp = get_spacy_model()
         return self._nlp
 
-    async def extract(
-        self, text: str, entities: list[dict]
-    ) -> list[dict]:
+    async def extract(self, text: str, entities: list[dict]) -> list[dict]:
         """Extract relations between *entities* found in *text*.
 
         Args:
@@ -121,9 +119,7 @@ class SpacyRelationExtractor:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _extract_relation(
-        self, doc: Any, src_ent: Any, tgt_ent: Any
-    ) -> dict | None:
+    def _extract_relation(self, doc: Any, src_ent: Any, tgt_ent: Any) -> dict | None:
         """Walk the dep tree between two entity spans and find a relation."""
         # Collect tokens between the two entities.
         if src_ent.start < tgt_ent.start:
@@ -134,7 +130,7 @@ class SpacyRelationExtractor:
         # Gather verbs and preps between the entities.
         verbs: list[Any] = []
         preps: list[str] = []
-        for tok in doc[max(0, start):min(len(doc), end)]:
+        for tok in doc[max(0, start) : min(len(doc), end)]:
             if tok.pos_ == "VERB":
                 verbs.append(tok)
             elif tok.pos_ == "ADP":
@@ -158,14 +154,10 @@ class SpacyRelationExtractor:
         # Build the raw phrase and canonical relation.
         if verbs:
             lemma = verbs[0].lemma_.lower()
-            raw_phrase = " ".join(
-                tok.text for tok in doc[src_ent.start : tgt_ent.end]
-            )
+            raw_phrase = " ".join(tok.text for tok in doc[src_ent.start : tgt_ent.end])
             relation = _VERB_TO_RELATION.get(lemma, lemma.upper())
         else:
-            raw_phrase = " ".join(
-                tok.text for tok in doc[src_ent.start : tgt_ent.end]
-            )
+            raw_phrase = " ".join(tok.text for tok in doc[src_ent.start : tgt_ent.end])
             relation = preps[0].upper() if preps else "RELATED_TO"
 
         bidirectional = relation in _SYMMETRIC_RELATIONS

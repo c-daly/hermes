@@ -107,13 +107,13 @@ class OpenAINERProvider:
         "each with exactly one of the following types:\n\n"
         + "\n".join(f"- {t}: {desc}" for t, desc in ONTOLOGY_TYPES.items())
         + "\n\n"
-        "Return a JSON object with a single key \"entities\" containing an "
+        'Return a JSON object with a single key "entities" containing an '
         "array of objects. Each object must have:\n"
         '  - "name": the entity text as it appears in the input\n'
         '  - "type": one of the types listed above\n'
         '  - "start": character offset where the entity starts in the input\n'
         '  - "end": character offset where the entity ends in the input\n\n'
-        "If no entities are found, return {\"entities\": []}.\n"
+        'If no entities are found, return {"entities": []}.\n'
         "Return ONLY valid JSON, no other text."
     )
 
@@ -136,11 +136,7 @@ class OpenAINERProvider:
             logger.warning("OpenAI NER extraction failed, falling back to empty")
             return []
 
-        content = (
-            result.get("choices", [{}])[0]
-            .get("message", {})
-            .get("content", "")
-        )
+        content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
 
         return self._parse_response(content, text)
 
@@ -183,12 +179,14 @@ class OpenAINERProvider:
                 else:
                     start = 0
                     end = len(name)
-            entities.append({
-                "name": name,
-                "type": ent_type,
-                "start": start,
-                "end": end,
-            })
+            entities.append(
+                {
+                    "name": name,
+                    "type": ent_type,
+                    "start": start,
+                    "end": end,
+                }
+            )
         return entities
 
 

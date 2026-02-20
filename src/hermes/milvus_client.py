@@ -37,9 +37,17 @@ _milvus_collection: Optional[Any] = None
 _milvus_host: Optional[str] = None
 _milvus_port: Optional[str] = None
 _collection_name: Optional[str] = None
-EMBEDDING_DIMENSION = int(
-    get_env_value("LOGOS_EMBEDDING_DIM", default="384") or "384"
-)
+_embedding_dimension: Optional[int] = None
+
+
+def get_embedding_dimension() -> int:
+    """Get embedding dimension, reading from env on first call."""
+    global _embedding_dimension
+    if _embedding_dimension is None:
+        _embedding_dimension = int(
+            get_env_value("LOGOS_EMBEDDING_DIM", default="384") or "384"
+        )
+    return _embedding_dimension
 
 
 def get_milvus_host() -> str:
@@ -158,7 +166,7 @@ def ensure_collection() -> Optional[Any]:
                 max_length=64,
             ),
             FieldSchema(
-                name="embedding", dtype=DataType.FLOAT_VECTOR, dim=EMBEDDING_DIMENSION
+                name="embedding", dtype=DataType.FLOAT_VECTOR, dim=get_embedding_dimension()
             ),
             FieldSchema(name="model", dtype=DataType.VARCHAR, max_length=256),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),

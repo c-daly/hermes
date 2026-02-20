@@ -8,6 +8,8 @@ directly.  Hermes-specific overrides (e.g. ``neo4j_config`` with
 
 from __future__ import annotations
 
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -26,6 +28,41 @@ try:
     _HAS_TEST_UTILS = True
 except ImportError:
     _HAS_TEST_UTILS = False
+
+
+# ---------------------------------------------------------------------------
+# Embedding provider: force local model for deterministic, API-free tests
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True, scope="session")
+def _force_local_embeddings():
+    """Use sentence-transformers in tests so we don't hit external APIs."""
+    import hermes.embedding_provider as ep
+    import hermes.milvus_client as mc
+
+    old_provider = os.environ.get("EMBEDDING_PROVIDER")
+    old_dim = os.environ.get("LOGOS_EMBEDDING_DIM")
+
+    os.environ["EMBEDDING_PROVIDER"] = "sentence-transformers"
+    os.environ.pop("LOGOS_EMBEDDING_DIM", None)  # Use default 384
+
+    # Clear cached singletons so the test env takes effect
+    ep._provider = None
+    mc._embedding_dimension = None
+
+    yield
+
+    # Restore original env
+    if old_provider is None:
+        os.environ.pop("EMBEDDING_PROVIDER", None)
+    else:
+        os.environ["EMBEDDING_PROVIDER"] = old_provider
+    if old_dim is None:
+        os.environ.pop("LOGOS_EMBEDDING_DIM", None)
+    else:
+        os.environ["LOGOS_EMBEDDING_DIM"] = old_dim
+    ep._provider = None
+    mc._embedding_dimension = None
 
 
 # ---------------------------------------------------------------------------

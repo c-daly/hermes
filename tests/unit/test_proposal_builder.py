@@ -1,7 +1,7 @@
 """Tests for ProposalBuilder — builds structured proposals from text."""
 
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
 @pytest.mark.asyncio
@@ -11,15 +11,18 @@ class TestProposalBuilder:
 
         builder = ProposalBuilder()
 
+        mock_provider = MagicMock()
+        mock_provider.extract_entities = AsyncMock(return_value=[])
+
         with (
             patch(
-                "hermes.proposal_builder.process_nlp", new_callable=AsyncMock
-            ) as mock_nlp,
+                "hermes.proposal_builder.get_ner_provider",
+                return_value=mock_provider,
+            ),
             patch(
                 "hermes.proposal_builder.generate_embedding", new_callable=AsyncMock
             ) as mock_emb,
         ):
-            mock_nlp.return_value = {"entities": []}
             mock_emb.return_value = {
                 "embedding": [0.1] * 384,
                 "dimension": 384,
@@ -38,20 +41,23 @@ class TestProposalBuilder:
 
         builder = ProposalBuilder()
 
+        mock_provider = MagicMock()
+        mock_provider.extract_entities = AsyncMock(
+            return_value=[
+                {"name": "Eiffel Tower", "type": "object", "start": 4, "end": 16},
+                {"name": "Paris", "type": "location", "start": 23, "end": 28},
+            ]
+        )
+
         with (
             patch(
-                "hermes.proposal_builder.process_nlp", new_callable=AsyncMock
-            ) as mock_nlp,
+                "hermes.proposal_builder.get_ner_provider",
+                return_value=mock_provider,
+            ),
             patch(
                 "hermes.proposal_builder.generate_embedding", new_callable=AsyncMock
             ) as mock_emb,
         ):
-            mock_nlp.return_value = {
-                "entities": [
-                    {"text": "Eiffel Tower", "label": "FAC", "start": 4, "end": 16},
-                    {"text": "Paris", "label": "GPE", "start": 23, "end": 28},
-                ]
-            }
             mock_emb.return_value = {
                 "embedding": [0.1] * 384,
                 "dimension": 384,
@@ -65,8 +71,8 @@ class TestProposalBuilder:
 
         assert len(proposal["proposed_nodes"]) == 2
         assert proposal["proposed_nodes"][0]["name"] == "Eiffel Tower"
-        assert proposal["proposed_nodes"][0]["type"] == "object"  # FAC -> object
-        assert proposal["proposed_nodes"][1]["type"] == "location"  # GPE -> location
+        assert proposal["proposed_nodes"][0]["type"] == "object"
+        assert proposal["proposed_nodes"][1]["type"] == "location"
         assert "embedding" in proposal["proposed_nodes"][0]
 
     async def test_degrades_gracefully_without_nlp(self):
@@ -74,15 +80,20 @@ class TestProposalBuilder:
 
         builder = ProposalBuilder()
 
+        mock_provider = MagicMock()
+        mock_provider.extract_entities = AsyncMock(
+            side_effect=Exception("NER not available")
+        )
+
         with (
             patch(
-                "hermes.proposal_builder.process_nlp", new_callable=AsyncMock
-            ) as mock_nlp,
+                "hermes.proposal_builder.get_ner_provider",
+                return_value=mock_provider,
+            ),
             patch(
                 "hermes.proposal_builder.generate_embedding", new_callable=AsyncMock
             ) as mock_emb,
         ):
-            mock_nlp.side_effect = Exception("spaCy not available")
             mock_emb.return_value = {
                 "embedding": [0.1] * 384,
                 "dimension": 384,

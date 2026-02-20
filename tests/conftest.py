@@ -35,34 +35,43 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(autouse=True, scope="session")
-def _force_local_embeddings():
-    """Use sentence-transformers in tests so we don't hit external APIs."""
+def _force_local_providers():
+    """Use local providers in tests so we don't hit external APIs."""
     import hermes.embedding_provider as ep
     import hermes.milvus_client as mc
+    import hermes.ner_provider as ner
 
-    old_provider = os.environ.get("EMBEDDING_PROVIDER")
+    old_emb_provider = os.environ.get("EMBEDDING_PROVIDER")
     old_dim = os.environ.get("LOGOS_EMBEDDING_DIM")
+    old_ner_provider = os.environ.get("NER_PROVIDER")
 
     os.environ["EMBEDDING_PROVIDER"] = "sentence-transformers"
+    os.environ["NER_PROVIDER"] = "spacy"
     os.environ.pop("LOGOS_EMBEDDING_DIM", None)  # Use default 384
 
     # Clear cached singletons so the test env takes effect
     ep._provider = None
     mc._embedding_dimension = None
+    ner._ner_provider = None
 
     yield
 
     # Restore original env
-    if old_provider is None:
+    if old_emb_provider is None:
         os.environ.pop("EMBEDDING_PROVIDER", None)
     else:
-        os.environ["EMBEDDING_PROVIDER"] = old_provider
+        os.environ["EMBEDDING_PROVIDER"] = old_emb_provider
     if old_dim is None:
         os.environ.pop("LOGOS_EMBEDDING_DIM", None)
     else:
         os.environ["LOGOS_EMBEDDING_DIM"] = old_dim
+    if old_ner_provider is None:
+        os.environ.pop("NER_PROVIDER", None)
+    else:
+        os.environ["NER_PROVIDER"] = old_ner_provider
     ep._provider = None
     mc._embedding_dimension = None
+    ner._ner_provider = None
 
 
 # ---------------------------------------------------------------------------

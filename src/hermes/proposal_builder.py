@@ -10,32 +10,11 @@ import logging
 import uuid as uuid_mod
 from datetime import UTC, datetime
 
+from hermes.ner_provider import get_ner_provider
 from hermes.relation_extractor import get_relation_extractor
-from hermes.services import generate_embedding, process_nlp
+from hermes.services import generate_embedding
 
 logger = logging.getLogger(__name__)
-
-# Map spaCy NER labels to ontology type definitions.
-SPACY_TO_ONTOLOGY: dict[str, str] = {
-    "GPE": "location",
-    "LOC": "location",
-    "FAC": "object",
-    "ORG": "agent",
-    "PERSON": "agent",
-    "NORP": "entity",
-    "PRODUCT": "object",
-    "EVENT": "process",
-    "WORK_OF_ART": "entity",
-    "LAW": "concept",
-    "LANGUAGE": "concept",
-    "DATE": "state",
-    "TIME": "state",
-    "QUANTITY": "data",
-    "CARDINAL": "data",
-    "ORDINAL": "data",
-    "MONEY": "data",
-    "PERCENT": "data",
-}
 
 
 class ProposalBuilder:
@@ -80,18 +59,17 @@ class ProposalBuilder:
     async def _extract_entities(self, text: str) -> list[dict]:
         """Extract named entities and generate per-entity embeddings."""
         try:
-            nlp_result = await process_nlp(text, ["ner"])
-            entities = nlp_result.get("entities", [])
+            provider = get_ner_provider()
+            entities = await provider.extract_entities(text)
         except Exception:
             logger.warning("NER extraction failed, returning empty entities")
             return []
 
         async def _process_entity(entity: dict) -> dict:
-            emb = await generate_embedding(entity["text"])
-            ontology_type = SPACY_TO_ONTOLOGY.get(entity["label"], "entity")
+            emb = await generate_embedding(entity["name"])
             return {
-                "name": entity["text"],
-                "type": ontology_type,
+                "name": entity["name"],
+                "type": entity["type"],
                 "embedding": emb["embedding"],
                 "embedding_id": emb["embedding_id"],
                 "dimension": emb["dimension"],
@@ -110,7 +88,7 @@ class ProposalBuilder:
             elif isinstance(result, Exception):
                 logger.warning(
                     "Failed to process entity '%s': %s",
-                    entity.get("text", "<unknown>"),
+                    entity.get("name", "<unknown>"),
                     result,
                 )
         return processed

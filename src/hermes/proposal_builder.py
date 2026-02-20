@@ -10,6 +10,7 @@ import logging
 import uuid as uuid_mod
 from datetime import UTC, datetime
 
+from hermes.relation_extractor import get_relation_extractor
 from hermes.services import generate_embedding, process_nlp
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ class ProposalBuilder:
         now = datetime.now(UTC).isoformat()
 
         proposed_nodes = await self._extract_entities(text)
+        proposed_edges = await self._extract_relations(text, proposed_nodes)
         document_embedding = await self._generate_document_embedding(text)
 
         return {
@@ -70,6 +72,7 @@ class ProposalBuilder:
             "confidence": confidence,
             "raw_text": text,
             "proposed_nodes": proposed_nodes,
+            "proposed_edges": proposed_edges,
             "document_embedding": document_embedding,
             "metadata": metadata,
         }
@@ -108,6 +111,44 @@ class ProposalBuilder:
                 logger.warning(
                     "Failed to process entity '%s': %s",
                     entity.get("text", "<unknown>"),
+                    result,
+                )
+        return processed
+
+    async def _extract_relations(
+        self, text: str, proposed_nodes: list[dict]
+    ) -> list[dict]:
+        """Extract relations between entities and embed relation phrases."""
+        if len(proposed_nodes) < 2:
+            return []
+
+        try:
+            extractor = get_relation_extractor()
+            raw_edges = await extractor.extract(text, proposed_nodes)
+        except Exception:
+            logger.warning("Relation extraction failed, returning no edges")
+            return []
+
+        async def _embed_edge(edge: dict) -> dict:
+            phrase = f"{edge['source_name']} {edge['relation'].lower().replace('_', ' ')} {edge['target_name']}"
+            emb = await generate_embedding(phrase)
+            edge["embedding"] = emb["embedding"]
+            edge["model"] = emb["model"]
+            return edge
+
+        results = await asyncio.gather(
+            *[_embed_edge(e) for e in raw_edges],
+            return_exceptions=True,
+        )
+        processed: list[dict] = []
+        for edge, result in zip(raw_edges, results):
+            if isinstance(result, dict):
+                processed.append(result)
+            elif isinstance(result, Exception):
+                logger.warning(
+                    "Failed to embed edge %s->%s: %s",
+                    edge.get("source_name"),
+                    edge.get("target_name"),
                     result,
                 )
         return processed

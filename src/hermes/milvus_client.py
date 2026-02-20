@@ -37,7 +37,9 @@ _milvus_collection: Optional[Any] = None
 _milvus_host: Optional[str] = None
 _milvus_port: Optional[str] = None
 _collection_name: Optional[str] = None
-EMBEDDING_DIMENSION = 384  # all-MiniLM-L6-v2 dimension
+EMBEDDING_DIMENSION = int(
+    get_env_value("LOGOS_EMBEDDING_DIM", default="384") or "384"
+)
 
 
 def get_milvus_host() -> str:

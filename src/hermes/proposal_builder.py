@@ -167,7 +167,7 @@ class ProposalBuilder:
             return []
 
         async def _embed_edge(edge: dict) -> dict:
-            phrase = f"{edge['source_name']} {edge['relation'].lower().replace('_', ' ')} {edge['target_name']}"
+            phrase = f"{edge.get('source_name', '')} {edge.get('relation', 'RELATED_TO').lower().replace('_', ' ')} {edge.get('target_name', '')}"
             emb = await generate_embedding(phrase)
             edge["embedding"] = emb["embedding"]
             edge["model"] = emb["model"]

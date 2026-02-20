@@ -1069,7 +1069,6 @@ def main() -> None:
     """Entry point for running the Hermes server."""
     import uvicorn
 
-    load_dotenv()
     port = int(
         get_env_value("HERMES_PORT", default=str(_HERMES_PORTS.api))
         or str(_HERMES_PORTS.api)

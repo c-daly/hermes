@@ -93,7 +93,9 @@ class TestOpenAINERProvider:
             ]
         }
 
-        with patch("hermes.llm.generate_completion", new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "hermes.llm.generate_completion", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = mock_result
             result = await provider.extract_entities("I went to Paris")
 
@@ -107,7 +109,9 @@ class TestOpenAINERProvider:
 
         provider = OpenAINERProvider()
 
-        with patch("hermes.llm.generate_completion", new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "hermes.llm.generate_completion", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.side_effect = Exception("API error")
             result = await provider.extract_entities("test")
 
@@ -121,7 +125,9 @@ class TestOpenAINERProvider:
 
         mock_result = {"choices": [{"message": {"content": '{"entities": []}'}}]}
 
-        with patch("hermes.llm.generate_completion", new_callable=AsyncMock) as mock_llm:
+        with patch(
+            "hermes.llm.generate_completion", new_callable=AsyncMock
+        ) as mock_llm:
             mock_llm.return_value = mock_result
             result = await provider.extract_entities("nothing here")
 
@@ -200,7 +206,11 @@ class TestNERDetectBackend:
     def test_explicit_provider(self):
         import hermes.ner_provider as mod
 
-        with patch.object(mod, "get_env_value", side_effect=lambda k, **kw: "spacy" if k == "NER_PROVIDER" else None):
+        with patch.object(
+            mod,
+            "get_env_value",
+            side_effect=lambda k, **kw: "spacy" if k == "NER_PROVIDER" else None,
+        ):
             assert mod._detect_backend() == "spacy"
 
     def test_auto_detect_openai_with_key(self):

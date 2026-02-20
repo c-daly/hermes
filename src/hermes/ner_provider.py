@@ -64,7 +64,8 @@ SPACY_TO_ONTOLOGY: dict[str, str] = {
 class NERProvider(Protocol):
     """Protocol for named-entity recognition providers."""
 
-    async def extract_entities(self, text: str) -> list[dict]: ...
+    async def extract_entities(self, text: str) -> list[dict]:
+        ...
 
 
 class SpacyNERProvider:
@@ -164,6 +165,7 @@ class OpenAINERProvider:
 
         raw_entities = data.get("entities", [])
         entities: list[dict] = []
+        _search_offset = 0
         for ent in raw_entities:
             name = ent.get("name", "")
             ent_type = ent.get("type", "entity")
@@ -172,14 +174,17 @@ class OpenAINERProvider:
             # Validate type is in our vocabulary
             if ent_type not in ONTOLOGY_TYPES:
                 ent_type = "entity"
-            # Use provided offsets, or find them in the text
+            # Use provided offsets, or find them in the text.
+            # Track search offset so repeated entities get distinct spans
+            # instead of all mapping to the first occurrence.
             start = ent.get("start")
             end = ent.get("end")
             if start is None or end is None:
-                idx = original_text.find(name)
+                idx = original_text.find(name, _search_offset)
                 if idx >= 0:
                     start = idx
                     end = idx + len(name)
+                    _search_offset = end
                 else:
                     start = 0
                     end = len(name)

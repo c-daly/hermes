@@ -16,6 +16,11 @@ from logos_config import get_env_value
 logger = logging.getLogger(__name__)
 
 # Map common verb/prep patterns to canonical relation labels.
+# Rationale: spaCy dependency parsing yields verb lemmas between entity pairs.
+# This lookup normalises high-frequency verbs into a small set of canonical
+# relation labels that align with the LOGOS ontology graph schema, keeping the
+# knowledge graph consistent regardless of surface-form variation (e.g.
+# "employ" and "work" both map to WORKS_AT).
 _VERB_TO_RELATION: dict[str, str] = {
     "work": "WORKS_AT",
     "employ": "WORKS_AT",
@@ -44,7 +49,8 @@ _SYMMETRIC_RELATIONS: frozenset[str] = frozenset(
 class RelationExtractor(Protocol):
     """Protocol for relation extractors."""
 
-    async def extract(self, text: str, entities: list[dict]) -> list[dict]: ...
+    async def extract(self, text: str, entities: list[dict]) -> list[dict]:
+        ...
 
 
 class SpacyRelationExtractor:
@@ -84,8 +90,10 @@ class SpacyRelationExtractor:
         nlp = self._get_nlp()
         doc = nlp(text)
 
-        # Build a map of entity name -> character spans for matching.
-        entity_names = {e["name"] for e in entities}
+        # Build a normalised set of entity names for case-insensitive matching.
+        # NER output and spaCy entities may differ in casing (e.g. "OpenAI" vs
+        # "openai"), so we compare lowered forms to avoid missed relations.
+        entity_names_lower = {e["name"].lower() for e in entities}
 
         relations: list[dict] = []
 
@@ -93,7 +101,7 @@ class SpacyRelationExtractor:
             # Find entity spans that fall within this sentence.
             sent_entities: list[Any] = []
             for ent in sent.ents:
-                if ent.text in entity_names:
+                if ent.text.lower() in entity_names_lower:
                     sent_entities.append(ent)
 
             if len(sent_entities) < 2:

@@ -33,6 +33,9 @@ except ImportError:
 _milvus_connected = False
 _milvus_collection: Optional[Any] = None
 
+# Default embedding dimension used when LOGOS_EMBEDDING_DIM is not set.
+EMBEDDING_DIMENSION_DEFAULT = "384"
+
 # Lazy-loaded configuration - deferred until first use to avoid import-time env reads
 _milvus_host: Optional[str] = None
 _milvus_port: Optional[str] = None
@@ -45,7 +48,8 @@ def get_embedding_dimension() -> int:
     global _embedding_dimension
     if _embedding_dimension is None:
         _embedding_dimension = int(
-            get_env_value("LOGOS_EMBEDDING_DIM", default="384") or "384"
+            get_env_value("LOGOS_EMBEDDING_DIM", default=EMBEDDING_DIMENSION_DEFAULT)
+            or EMBEDDING_DIMENSION_DEFAULT
         )
     return _embedding_dimension
 

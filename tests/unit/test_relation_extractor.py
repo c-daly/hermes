@@ -60,7 +60,9 @@ class TestSpacyRelationExtractor:
         # Build mock doc
         mock_doc = MagicMock()
         mock_doc.sents = [mock_sent]
-        mock_doc.__getitem__ = lambda self, s: [verb_tok] if isinstance(s, slice) else verb_tok
+        mock_doc.__getitem__ = (
+            lambda self, s: [verb_tok] if isinstance(s, slice) else verb_tok
+        )
         mock_doc.__len__ = lambda self: 5
 
         mock_nlp = MagicMock(return_value=mock_doc)
@@ -109,7 +111,9 @@ class TestSpacyRelationExtractor:
 
         mock_doc = MagicMock()
         mock_doc.sents = [mock_sent]
-        mock_doc.__getitem__ = lambda self, s: [prep_tok] if isinstance(s, slice) else prep_tok
+        mock_doc.__getitem__ = (
+            lambda self, s: [prep_tok] if isinstance(s, slice) else prep_tok
+        )
         mock_doc.__len__ = lambda self: 4
 
         extractor._nlp = MagicMock(return_value=mock_doc)
@@ -188,7 +192,9 @@ class TestSpacyRelationExtractor:
 
         mock_doc = MagicMock()
         mock_doc.sents = [mock_sent]
-        mock_doc.__getitem__ = lambda self, s: [verb_tok] if isinstance(s, slice) else verb_tok
+        mock_doc.__getitem__ = (
+            lambda self, s: [verb_tok] if isinstance(s, slice) else verb_tok
+        )
         mock_doc.__len__ = lambda self: 5
 
         extractor._nlp = MagicMock(return_value=mock_doc)
@@ -234,7 +240,9 @@ class TestSpacyRelationExtractor:
 
         mock_doc = MagicMock()
         mock_doc.sents = [mock_sent1, mock_sent2]
-        mock_doc.__getitem__ = lambda self, s: [verb_tok] if isinstance(s, slice) else verb_tok
+        mock_doc.__getitem__ = (
+            lambda self, s: [verb_tok] if isinstance(s, slice) else verb_tok
+        )
         mock_doc.__len__ = lambda self: 10
 
         extractor._nlp = MagicMock(return_value=mock_doc)

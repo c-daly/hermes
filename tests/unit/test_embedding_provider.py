@@ -89,22 +89,24 @@ class TestOpenAIEmbeddingProvider:
 
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
-        mock_response.json.return_value = {
-            "data": [{"embedding": [0.1, 0.2, 0.3]}]
-        }
+        mock_response.json.return_value = {"data": [{"embedding": [0.1, 0.2, 0.3]}]}
 
         mock_client = AsyncMock()
         mock_client.post.return_value = mock_response
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("hermes.embedding_provider.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "hermes.embedding_provider.httpx.AsyncClient", return_value=mock_client
+        ):
             result = await provider.embed("hello")
 
         assert result == [0.1, 0.2, 0.3]
         mock_client.post.assert_called_once()
         call_kwargs = mock_client.post.call_args
-        assert "dimensions" in call_kwargs.kwargs.get("json", call_kwargs[1].get("json", {}))
+        assert "dimensions" in call_kwargs.kwargs.get(
+            "json", call_kwargs[1].get("json", {})
+        )
 
     @pytest.mark.asyncio
     async def test_embed_ada_no_dimensions_param(self):
@@ -116,17 +118,17 @@ class TestOpenAIEmbeddingProvider:
 
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
-        mock_response.json.return_value = {
-            "data": [{"embedding": [0.5]}]
-        }
+        mock_response.json.return_value = {"data": [{"embedding": [0.5]}]}
 
         mock_client = AsyncMock()
         mock_client.post.return_value = mock_response
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("hermes.embedding_provider.httpx.AsyncClient", return_value=mock_client):
-            result = await provider.embed("hello")
+        with patch(
+            "hermes.embedding_provider.httpx.AsyncClient", return_value=mock_client
+        ):
+            await provider.embed("hello")
 
         # ada-002 should NOT pass dimensions param
         call_kwargs = mock_client.post.call_args
@@ -140,7 +142,11 @@ class TestDetectBackend:
     def test_explicit_provider(self):
         import hermes.embedding_provider as mod
 
-        with patch.object(mod, "get_env_value", side_effect=lambda k, **kw: "openai" if k == "EMBEDDING_PROVIDER" else None):
+        with patch.object(
+            mod,
+            "get_env_value",
+            side_effect=lambda k, **kw: "openai" if k == "EMBEDDING_PROVIDER" else None,
+        ):
             assert mod._detect_backend() == "openai"
 
     def test_auto_detect_openai_with_key(self):
@@ -203,7 +209,13 @@ class TestDetectBackend:
 
         mod._provider = None
 
-        with patch.object(mod, "get_env_value", side_effect=lambda k, **kw: "unknown" if k == "EMBEDDING_PROVIDER" else None):
+        with patch.object(
+            mod,
+            "get_env_value",
+            side_effect=lambda k, **kw: "unknown"
+            if k == "EMBEDDING_PROVIDER"
+            else None,
+        ):
             with pytest.raises(ValueError, match="Unknown EMBEDDING_PROVIDER"):
                 mod.get_embedding_provider()
 

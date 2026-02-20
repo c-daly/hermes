@@ -64,8 +64,7 @@ SPACY_TO_ONTOLOGY: dict[str, str] = {
 class NERProvider(Protocol):
     """Protocol for named-entity recognition providers."""
 
-    async def extract_entities(self, text: str) -> list[dict]:
-        ...
+    async def extract_entities(self, text: str) -> list[dict]: ...
 
 
 class SpacyNERProvider:

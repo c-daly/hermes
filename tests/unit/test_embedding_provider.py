@@ -4,7 +4,6 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import numpy as np
 
-
 pytestmark = pytest.mark.unit
 
 
@@ -212,9 +211,9 @@ class TestDetectBackend:
         with patch.object(
             mod,
             "get_env_value",
-            side_effect=lambda k, **kw: "unknown"
-            if k == "EMBEDDING_PROVIDER"
-            else None,
+            side_effect=lambda k, **kw: (
+                "unknown" if k == "EMBEDDING_PROVIDER" else None
+            ),
         ):
             with pytest.raises(ValueError, match="Unknown EMBEDDING_PROVIDER"):
                 mod.get_embedding_provider()

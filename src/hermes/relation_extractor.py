@@ -49,8 +49,7 @@ _SYMMETRIC_RELATIONS: frozenset[str] = frozenset(
 class RelationExtractor(Protocol):
     """Protocol for relation extractors."""
 
-    async def extract(self, text: str, entities: list[dict]) -> list[dict]:
-        ...
+    async def extract(self, text: str, entities: list[dict]) -> list[dict]: ...
 
 
 class SpacyRelationExtractor:

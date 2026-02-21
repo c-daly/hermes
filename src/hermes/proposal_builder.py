@@ -81,7 +81,7 @@ class ProposalBuilder:
 
             # Unpack embeddings: first N are entities, last one is document
             entity_embeddings = all_embeddings[:len(entities)]
-            doc_embedding_result = all_embeddings[-1] if all_embeddings else None
+            doc_embedding_result = all_embeddings[len(entities)] if len(all_embeddings) > len(entities) else None
 
             # Assemble proposed_nodes with their embeddings
             proposed_nodes = []
@@ -218,6 +218,13 @@ class ProposalBuilder:
             embeddings = await generate_embeddings_batch(phrases)
         except Exception:
             logger.warning("Batch edge embedding failed, returning edges without embeddings")
+            return raw_edges
+
+        if len(embeddings) != len(raw_edges):
+            logger.warning(
+                "Edge embedding count mismatch: %d edges vs %d embeddings",
+                len(raw_edges), len(embeddings),
+            )
             return raw_edges
 
         for edge, emb in zip(raw_edges, embeddings):

@@ -2,6 +2,7 @@
 
 import json
 
+import redis
 from unittest.mock import MagicMock
 
 from hermes.context_cache import ContextCache
@@ -73,7 +74,7 @@ class TestContextCache:
 
     def test_get_context_handles_redis_exception(self):
         mock_redis = MagicMock()
-        mock_redis.get.side_effect = Exception("connection lost")
+        mock_redis.get.side_effect = redis.RedisError("connection lost")
 
         cache = ContextCache.__new__(ContextCache)
         cache._redis = mock_redis
@@ -84,7 +85,7 @@ class TestContextCache:
 
     def test_enqueue_handles_redis_exception(self):
         mock_redis = MagicMock()
-        mock_redis.lpush.side_effect = Exception("connection lost")
+        mock_redis.lpush.side_effect = redis.RedisError("connection lost")
 
         cache = ContextCache.__new__(ContextCache)
         cache._redis = mock_redis

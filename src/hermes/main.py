@@ -174,6 +174,7 @@ async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> lis
     # --- Fast path: try Redis cache first ---
     cache = _get_context_cache()
     conversation_id = metadata.get("conversation_id") or request_id
+    reusable_proposal: dict | None = None
 
     if cache is not None and cache.available:
         cached = cache.get_context(conversation_id)
@@ -192,23 +193,23 @@ async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> lis
                 )
                 cache.enqueue_proposal(proposal, conversation_id=conversation_id)
             except Exception as e:
-                logger.warning(f"Background proposal enqueue failed: {e}")
+                logger.warning(f"Background proposal enqueue failed: {e}", exc_info=True)
             return cached
 
         # No cached context yet — still enqueue and fall through
         try:
-            proposal = await _proposal_builder.build(
+            reusable_proposal = await _proposal_builder.build(
                 text=text,
                 metadata=metadata or {},
                 correlation_id=request_id,
             )
-            cache.enqueue_proposal(proposal, conversation_id=conversation_id)
+            cache.enqueue_proposal(reusable_proposal, conversation_id=conversation_id)
             logger.debug(
                 "No cached context for %s; proposal enqueued for background processing",
                 conversation_id,
             )
         except Exception as e:
-            logger.warning(f"Proposal build/enqueue failed: {e}")
+            logger.warning(f"Proposal build/enqueue failed: {e}", exc_info=True)
 
         # For a first-turn conversation with no cache, fall through to
         # synchronous Sophia call so the user still gets context.
@@ -226,15 +227,18 @@ async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> lis
         )
         return []
 
-    try:
-        proposal = await _proposal_builder.build(
-            text=text,
-            metadata=metadata or {},
-            correlation_id=request_id,
-        )
-    except Exception as e:
-        logger.warning(f"Proposal building failed: {e}")
-        return []
+    # Reuse proposal from the enqueue path if available
+    proposal = reusable_proposal
+    if proposal is None:
+        try:
+            proposal = await _proposal_builder.build(
+                text=text,
+                metadata=metadata or {},
+                correlation_id=request_id,
+            )
+        except Exception as e:
+            logger.warning(f"Proposal building failed: {e}", exc_info=True)
+            return []
 
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:

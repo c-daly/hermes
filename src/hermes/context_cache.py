@@ -7,6 +7,7 @@ and enqueue new proposals for background processing.
 
 import json
 import logging
+import uuid
 from datetime import UTC, datetime
 from typing import Optional
 
@@ -27,7 +28,7 @@ class ContextCache:
             self._redis.ping()
             self._available = True
             logger.info("Context cache connected to Redis")
-        except Exception as e:
+        except (redis.RedisError, ConnectionError) as e:
             logger.warning(f"Redis unavailable for context cache: {e}")
             self._redis = None
             self._available = False
@@ -44,7 +45,7 @@ class ContextCache:
             data = self._redis.get(f"{self.CONTEXT_PREFIX}{conversation_id}")
             if data:
                 return json.loads(data)
-        except Exception as e:
+        except (redis.RedisError, json.JSONDecodeError) as e:
             logger.debug(f"Context cache read failed: {e}")
         return []
 
@@ -57,7 +58,7 @@ class ContextCache:
         try:
             message = json.dumps(
                 {
-                    "id": f"pq-{datetime.now(UTC).timestamp()}",
+                    "id": f"pq-{uuid.uuid4()}",
                     "payload": proposal,
                     "conversation_id": conversation_id,
                     "attempts": 0,
@@ -65,5 +66,5 @@ class ContextCache:
                 }
             )
             self._redis.lpush(self.QUEUE_KEY, message)
-        except Exception as e:
+        except (redis.RedisError, TypeError) as e:
             logger.warning(f"Failed to enqueue proposal: {e}")

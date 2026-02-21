@@ -3,6 +3,7 @@
 This module contains the actual implementations for STT, TTS, NLP, and embedding services.
 """
 
+import asyncio
 import logging
 import tempfile
 import uuid
@@ -311,18 +312,18 @@ async def generate_embeddings_batch(texts: list[str]) -> list[Dict[str, Any]]:
     model_name = provider.model_name
 
     results = []
+    persist_tasks = []
     for text, embedding_list in zip(texts, embeddings):
         embedding_id = str(uuid.uuid4())
 
-        try:
-            await milvus_client.persist_embedding(
+        persist_tasks.append(
+            milvus_client.persist_embedding(
                 embedding_id=embedding_id,
                 embedding=embedding_list,
                 model=model_name,
                 text=text,
             )
-        except Exception as e:
-            logger.warning(f"Milvus persistence failed (non-fatal): {e}")
+        )
 
         results.append({
             "embedding": embedding_list,
@@ -330,6 +331,12 @@ async def generate_embeddings_batch(texts: list[str]) -> list[Dict[str, Any]]:
             "model": model_name,
             "embedding_id": embedding_id,
         })
+
+    # Persist all embeddings concurrently
+    persist_results = await asyncio.gather(*persist_tasks, return_exceptions=True)
+    for i, result in enumerate(persist_results):
+        if isinstance(result, Exception):
+            logger.warning(f"Milvus persistence failed (non-fatal): {result}")
 
     return results
 

@@ -233,7 +233,7 @@ async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> lis
         return []
 
     # Reuse proposal from the enqueue path if available
-    proposal = reusable_proposal
+    proposal: dict | None = reusable_proposal  # type: ignore[no-redef]
     if proposal is None:
         try:
             proposal = await _proposal_builder.build(

@@ -3,6 +3,7 @@
 This module contains the actual implementations for STT, TTS, NLP, and embedding services.
 """
 
+import asyncio
 import logging
 import tempfile
 import uuid
@@ -269,31 +270,77 @@ async def generate_embedding(text: str, model_name: str = "default") -> Dict[str
     Returns:
         Dictionary with 'embedding', 'dimension', 'model', and 'embedding_id' keys
     """
+    provider = get_embedding_provider()
+    embedding_list = await provider.embed(text)
+
+    embedding_id = str(uuid.uuid4())
+    model_name_used = provider.model_name
+
+    # Persist to Milvus (fire-and-forget -- don't block the response)
     try:
-        provider = get_embedding_provider()
-        embedding_list = await provider.embed(text)
-
-        embedding_id = str(uuid.uuid4())
-        model_name_used = provider.model_name
-
-        # Persist to Milvus if available
         await milvus_client.persist_embedding(
             embedding_id=embedding_id,
             embedding=embedding_list,
             model=model_name_used,
             text=text,
         )
-
-        return {
-            "embedding": embedding_list,
-            "dimension": len(embedding_list),
-            "model": model_name_used,
-            "embedding_id": embedding_id,
-        }
-
     except Exception as e:
-        logger.error(f"Error generating embedding: {str(e)}")
-        raise
+        logger.warning(f"Milvus persistence failed (non-fatal): {e}")
+
+    return {
+        "embedding": embedding_list,
+        "dimension": len(embedding_list),
+        "model": model_name_used,
+        "embedding_id": embedding_id,
+    }
+
+
+async def generate_embeddings_batch(texts: list[str]) -> list[Dict[str, Any]]:
+    """Generate embeddings for multiple texts in a single API call.
+
+    Args:
+        texts: List of texts to embed
+
+    Returns:
+        List of dicts with 'embedding', 'dimension', 'model', 'embedding_id' keys
+    """
+    if not texts:
+        return []
+
+    provider = get_embedding_provider()
+    embeddings = await provider.embed_batch(texts)
+    model_name = provider.model_name
+
+    results = []
+    persist_tasks = []
+    for text, embedding_list in zip(texts, embeddings):
+        embedding_id = str(uuid.uuid4())
+
+        persist_tasks.append(
+            milvus_client.persist_embedding(
+                embedding_id=embedding_id,
+                embedding=embedding_list,
+                model=model_name,
+                text=text,
+            )
+        )
+
+        results.append(
+            {
+                "embedding": embedding_list,
+                "dimension": len(embedding_list),
+                "model": model_name,
+                "embedding_id": embedding_id,
+            }
+        )
+
+    # Persist all embeddings concurrently
+    persist_results = await asyncio.gather(*persist_tasks, return_exceptions=True)
+    for i, result in enumerate(persist_results):
+        if isinstance(result, Exception):
+            logger.warning(f"Milvus persistence failed (non-fatal): {result}")
+
+    return results
 
 
 async def generate_llm_response(

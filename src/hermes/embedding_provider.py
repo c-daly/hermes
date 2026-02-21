@@ -33,6 +33,8 @@ class EmbeddingProvider(Protocol):
 
     async def embed(self, text: str) -> list[float]: ...
 
+    async def embed_batch(self, texts: list[str]) -> list[list[float]]: ...
+
 
 class SentenceTransformerProvider:
     """Local provider using sentence-transformers."""
@@ -65,6 +67,11 @@ class SentenceTransformerProvider:
         vec = await asyncio.to_thread(model.encode, text)
         result: list[float] = vec.tolist()
         return result
+
+    async def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        model = self._load()
+        vecs = await asyncio.to_thread(model.encode, texts)
+        return [v.tolist() for v in vecs]
 
 
 class OpenAIEmbeddingProvider:
@@ -125,6 +132,33 @@ class OpenAIEmbeddingProvider:
         data = response.json()
         result: list[float] = data["data"][0]["embedding"]
         return result
+
+    async def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        """Embed multiple texts in a single API call."""
+        if not texts:
+            return []
+
+        payload: dict[str, Any] = {
+            "model": self._model_name,
+            "input": texts,
+        }
+        if self._model_name != "text-embedding-ada-002":
+            payload["dimensions"] = self._dimension
+
+        url = f"{self._base_url}/embeddings"
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            response = await client.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+
+        data = response.json()
+        # OpenAI returns embeddings sorted by index
+        sorted_items = sorted(data["data"], key=lambda x: x["index"])
+        return [item["embedding"] for item in sorted_items]
 
 
 # ---------------------------------------------------------------------------

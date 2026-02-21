@@ -239,11 +239,10 @@ async def persist_embedding(
             [timestamp],  # timestamp
         ]
 
-        # Insert into Milvus
+        # Insert into Milvus (no flush -- Milvus auto-flushes periodically)
         collection.insert(entities)
-        collection.flush()
 
-        logger.info(f"Persisted embedding {embedding_id} to Milvus")
+        logger.debug(f"Persisted embedding {embedding_id} to Milvus")
         return True
 
     except Exception as e:

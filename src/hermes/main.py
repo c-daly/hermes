@@ -154,7 +154,10 @@ def _get_context_cache() -> ContextCache | None:
     """Return (and lazily create) the module-level ContextCache."""
     global _context_cache
     if _context_cache is None:
-        redis_url = get_env_value("REDIS_URL", default="redis://localhost:6379/0") or "redis://localhost:6379/0"
+        redis_url = (
+            get_env_value("REDIS_URL", default="redis://localhost:6379/0")
+            or "redis://localhost:6379/0"
+        )
         _context_cache = ContextCache(redis_url)
     return _context_cache
 
@@ -193,7 +196,9 @@ async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> lis
                 )
                 cache.enqueue_proposal(proposal, conversation_id=conversation_id)
             except Exception as e:
-                logger.warning(f"Background proposal enqueue failed: {e}", exc_info=True)
+                logger.warning(
+                    f"Background proposal enqueue failed: {e}", exc_info=True
+                )
             return cached
 
         # No cached context yet — still enqueue and fall through

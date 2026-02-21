@@ -325,12 +325,14 @@ async def generate_embeddings_batch(texts: list[str]) -> list[Dict[str, Any]]:
             )
         )
 
-        results.append({
-            "embedding": embedding_list,
-            "dimension": len(embedding_list),
-            "model": model_name,
-            "embedding_id": embedding_id,
-        })
+        results.append(
+            {
+                "embedding": embedding_list,
+                "dimension": len(embedding_list),
+                "model": model_name,
+                "embedding_id": embedding_id,
+            }
+        )
 
     # Persist all embeddings concurrently
     persist_results = await asyncio.gather(*persist_tasks, return_exceptions=True)

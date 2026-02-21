@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from logos_observability import get_tracer
+
     tracer = get_tracer("hermes.proposal_builder")
 except ImportError:
     from contextlib import nullcontext
@@ -70,7 +71,9 @@ class ProposalBuilder:
 
             # Step 2: Run relation extraction and entity+doc embeddings in parallel
             # Relation extraction only needs entity names, not their embeddings.
-            with tracer.start_as_current_span("proposal_builder.parallel_extract_embed"):
+            with tracer.start_as_current_span(
+                "proposal_builder.parallel_extract_embed"
+            ):
                 entity_names = [e["name"] for e in entities]
                 embed_texts = entity_names + [text]  # entities + document text
 
@@ -80,21 +83,27 @@ class ProposalBuilder:
             t_rel = time.monotonic()
 
             # Unpack embeddings: first N are entities, last one is document
-            entity_embeddings = all_embeddings[:len(entities)]
-            doc_embedding_result = all_embeddings[len(entities)] if len(all_embeddings) > len(entities) else None
+            entity_embeddings = all_embeddings[: len(entities)]
+            doc_embedding_result = (
+                all_embeddings[len(entities)]
+                if len(all_embeddings) > len(entities)
+                else None
+            )
 
             # Assemble proposed_nodes with their embeddings
             proposed_nodes = []
             for entity, emb in zip(entities, entity_embeddings):
-                proposed_nodes.append({
-                    "name": entity["name"],
-                    "type": entity["type"],
-                    "embedding": emb["embedding"],
-                    "embedding_id": emb["embedding_id"],
-                    "dimension": emb["dimension"],
-                    "model": emb["model"],
-                    "properties": {"start": entity["start"], "end": entity["end"]},
-                })
+                proposed_nodes.append(
+                    {
+                        "name": entity["name"],
+                        "type": entity["type"],
+                        "embedding": emb["embedding"],
+                        "embedding_id": emb["embedding_id"],
+                        "dimension": emb["dimension"],
+                        "model": emb["model"],
+                        "properties": {"start": entity["start"], "end": entity["end"]},
+                    }
+                )
 
             # Step 3: Batch embed edge phrases (needs relation extraction results)
             with tracer.start_as_current_span("proposal_builder.edge_embedding"):
@@ -217,13 +226,16 @@ class ProposalBuilder:
         try:
             embeddings = await generate_embeddings_batch(phrases)
         except Exception:
-            logger.warning("Batch edge embedding failed, returning edges without embeddings")
+            logger.warning(
+                "Batch edge embedding failed, returning edges without embeddings"
+            )
             return raw_edges
 
         if len(embeddings) != len(raw_edges):
             logger.warning(
                 "Edge embedding count mismatch: %d edges vs %d embeddings",
-                len(raw_edges), len(embeddings),
+                len(raw_edges),
+                len(embeddings),
             )
             return raw_edges
 

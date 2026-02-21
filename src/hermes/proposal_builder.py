@@ -14,9 +14,21 @@ from datetime import UTC, datetime
 from hermes.embedding_provider import get_embedding_provider
 from hermes.ner_provider import get_ner_provider
 from hermes.relation_extractor import get_relation_extractor
-from hermes.services import generate_embedding
+from hermes.services import generate_embedding, generate_embeddings_batch
 
 logger = logging.getLogger(__name__)
+
+try:
+    from logos_observability import get_tracer
+    tracer = get_tracer("hermes.proposal_builder")
+except ImportError:
+    from contextlib import nullcontext
+
+    class _NoopTracer:
+        def start_as_current_span(self, name, **kw):
+            return nullcontext()
+
+    tracer = _NoopTracer()
 
 
 class ProposalBuilder:
@@ -36,49 +48,87 @@ class ProposalBuilder:
 
         Returns dict matching HermesProposalRequest schema.
         Injects ``metadata["pipeline"]`` with provider info and timing.
+
+        Pipeline is parallelized where possible:
+        1. NER extraction (must be first — entities needed downstream)
+        2. In parallel: relation extraction + batch embed (entities + doc text)
+        3. Batch embed edge phrases (needs relation extraction results)
         """
         proposal_id = str(uuid_mod.uuid4())
         now = datetime.now(UTC).isoformat()
 
-        t0 = time.monotonic()
+        with tracer.start_as_current_span(
+            "proposal_builder.build",
+            attributes={"proposal_id": proposal_id, "text_length": len(text)},
+        ):
+            t0 = time.monotonic()
 
-        proposed_nodes = await self._extract_entities(text)
-        t_ner = time.monotonic()
+            # Step 1: NER — must complete before relation extraction
+            with tracer.start_as_current_span("proposal_builder.ner"):
+                entities = await self._run_ner(text)
+            t_ner = time.monotonic()
 
-        proposed_edges = await self._extract_relations(text, proposed_nodes)
-        t_rel = time.monotonic()
+            # Step 2: Run relation extraction and entity+doc embeddings in parallel
+            # Relation extraction only needs entity names, not their embeddings.
+            with tracer.start_as_current_span("proposal_builder.parallel_extract_embed"):
+                entity_names = [e["name"] for e in entities]
+                embed_texts = entity_names + [text]  # entities + document text
 
-        document_embedding = await self._generate_document_embedding(text)
-        t_emb = time.monotonic()
+                rel_task = self._run_relation_extraction(text, entities)
+                emb_task = self._run_batch_embed(embed_texts)
+                raw_edges, all_embeddings = await asyncio.gather(rel_task, emb_task)
+            t_rel = time.monotonic()
 
-        # Build pipeline metadata for experiment tracking
-        pipeline = self._build_pipeline_metadata(
-            ner_duration_ms=round((t_ner - t0) * 1000, 1),
-            relation_duration_ms=round((t_rel - t_ner) * 1000, 1),
-            embedding_duration_ms=round((t_emb - t_rel) * 1000, 1),
-            total_duration_ms=round((t_emb - t0) * 1000, 1),
-            entity_count=len(proposed_nodes),
-            edge_count=len(proposed_edges),
-        )
+            # Unpack embeddings: first N are entities, last one is document
+            entity_embeddings = all_embeddings[:len(entities)]
+            doc_embedding_result = all_embeddings[-1] if all_embeddings else None
 
-        # Merge pipeline into metadata (preserving existing keys)
-        enriched_metadata = dict(metadata) if metadata else {}
-        enriched_metadata["pipeline"] = pipeline
+            # Assemble proposed_nodes with their embeddings
+            proposed_nodes = []
+            for entity, emb in zip(entities, entity_embeddings):
+                proposed_nodes.append({
+                    "name": entity["name"],
+                    "type": entity["type"],
+                    "embedding": emb["embedding"],
+                    "embedding_id": emb["embedding_id"],
+                    "dimension": emb["dimension"],
+                    "model": emb["model"],
+                    "properties": {"start": entity["start"], "end": entity["end"]},
+                })
 
-        return {
-            "proposal_id": proposal_id,
-            "correlation_id": correlation_id,
-            "source_service": "hermes",
-            "llm_provider": llm_provider,
-            "model": model,
-            "generated_at": now,
-            "confidence": confidence,
-            "raw_text": text,
-            "proposed_nodes": proposed_nodes,
-            "proposed_edges": proposed_edges,
-            "document_embedding": document_embedding,
-            "metadata": enriched_metadata,
-        }
+            # Step 3: Batch embed edge phrases (needs relation extraction results)
+            with tracer.start_as_current_span("proposal_builder.edge_embedding"):
+                proposed_edges = await self._embed_edges(raw_edges)
+            t_emb = time.monotonic()
+
+            # Build pipeline metadata for experiment tracking
+            pipeline = self._build_pipeline_metadata(
+                ner_duration_ms=round((t_ner - t0) * 1000, 1),
+                relation_duration_ms=round((t_rel - t_ner) * 1000, 1),
+                embedding_duration_ms=round((t_emb - t_rel) * 1000, 1),
+                total_duration_ms=round((t_emb - t0) * 1000, 1),
+                entity_count=len(proposed_nodes),
+                edge_count=len(proposed_edges),
+            )
+
+            # Merge pipeline into metadata (preserving existing keys)
+            enriched_metadata = dict(metadata) if metadata else {}
+            enriched_metadata["pipeline"] = pipeline
+
+            return {
+                "proposal_id": proposal_id,
+                "correlation_id": correlation_id,
+                "source_service": "hermes",
+                "llm_provider": llm_provider,
+                "model": model,
+                "generated_at": now,
+                "confidence": confidence,
+                "raw_text": text,
+                "proposed_nodes": proposed_nodes,
+                "proposed_edges": proposed_edges,
+                "document_embedding": doc_embedding_result,
+                "metadata": enriched_metadata,
+            }
 
     def _build_pipeline_metadata(
         self,
@@ -99,6 +149,12 @@ class ProposalBuilder:
             ner_provider_name = "unknown"
 
         try:
+            rel = get_relation_extractor()
+            relation_provider_name = getattr(rel, "name", type(rel).__name__)
+        except Exception:
+            relation_provider_name = "unknown"
+
+        try:
             emb = get_embedding_provider()
             embedding_provider_name = emb.model_name
         except Exception:
@@ -106,6 +162,7 @@ class ProposalBuilder:
 
         return {
             "ner_provider": ner_provider_name,
+            "relation_provider": relation_provider_name,
             "embedding_provider": embedding_provider_name,
             "ner_duration_ms": ner_duration_ms,
             "relation_duration_ms": relation_duration_ms,
@@ -115,85 +172,56 @@ class ProposalBuilder:
             "edge_count": edge_count,
         }
 
-    async def _extract_entities(self, text: str) -> list[dict]:
-        """Extract named entities and generate per-entity embeddings."""
+    async def _run_ner(self, text: str) -> list[dict]:
+        """Run NER extraction only (no embeddings)."""
         try:
             provider = get_ner_provider()
             entities = await provider.extract_entities(text)
+            return entities or []
         except Exception:
             logger.warning("NER extraction failed, returning empty entities")
             return []
 
-        async def _process_entity(entity: dict) -> dict:
-            emb = await generate_embedding(entity["name"])
-            return {
-                "name": entity["name"],
-                "type": entity["type"],
-                "embedding": emb["embedding"],
-                "embedding_id": emb["embedding_id"],
-                "dimension": emb["dimension"],
-                "model": emb["model"],
-                "properties": {"start": entity["start"], "end": entity["end"]},
-            }
-
-        results = await asyncio.gather(
-            *[_process_entity(e) for e in entities],
-            return_exceptions=True,
-        )
-        processed = []
-        for entity, result in zip(entities, results):
-            if isinstance(result, dict):
-                processed.append(result)
-            elif isinstance(result, Exception):
-                logger.warning(
-                    "Failed to process entity '%s': %s",
-                    entity.get("name", "<unknown>"),
-                    result,
-                )
-        return processed
-
-    async def _extract_relations(
-        self, text: str, proposed_nodes: list[dict]
+    async def _run_relation_extraction(
+        self, text: str, entities: list[dict]
     ) -> list[dict]:
-        """Extract relations between entities and embed relation phrases."""
-        if len(proposed_nodes) < 2:
+        """Run relation extraction only (no embeddings)."""
+        if len(entities) < 2:
             return []
-
         try:
             extractor = get_relation_extractor()
-            raw_edges = await extractor.extract(text, proposed_nodes)
+            return await extractor.extract(text, entities)
         except Exception:
             logger.warning("Relation extraction failed, returning no edges")
             return []
 
-        async def _embed_edge(edge: dict) -> dict:
-            phrase = f"{edge.get('source_name', '')} {edge.get('relation', 'RELATED_TO').lower().replace('_', ' ')} {edge.get('target_name', '')}"
-            emb = await generate_embedding(phrase)
+    async def _run_batch_embed(self, texts: list[str]) -> list[dict]:
+        """Batch embed a list of texts in a single API call."""
+        if not texts:
+            return []
+        try:
+            return await generate_embeddings_batch(texts)
+        except Exception:
+            logger.warning("Batch embedding failed")
+            return []
+
+    async def _embed_edges(self, raw_edges: list[dict]) -> list[dict]:
+        """Batch embed edge phrases and attach to edge dicts."""
+        if not raw_edges:
+            return []
+
+        phrases = [
+            f"{e['source_name']} {e['relation'].lower().replace('_', ' ')} {e['target_name']}"
+            for e in raw_edges
+        ]
+        try:
+            embeddings = await generate_embeddings_batch(phrases)
+        except Exception:
+            logger.warning("Batch edge embedding failed, returning edges without embeddings")
+            return raw_edges
+
+        for edge, emb in zip(raw_edges, embeddings):
             edge["embedding"] = emb["embedding"]
             edge["model"] = emb["model"]
-            return edge
 
-        results = await asyncio.gather(
-            *[_embed_edge(e) for e in raw_edges],
-            return_exceptions=True,
-        )
-        processed: list[dict] = []
-        for edge, result in zip(raw_edges, results):
-            if isinstance(result, dict):
-                processed.append(result)
-            elif isinstance(result, Exception):
-                logger.warning(
-                    "Failed to embed edge %s->%s: %s",
-                    edge.get("source_name"),
-                    edge.get("target_name"),
-                    result,
-                )
-        return processed
-
-    async def _generate_document_embedding(self, text: str) -> dict | None:
-        """Generate embedding for the full text."""
-        try:
-            return await generate_embedding(text)
-        except Exception:
-            logger.warning("Document embedding generation failed")
-            return None
+        return raw_edges

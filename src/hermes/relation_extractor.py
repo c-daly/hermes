@@ -1,14 +1,18 @@
 """Pluggable relation extraction for Hermes.
 
-Defines a protocol for relation extractors and a default implementation
-using spaCy dependency parsing. The active extractor is selected via:
+Defines a protocol for relation extractors and implementations using
+spaCy dependency parsing (local) or OpenAI (API). The active extractor
+is selected via env vars:
 
-    RELATION_EXTRACTOR  (default: "spacy")
+    RELATION_EXTRACTOR  (default: auto-detect — "openai" if API key
+                         present, else "spacy")
 """
 
 from __future__ import annotations
 
+import json
 import logging
+import re
 from typing import Any, Protocol, runtime_checkable
 
 from logos_config import get_env_value
@@ -184,10 +188,146 @@ class SpacyRelationExtractor:
         }
 
 
+class OpenAIRelationExtractor:
+    """Extract relations using OpenAI chat completions.
+
+    Sends the text and pre-extracted entities to the LLM and asks it to
+    identify semantic relations between them.  Reuses ``hermes.llm`` for
+    auth and config.
+    """
+
+    name: str = "openai"
+
+    _SYSTEM_PROMPT = (
+        "You are a relation extraction system for the LOGOS knowledge graph. "
+        "Given input text and a list of entities already extracted from that "
+        "text, identify meaningful semantic relations between pairs of entities.\n\n"
+        "For each relation, provide:\n"
+        '  - "source_name": the entity where the relation originates\n'
+        '  - "target_name": the entity the relation points to\n'
+        '  - "relation": a short UPPER_SNAKE_CASE label (e.g. LOCATED_IN, '
+        "PART_OF, FOUNDED_BY, CAPITAL_OF, MEMBER_OF, WORKS_AT, CREATED_BY, "
+        "GOVERNED_BY, PLAYS, ORIGINATED_IN)\n"
+        '  - "confidence": float 0-1 indicating how confident the relation is\n'
+        '  - "bidirectional": true if the relation is inherently symmetric\n\n'
+        "Rules:\n"
+        "- Only extract relations that are clearly supported by the text\n"
+        "- Use specific, meaningful relation labels — not generic ones like "
+        "RELATED_TO\n"
+        "- source_name and target_name must exactly match entity names from "
+        "the provided list\n"
+        "- If no clear relations exist, return an empty array\n\n"
+        'Return a JSON object with a single key "relations" containing an '
+        "array of relation objects.\n"
+        "Return ONLY valid JSON, no other text."
+    )
+
+    async def extract(self, text: str, entities: list[dict]) -> list[dict]:
+        if len(entities) < 2:
+            return []
+
+        from hermes.llm import generate_completion
+
+        entity_list = ", ".join(
+            f"{e['name']} ({e.get('type', 'entity')})" for e in entities
+        )
+        user_msg = (
+            f"Text: {text}\n\n"
+            f"Entities: {entity_list}\n\n"
+            "Extract all meaningful relations between these entities."
+        )
+
+        try:
+            result = await generate_completion(
+                messages=[
+                    {"role": "system", "content": self._SYSTEM_PROMPT},
+                    {"role": "user", "content": user_msg},
+                ],
+                temperature=0.0,
+                max_tokens=2048,
+                metadata={"scenario": "relation_extraction"},
+            )
+        except Exception:
+            logger.warning("OpenAI relation extraction failed, falling back to empty")
+            return []
+
+        content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+        entity_names = {e["name"] for e in entities}
+        return self._parse_response(content, entity_names)
+
+    @staticmethod
+    def _parse_response(content: str, entity_names: set[str]) -> list[dict]:
+        """Parse the LLM JSON response into edge dicts."""
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            match = re.search(r"```(?:json)?\s*(.*?)```", content, re.DOTALL)
+            if match:
+                try:
+                    data = json.loads(match.group(1))
+                except json.JSONDecodeError:
+                    logger.warning("Failed to parse OpenAI relation response")
+                    return []
+            else:
+                logger.warning("Failed to parse OpenAI relation response")
+                return []
+
+        raw_relations = data.get("relations", [])
+        relations: list[dict] = []
+        seen: set[tuple[str, str, str]] = set()
+
+        for rel in raw_relations:
+            src = rel.get("source_name", "")
+            tgt = rel.get("target_name", "")
+            relation = rel.get("relation", "RELATED_TO")
+
+            if not src or not tgt:
+                continue
+            if src not in entity_names or tgt not in entity_names:
+                continue
+
+            # Normalize relation label
+            relation = relation.upper().replace(" ", "_")
+
+            key = (src, tgt, relation)
+            if key in seen:
+                continue
+            seen.add(key)
+
+            confidence = rel.get("confidence", 0.7)
+            if not isinstance(confidence, (int, float)):
+                confidence = 0.7
+            confidence = max(0.0, min(1.0, float(confidence)))
+
+            relations.append(
+                {
+                    "source_name": src,
+                    "target_name": tgt,
+                    "relation": relation,
+                    "confidence": confidence,
+                    "bidirectional": bool(rel.get("bidirectional", False)),
+                    "properties": {},
+                }
+            )
+
+        return relations
+
+
 # ---------------------------------------------------------------------------
 # Singleton accessor
 # ---------------------------------------------------------------------------
 _extractor: RelationExtractor | None = None
+
+
+def _detect_backend() -> str:
+    """Auto-detect the best available relation extraction backend."""
+    explicit = get_env_value("RELATION_EXTRACTOR")
+    if explicit:
+        return explicit.strip().lower()
+    has_key = get_env_value("HERMES_LLM_API_KEY") or get_env_value("OPENAI_API_KEY")
+    if has_key:
+        return "openai"
+    return "spacy"
 
 
 def get_relation_extractor() -> RelationExtractor:
@@ -196,10 +336,14 @@ def get_relation_extractor() -> RelationExtractor:
     if _extractor is not None:
         return _extractor
 
-    backend = get_env_value("RELATION_EXTRACTOR", default="spacy") or "spacy"
+    backend = _detect_backend()
 
-    if backend == "spacy":
+    if backend == "openai":
+        _extractor = OpenAIRelationExtractor()
+        logger.info("Relation extractor: openai")
+    elif backend == "spacy":
         _extractor = SpacyRelationExtractor()
+        logger.info("Relation extractor: spacy")
     else:
         raise ValueError(f"Unknown RELATION_EXTRACTOR: {backend!r}")
 

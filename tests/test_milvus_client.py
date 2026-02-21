@@ -97,7 +97,7 @@ async def test_persist_embedding_success(mock_ensure_collection):
     # Verify
     assert result
     mock_collection.insert.assert_called_once()
-    mock_collection.flush.assert_called_once()
+    # flush removed — Milvus auto-flush handles this
 
 
 @pytest.mark.asyncio

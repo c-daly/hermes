@@ -7,7 +7,6 @@ and enqueue new proposals for background processing.
 
 import json
 import logging
-import uuid
 from datetime import UTC, datetime
 from typing import Optional
 

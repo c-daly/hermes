@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from hermes.embedding_provider import get_embedding_provider
 from hermes.ner_provider import get_ner_provider
 from hermes.relation_extractor import get_relation_extractor
-from hermes.services import generate_embedding, generate_embeddings_batch
+from hermes.services import generate_embeddings_batch
 
 logger = logging.getLogger(__name__)
 

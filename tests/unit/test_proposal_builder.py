@@ -14,21 +14,32 @@ class TestProposalBuilder:
         mock_provider = MagicMock()
         mock_provider.extract_entities = AsyncMock(return_value=[])
 
+        mock_rel = MagicMock()
+        mock_rel.extract = AsyncMock(return_value=[])
+
+        emb_result = {
+            "embedding": [0.1] * 384,
+            "dimension": 384,
+            "model": "all-MiniLM-L6-v2",
+            "embedding_id": "doc-id",
+        }
+
         with (
             patch(
                 "hermes.proposal_builder.get_ner_provider",
                 return_value=mock_provider,
             ),
             patch(
-                "hermes.proposal_builder.generate_embedding", new_callable=AsyncMock
-            ) as mock_emb,
+                "hermes.proposal_builder.get_relation_extractor",
+                return_value=mock_rel,
+            ),
+            patch(
+                "hermes.proposal_builder.generate_embeddings_batch",
+                new_callable=AsyncMock,
+            ) as mock_batch,
         ):
-            mock_emb.return_value = {
-                "embedding": [0.1] * 384,
-                "dimension": 384,
-                "model": "all-MiniLM-L6-v2",
-                "embedding_id": "doc-id",
-            }
+            # 0 entities -> batch embed gets just [text] -> 1 result (doc embedding)
+            mock_batch.return_value = [emb_result]
             proposal = await builder.build(text="Hello world", metadata={})
 
         assert "proposal_id" in proposal
@@ -49,21 +60,32 @@ class TestProposalBuilder:
             ]
         )
 
+        mock_rel = MagicMock()
+        mock_rel.extract = AsyncMock(return_value=[])
+
+        emb_result = {
+            "embedding": [0.1] * 384,
+            "dimension": 384,
+            "model": "all-MiniLM-L6-v2",
+            "embedding_id": "test-id",
+        }
+
         with (
             patch(
                 "hermes.proposal_builder.get_ner_provider",
                 return_value=mock_provider,
             ),
             patch(
-                "hermes.proposal_builder.generate_embedding", new_callable=AsyncMock
-            ) as mock_emb,
+                "hermes.proposal_builder.get_relation_extractor",
+                return_value=mock_rel,
+            ),
+            patch(
+                "hermes.proposal_builder.generate_embeddings_batch",
+                new_callable=AsyncMock,
+            ) as mock_batch,
         ):
-            mock_emb.return_value = {
-                "embedding": [0.1] * 384,
-                "dimension": 384,
-                "model": "all-MiniLM-L6-v2",
-                "embedding_id": "test-id",
-            }
+            # 2 entity embeddings + 1 doc embedding = 3 results
+            mock_batch.return_value = [emb_result, emb_result, emb_result]
             proposal = await builder.build(
                 text="The Eiffel Tower is in Paris",
                 metadata={},
@@ -85,21 +107,32 @@ class TestProposalBuilder:
             side_effect=Exception("NER not available")
         )
 
+        mock_rel = MagicMock()
+        mock_rel.extract = AsyncMock(return_value=[])
+
+        emb_result = {
+            "embedding": [0.1] * 384,
+            "dimension": 384,
+            "model": "all-MiniLM-L6-v2",
+            "embedding_id": "fallback-id",
+        }
+
         with (
             patch(
                 "hermes.proposal_builder.get_ner_provider",
                 return_value=mock_provider,
             ),
             patch(
-                "hermes.proposal_builder.generate_embedding", new_callable=AsyncMock
-            ) as mock_emb,
+                "hermes.proposal_builder.get_relation_extractor",
+                return_value=mock_rel,
+            ),
+            patch(
+                "hermes.proposal_builder.generate_embeddings_batch",
+                new_callable=AsyncMock,
+            ) as mock_batch,
         ):
-            mock_emb.return_value = {
-                "embedding": [0.1] * 384,
-                "dimension": 384,
-                "model": "all-MiniLM-L6-v2",
-                "embedding_id": "fallback-id",
-            }
+            # NER fails -> 0 entities -> batch embed gets just [text] -> 1 result (doc embedding)
+            mock_batch.return_value = [emb_result]
             proposal = await builder.build(text="Hello", metadata={})
 
         assert proposal["proposed_nodes"] == []
@@ -118,8 +151,18 @@ class TestProposalBuilder:
             ]
         )
 
+        mock_rel = MagicMock()
+        mock_rel.extract = AsyncMock(return_value=[])
+
         mock_emb_provider = MagicMock()
         mock_emb_provider.model_name = "all-MiniLM-L6-v2"
+
+        emb_result = {
+            "embedding": [0.1] * 384,
+            "dimension": 384,
+            "model": "all-MiniLM-L6-v2",
+            "embedding_id": "test-id",
+        }
 
         with (
             patch(
@@ -127,19 +170,20 @@ class TestProposalBuilder:
                 return_value=mock_ner,
             ),
             patch(
+                "hermes.proposal_builder.get_relation_extractor",
+                return_value=mock_rel,
+            ),
+            patch(
                 "hermes.proposal_builder.get_embedding_provider",
                 return_value=mock_emb_provider,
             ),
             patch(
-                "hermes.proposal_builder.generate_embedding", new_callable=AsyncMock
-            ) as mock_emb,
+                "hermes.proposal_builder.generate_embeddings_batch",
+                new_callable=AsyncMock,
+            ) as mock_batch,
         ):
-            mock_emb.return_value = {
-                "embedding": [0.1] * 384,
-                "dimension": 384,
-                "model": "all-MiniLM-L6-v2",
-                "embedding_id": "test-id",
-            }
+            # 1 entity + 1 doc text = 2 batch results
+            mock_batch.return_value = [emb_result, emb_result]
             proposal = await builder.build(text="Paris", metadata={"foo": "bar"})
 
         pipeline = proposal["metadata"]["pipeline"]
@@ -161,8 +205,18 @@ class TestProposalBuilder:
         mock_ner.name = "spacy"
         mock_ner.extract_entities = AsyncMock(return_value=[])
 
+        mock_rel = MagicMock()
+        mock_rel.extract = AsyncMock(return_value=[])
+
         mock_emb_provider = MagicMock()
         mock_emb_provider.model_name = "test-model"
+
+        emb_result = {
+            "embedding": [0.1] * 384,
+            "dimension": 384,
+            "model": "test-model",
+            "embedding_id": "id",
+        }
 
         with (
             patch(
@@ -170,19 +224,19 @@ class TestProposalBuilder:
                 return_value=mock_ner,
             ),
             patch(
+                "hermes.proposal_builder.get_relation_extractor",
+                return_value=mock_rel,
+            ),
+            patch(
                 "hermes.proposal_builder.get_embedding_provider",
                 return_value=mock_emb_provider,
             ),
             patch(
-                "hermes.proposal_builder.generate_embedding", new_callable=AsyncMock
-            ) as mock_emb,
+                "hermes.proposal_builder.generate_embeddings_batch",
+                new_callable=AsyncMock,
+            ) as mock_batch,
         ):
-            mock_emb.return_value = {
-                "embedding": [0.1] * 384,
-                "dimension": 384,
-                "model": "test-model",
-                "embedding_id": "id",
-            }
+            mock_batch.return_value = [emb_result]
             proposal = await builder.build(
                 text="Hello",
                 metadata={"experiment_tags": ["baseline", "v2"]},

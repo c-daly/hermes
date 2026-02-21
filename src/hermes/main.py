@@ -114,6 +114,7 @@ from starlette.middleware.base import (
 from starlette.responses import Response as StarletteResponse
 
 from hermes import __version__, milvus_client
+from hermes.context_cache import ContextCache
 from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError
 from hermes.proposal_builder import ProposalBuilder
 from hermes.services import (
@@ -140,18 +141,79 @@ tracer = get_tracer("hermes.api")
 # Proposal builder for cognitive-loop context injection
 _proposal_builder = ProposalBuilder()
 
+# Redis context cache (lazily initialised on first use)
+_context_cache: ContextCache | None = None
+
 
 # -------------------------------------------------------------------
 # Cognitive-loop helpers: context retrieval from Sophia
 # -------------------------------------------------------------------
 
 
-async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> list[dict]:
-    """Send proposal to Sophia, get relevant context back.
+def _get_context_cache() -> ContextCache | None:
+    """Return (and lazily create) the module-level ContextCache."""
+    global _context_cache
+    if _context_cache is None:
+        redis_url = get_env_value("REDIS_URL", default="redis://localhost:6379/0") or "redis://localhost:6379/0"
+        _context_cache = ContextCache(redis_url)
+    return _context_cache
 
-    Never raises -- if Sophia is unavailable, returns empty list.
-    LLM generation proceeds regardless.
+
+async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> list[dict]:
+    """Retrieve relevant context for the LLM prompt.
+
+    Strategy:
+    1. Check Redis for cached context from a prior Sophia processing turn.
+       If found, return it immediately (no synchronous Sophia call).
+    2. Build a proposal and enqueue it to Redis for background processing.
+    3. If Redis is unavailable, fall back to the original synchronous
+       Sophia call so the cognitive loop still works.
+
+    Never raises -- if everything fails, returns empty list.
     """
+    # --- Fast path: try Redis cache first ---
+    cache = _get_context_cache()
+    conversation_id = metadata.get("conversation_id") or request_id
+
+    if cache is not None and cache.available:
+        cached = cache.get_context(conversation_id)
+        if cached:
+            logger.debug(
+                "Using cached Sophia context for %s (%d items)",
+                conversation_id,
+                len(cached),
+            )
+            # Fire-and-forget: enqueue proposal for background processing
+            try:
+                proposal = await _proposal_builder.build(
+                    text=text,
+                    metadata=metadata or {},
+                    correlation_id=request_id,
+                )
+                cache.enqueue_proposal(proposal, conversation_id=conversation_id)
+            except Exception as e:
+                logger.warning(f"Background proposal enqueue failed: {e}")
+            return cached
+
+        # No cached context yet — still enqueue and fall through
+        try:
+            proposal = await _proposal_builder.build(
+                text=text,
+                metadata=metadata or {},
+                correlation_id=request_id,
+            )
+            cache.enqueue_proposal(proposal, conversation_id=conversation_id)
+            logger.debug(
+                "No cached context for %s; proposal enqueued for background processing",
+                conversation_id,
+            )
+        except Exception as e:
+            logger.warning(f"Proposal build/enqueue failed: {e}")
+
+        # For a first-turn conversation with no cache, fall through to
+        # synchronous Sophia call so the user still gets context.
+
+    # --- Fallback: synchronous Sophia call ---
     sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
     sophia_port = get_env_value("SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)) or str(
         _SOPHIA_PORTS.api

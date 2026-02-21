@@ -26,6 +26,7 @@ dependencies = [
     # logos-foundry provides logos_config and logos_test_utils
     "logos-foundry @ git+https://github.com/c-daly/logos.git@v0.5.0 ; python_version >= '3.12' and python_version < '4.0'",
     "numpy>=1.24.0,<2.4",
+    "redis>=5.0.0",
 ]
 
 [project.optional-dependencies]

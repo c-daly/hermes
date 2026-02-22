@@ -44,7 +44,8 @@ class ContextCache:
         try:
             raw = self._redis.get(f"{self.CONTEXT_PREFIX}{conversation_id}")
             if raw:
-                result: list[dict] = json.loads(raw)  # type: ignore[arg-type]
+                decoded = bytes(raw) if not isinstance(raw, (str, bytes)) else raw
+                result: list[dict] = json.loads(decoded)
                 return result
         except (redis.RedisError, json.JSONDecodeError) as e:
             logger.debug(f"Context cache read failed: {e}")

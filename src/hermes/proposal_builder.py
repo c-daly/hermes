@@ -86,6 +86,12 @@ class ProposalBuilder:
 
             # Unpack embeddings: first N are entities, last one is document
             entity_embeddings = all_embeddings[: len(entities)]
+            if len(entity_embeddings) != len(entities):
+                logger.warning(
+                    "Entity embedding count mismatch: %d entities vs %d embeddings",
+                    len(entities),
+                    len(entity_embeddings),
+                )
             doc_embedding_result = (
                 all_embeddings[len(entities)]
                 if len(all_embeddings) > len(entities)

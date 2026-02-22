@@ -247,8 +247,8 @@ class OpenAIRelationExtractor:
                 max_tokens=2048,
                 metadata={"scenario": "relation_extraction"},
             )
-        except Exception:
-            logger.warning("OpenAI relation extraction failed, falling back to empty")
+        except Exception as e:
+            logger.warning("OpenAI relation extraction failed: %s", e, exc_info=True)
             return []
 
         content = result.get("choices", [{}])[0].get("message", {}).get("content", "")

@@ -116,7 +116,11 @@ from starlette.responses import Response as StarletteResponse
 
 from hermes import __version__, milvus_client
 from hermes.context_cache import ContextCache
-from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError, generate_completion
+from hermes.llm import (
+    LLMProviderError,
+    LLMProviderNotConfiguredError,
+    generate_completion,
+)
 from hermes.proposal_builder import ProposalBuilder
 from hermes.services import (
     generate_embedding,
@@ -1144,7 +1148,9 @@ async def receive_feedback(
 
 class NameTypeRequest(BaseModel):
     node_names: list[str] = Field(..., description="Cluster of node names to classify")
-    parent_type: str | None = Field(default=None, description="Optional parent type hint")
+    parent_type: str | None = Field(
+        default=None, description="Optional parent type hint"
+    )
 
 
 class NameTypeResponse(BaseModel):
@@ -1155,9 +1161,7 @@ class NameTypeResponse(BaseModel):
 async def name_type(request: NameTypeRequest) -> NameTypeResponse:
     """Suggest a type name for a cluster of node names."""
     names_list = ", ".join(request.node_names)
-    prompt = (
-        f"Given these node names that are clustered together: [{names_list}]"
-    )
+    prompt = f"Given these node names that are clustered together: [{names_list}]"
     if request.parent_type:
         prompt += f"\nTheir current parent type is: {request.parent_type}"
     prompt += (
@@ -1181,16 +1185,20 @@ class NameRelationshipRequest(BaseModel):
 
 
 class NameRelationshipResponse(BaseModel):
-    relationship: str = Field(..., description="Suggested edge label (UPPER_SNAKE_CASE)")
-    bidirectional: bool = Field(default=False, description="Whether the relationship is bidirectional")
+    relationship: str = Field(
+        ..., description="Suggested edge label (UPPER_SNAKE_CASE)"
+    )
+    bidirectional: bool = Field(
+        default=False, description="Whether the relationship is bidirectional"
+    )
 
 
 @app.post("/name-relationship", response_model=NameRelationshipResponse)
-async def name_relationship(request: NameRelationshipRequest) -> NameRelationshipResponse:
+async def name_relationship(
+    request: NameRelationshipRequest,
+) -> NameRelationshipResponse:
     """Suggest a relationship label for a pair of nodes."""
-    prompt = (
-        f'Given source node "{request.source_name}" and target node "{request.target_name}"'
-    )
+    prompt = f'Given source node "{request.source_name}" and target node "{request.target_name}"'
     if request.context:
         prompt += f'\nContext: "{request.context}"'
     prompt += (

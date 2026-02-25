@@ -18,6 +18,11 @@ from logos_config import get_env_value
 
 logger = logging.getLogger(__name__)
 
+# DEPRECATED: Sophia now owns type classification via embedding-space centroids.
+# These definitions are retained for backward compatibility — Sophia ignores
+# the `type` field in proposals and classifies using centroid proximity.
+# See: logos/docs/plans/2026-02-25-sophia-driven-type-classification-design.md
+
 # LOGOS ontology types that Hermes can propose, with descriptions for the
 # LLM prompt so it understands what each means.
 ONTOLOGY_TYPES: dict[str, str] = {
@@ -37,6 +42,7 @@ ONTOLOGY_TYPES: dict[str, str] = {
     "capability": "an ability or skill",
 }
 
+# DEPRECATED: See ONTOLOGY_TYPES deprecation note above.
 # Map spaCy NER labels to ontology types (fallback classification).
 SPACY_TO_ONTOLOGY: dict[str, str] = {
     "GPE": "location",
@@ -105,6 +111,8 @@ class OpenAINERProvider:
 
     name: str = "openai"
 
+    # DEPRECATED: Type classification instructions retained for backward compat.
+    # Sophia ignores the type field. Future: simplify to extract names/spans only.
     _SYSTEM_PROMPT = (
         "You are a named-entity recognition system for the LOGOS robotics "
         "ontology. Given input text, extract all named entities and classify "

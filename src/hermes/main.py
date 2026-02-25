@@ -5,6 +5,7 @@ See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 """
 
 import importlib.util
+import json
 import logging
 import os
 import uuid
@@ -115,7 +116,7 @@ from starlette.responses import Response as StarletteResponse
 
 from hermes import __version__, milvus_client
 from hermes.context_cache import ContextCache
-from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError
+from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError, generate_completion
 from hermes.proposal_builder import ProposalBuilder
 from hermes.services import (
     generate_embedding,
@@ -1134,6 +1135,43 @@ async def receive_feedback(
             status="accepted",
             message=f"Feedback received for {payload.feedback_type}: {payload.outcome}",
         )
+
+
+# ---------------------------------------------------------------------
+# Naming Endpoints (Sophia type-classification support)
+# ---------------------------------------------------------------------
+
+
+class NameTypeRequest(BaseModel):
+    node_names: list[str] = Field(..., description="Cluster of node names to classify")
+    parent_type: str | None = Field(default=None, description="Optional parent type hint")
+
+
+class NameTypeResponse(BaseModel):
+    type_name: str = Field(..., description="Suggested type name for the cluster")
+
+
+@app.post("/name-type", response_model=NameTypeResponse)
+async def name_type(request: NameTypeRequest) -> NameTypeResponse:
+    """Suggest a type name for a cluster of node names."""
+    names_list = ", ".join(request.node_names)
+    prompt = (
+        f"Given these node names that are clustered together: [{names_list}]"
+    )
+    if request.parent_type:
+        prompt += f"\nTheir current parent type is: {request.parent_type}"
+    prompt += (
+        "\n\nSuggest a concise, snake_case type name that describes this cluster. "
+        'Return ONLY a JSON object: {"type_name": "<name>"}.'
+    )
+    result = await generate_completion(
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.0,
+        max_tokens=128,
+    )
+    content = result["choices"][0]["message"]["content"]
+    data = json.loads(content)
+    return NameTypeResponse(type_name=data["type_name"])
 
 
 def main() -> None:

@@ -1174,6 +1174,43 @@ async def name_type(request: NameTypeRequest) -> NameTypeResponse:
     return NameTypeResponse(type_name=data["type_name"])
 
 
+class NameRelationshipRequest(BaseModel):
+    source_name: str = Field(..., description="Source node name")
+    target_name: str = Field(..., description="Target node name")
+    context: str | None = Field(default=None, description="Optional context sentence")
+
+
+class NameRelationshipResponse(BaseModel):
+    relationship: str = Field(..., description="Suggested edge label (UPPER_SNAKE_CASE)")
+    bidirectional: bool = Field(default=False, description="Whether the relationship is bidirectional")
+
+
+@app.post("/name-relationship", response_model=NameRelationshipResponse)
+async def name_relationship(request: NameRelationshipRequest) -> NameRelationshipResponse:
+    """Suggest a relationship label for a pair of nodes."""
+    prompt = (
+        f'Given source node "{request.source_name}" and target node "{request.target_name}"'
+    )
+    if request.context:
+        prompt += f'\nContext: "{request.context}"'
+    prompt += (
+        "\n\nSuggest an UPPER_SNAKE_CASE relationship label for the directed edge "
+        "from source to target, and whether it is bidirectional. "
+        'Return ONLY a JSON object: {"relationship": "<LABEL>", "bidirectional": <true|false>}.'
+    )
+    result = await generate_completion(
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.0,
+        max_tokens=128,
+    )
+    content = result["choices"][0]["message"]["content"]
+    data = json.loads(content)
+    return NameRelationshipResponse(
+        relationship=data["relationship"],
+        bidirectional=data.get("bidirectional", False),
+    )
+
+
 def main() -> None:
     """Entry point for running the Hermes server."""
     import uvicorn

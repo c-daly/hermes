@@ -7,7 +7,6 @@ See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 import importlib.util
 import json
 import logging
-import re
 import os
 import uuid
 from contextlib import asynccontextmanager
@@ -1165,10 +1164,13 @@ def _extract_json(text: str) -> dict:
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        # LLMs sometimes wrap JSON in ```json ... ``` fences
-        match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
-        if match:
-            return json.loads(match.group(1))
+        # LLMs sometimes wrap JSON in ```json ... ``` fences.
+        # Extract by finding the first { and last } instead of regex
+        # to avoid ReDoS on adversarial input.
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end > start:
+            return json.loads(text[start : end + 1])
         raise
 
 

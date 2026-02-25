@@ -1159,7 +1159,7 @@ class NameTypeResponse(BaseModel):
     type_name: str = Field(..., description="Suggested type name for the cluster")
 
 
-def _extract_json(text: str) -> dict:
+def _extract_json(text: str) -> dict:  # type: ignore[type-arg]
     """Parse JSON from LLM output, handling markdown code fences."""
     try:
         return json.loads(text)

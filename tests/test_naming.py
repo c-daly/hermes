@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, patch
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 from hermes.main import app
 
 
@@ -49,3 +49,52 @@ async def test_name_relationship_returns_label():
             )
         assert resp.status_code == 200
         assert resp.json()["relationship"] == "LOCATED_IN"
+
+
+@pytest.mark.asyncio
+async def test_name_type_handles_code_fence():
+    """POST /name-type handles LLM wrapping JSON in markdown code fences."""
+    with patch("hermes.main.generate_completion", new_callable=AsyncMock) as mock_llm:
+        mock_llm.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": '```json\n{"type_name": "geographic_region"}\n```'
+                    }
+                }
+            ]
+        }
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/name-type",
+                json={"node_names": ["Europe", "Asia", "Africa"]},
+            )
+        assert resp.status_code == 200
+        assert resp.json()["type_name"] == "geographic_region"
+
+
+@pytest.mark.asyncio
+async def test_name_type_empty_choices_returns_502():
+    """POST /name-type returns 502 when LLM returns no choices."""
+    with patch("hermes.main.generate_completion", new_callable=AsyncMock) as mock_llm:
+        mock_llm.return_value = {"choices": []}
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post(
+                "/name-type",
+                json={"node_names": ["Dublin"]},
+            )
+        assert resp.status_code == 502
+
+
+@pytest.mark.asyncio
+async def test_name_type_empty_node_names_returns_422():
+    """POST /name-type rejects empty node_names list."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.post(
+            "/name-type",
+            json={"node_names": []},
+        )
+    assert resp.status_code == 422

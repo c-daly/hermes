@@ -7,6 +7,7 @@ See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 import importlib.util
 import json
 import logging
+import re
 import os
 import uuid
 from contextlib import asynccontextmanager
@@ -1147,7 +1148,9 @@ async def receive_feedback(
 
 
 class NameTypeRequest(BaseModel):
-    node_names: list[str] = Field(..., description="Cluster of node names to classify")
+    node_names: list[str] = Field(
+        ..., min_length=1, description="Cluster of node names to classify"
+    )
     parent_type: str | None = Field(
         default=None, description="Optional parent type hint"
     )
@@ -1157,24 +1160,47 @@ class NameTypeResponse(BaseModel):
     type_name: str = Field(..., description="Suggested type name for the cluster")
 
 
+def _extract_json(text: str) -> dict:
+    """Parse JSON from LLM output, handling markdown code fences."""
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # LLMs sometimes wrap JSON in ```json ... ``` fences
+        match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+        if match:
+            return json.loads(match.group(1))
+        raise
+
+
 @app.post("/name-type", response_model=NameTypeResponse)
 async def name_type(request: NameTypeRequest) -> NameTypeResponse:
     """Suggest a type name for a cluster of node names."""
     names_list = ", ".join(request.node_names)
-    prompt = f"Given these node names that are clustered together: [{names_list}]"
-    if request.parent_type:
-        prompt += f"\nTheir current parent type is: {request.parent_type}"
-    prompt += (
-        "\n\nSuggest a concise, snake_case type name that describes this cluster. "
-        'Return ONLY a JSON object: {"type_name": "<name>"}.'
+    system_msg = (
+        "You are a concise naming assistant. "
+        'Return ONLY a JSON object: {"type_name": "<name>"}. '
+        "The type_name must be snake_case."
     )
+    user_msg = f"Given these node names that are clustered together: [{names_list}]"
+    if request.parent_type:
+        user_msg += f"\nTheir current parent type is: {request.parent_type}"
+    user_msg += (
+        "\n\nSuggest a concise, snake_case type name that describes this cluster."
+    )
+
     result = await generate_completion(
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ],
         temperature=0.0,
         max_tokens=128,
     )
-    content = result["choices"][0]["message"]["content"]
-    data = json.loads(content)
+    choices = result.get("choices", [])
+    if not choices:
+        raise HTTPException(status_code=502, detail="LLM returned no choices")
+    content = choices[0]["message"]["content"]
+    data = _extract_json(content)
     return NameTypeResponse(type_name=data["type_name"])
 
 
@@ -1198,21 +1224,35 @@ async def name_relationship(
     request: NameRelationshipRequest,
 ) -> NameRelationshipResponse:
     """Suggest a relationship label for a pair of nodes."""
-    prompt = f'Given source node "{request.source_name}" and target node "{request.target_name}"'
-    if request.context:
-        prompt += f'\nContext: "{request.context}"'
-    prompt += (
-        "\n\nSuggest an UPPER_SNAKE_CASE relationship label for the directed edge "
-        "from source to target, and whether it is bidirectional. "
-        'Return ONLY a JSON object: {"relationship": "<LABEL>", "bidirectional": <true|false>}.'
+    system_msg = (
+        "You are a concise naming assistant. "
+        'Return ONLY a JSON object: {"relationship": "<LABEL>", "bidirectional": <true|false>}. '
+        "The relationship must be UPPER_SNAKE_CASE."
     )
+    user_msg = (
+        f'Given source node "{request.source_name}" '
+        f'and target node "{request.target_name}"'
+    )
+    if request.context:
+        user_msg += f'\nContext: "{request.context}"'
+    user_msg += (
+        "\n\nSuggest an UPPER_SNAKE_CASE relationship label for the directed edge "
+        "from source to target, and whether it is bidirectional."
+    )
+
     result = await generate_completion(
-        messages=[{"role": "user", "content": prompt}],
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ],
         temperature=0.0,
         max_tokens=128,
     )
-    content = result["choices"][0]["message"]["content"]
-    data = json.loads(content)
+    choices = result.get("choices", [])
+    if not choices:
+        raise HTTPException(status_code=502, detail="LLM returned no choices")
+    content = choices[0]["message"]["content"]
+    data = _extract_json(content)
     return NameRelationshipResponse(
         relationship=data["relationship"],
         bidirectional=data.get("bidirectional", False),

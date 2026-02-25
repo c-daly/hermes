@@ -1159,10 +1159,10 @@ class NameTypeResponse(BaseModel):
     type_name: str = Field(..., description="Suggested type name for the cluster")
 
 
-def _extract_json(text: str) -> dict[str, object]:
+def _extract_json(text: str) -> dict[str, Any]:
     """Parse JSON from LLM output, handling markdown code fences."""
     try:
-        result: dict[str, object] = json.loads(text)
+        result: dict[str, Any] = json.loads(text)
         return result
     except json.JSONDecodeError:
         # LLMs sometimes wrap JSON in ```json ... ``` fences.

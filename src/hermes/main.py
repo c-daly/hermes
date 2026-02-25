@@ -1159,10 +1159,11 @@ class NameTypeResponse(BaseModel):
     type_name: str = Field(..., description="Suggested type name for the cluster")
 
 
-def _extract_json(text: str) -> dict:  # type: ignore[type-arg]
+def _extract_json(text: str) -> dict[str, object]:
     """Parse JSON from LLM output, handling markdown code fences."""
     try:
-        return json.loads(text)
+        result: dict[str, object] = json.loads(text)
+        return result
     except json.JSONDecodeError:
         # LLMs sometimes wrap JSON in ```json ... ``` fences.
         # Extract by finding the first { and last } instead of regex
@@ -1170,7 +1171,8 @@ def _extract_json(text: str) -> dict:  # type: ignore[type-arg]
         start = text.find("{")
         end = text.rfind("}")
         if start != -1 and end > start:
-            return json.loads(text[start : end + 1])
+            result = json.loads(text[start : end + 1])
+            return result
         raise
 
 

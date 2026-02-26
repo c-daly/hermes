@@ -5,6 +5,7 @@ See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 """
 
 import importlib.util
+import json
 import logging
 import os
 import uuid
@@ -115,7 +116,11 @@ from starlette.responses import Response as StarletteResponse
 
 from hermes import __version__, milvus_client
 from hermes.context_cache import ContextCache
-from hermes.llm import LLMProviderError, LLMProviderNotConfiguredError
+from hermes.llm import (
+    LLMProviderError,
+    LLMProviderNotConfiguredError,
+    generate_completion,
+)
 from hermes.proposal_builder import ProposalBuilder
 from hermes.services import (
     generate_embedding,
@@ -1134,6 +1139,128 @@ async def receive_feedback(
             status="accepted",
             message=f"Feedback received for {payload.feedback_type}: {payload.outcome}",
         )
+
+
+# ---------------------------------------------------------------------
+# Naming Endpoints (Sophia type-classification support)
+# ---------------------------------------------------------------------
+
+
+class NameTypeRequest(BaseModel):
+    node_names: list[str] = Field(
+        ..., min_length=1, description="Cluster of node names to classify"
+    )
+    parent_type: str | None = Field(
+        default=None, description="Optional parent type hint"
+    )
+
+
+class NameTypeResponse(BaseModel):
+    type_name: str = Field(..., description="Suggested type name for the cluster")
+
+
+def _extract_json(text: str) -> dict[str, Any]:
+    """Parse JSON from LLM output, handling markdown code fences."""
+    try:
+        result: dict[str, Any] = json.loads(text)
+        return result
+    except json.JSONDecodeError:
+        # LLMs sometimes wrap JSON in ```json ... ``` fences.
+        # Extract by finding the first { and last } instead of regex
+        # to avoid ReDoS on adversarial input.
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end > start:
+            result = json.loads(text[start : end + 1])
+            return result
+        raise
+
+
+@app.post("/name-type", response_model=NameTypeResponse)
+async def name_type(request: NameTypeRequest) -> NameTypeResponse:
+    """Suggest a type name for a cluster of node names."""
+    names_list = ", ".join(request.node_names)
+    system_msg = (
+        "You are a concise naming assistant. "
+        'Return ONLY a JSON object: {"type_name": "<name>"}. '
+        "The type_name must be snake_case."
+    )
+    user_msg = f"Given these node names that are clustered together: [{names_list}]"
+    if request.parent_type:
+        user_msg += f"\nTheir current parent type is: {request.parent_type}"
+    user_msg += (
+        "\n\nSuggest a concise, snake_case type name that describes this cluster."
+    )
+
+    result = await generate_completion(
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ],
+        temperature=0.0,
+        max_tokens=128,
+    )
+    choices = result.get("choices", [])
+    if not choices:
+        raise HTTPException(status_code=502, detail="LLM returned no choices")
+    content = choices[0]["message"]["content"]
+    data = _extract_json(content)
+    return NameTypeResponse(type_name=data["type_name"])
+
+
+class NameRelationshipRequest(BaseModel):
+    source_name: str = Field(..., description="Source node name")
+    target_name: str = Field(..., description="Target node name")
+    context: str | None = Field(default=None, description="Optional context sentence")
+
+
+class NameRelationshipResponse(BaseModel):
+    relationship: str = Field(
+        ..., description="Suggested edge label (UPPER_SNAKE_CASE)"
+    )
+    bidirectional: bool = Field(
+        default=False, description="Whether the relationship is bidirectional"
+    )
+
+
+@app.post("/name-relationship", response_model=NameRelationshipResponse)
+async def name_relationship(
+    request: NameRelationshipRequest,
+) -> NameRelationshipResponse:
+    """Suggest a relationship label for a pair of nodes."""
+    system_msg = (
+        "You are a concise naming assistant. "
+        'Return ONLY a JSON object: {"relationship": "<LABEL>", "bidirectional": <true|false>}. '
+        "The relationship must be UPPER_SNAKE_CASE."
+    )
+    user_msg = (
+        f'Given source node "{request.source_name}" '
+        f'and target node "{request.target_name}"'
+    )
+    if request.context:
+        user_msg += f'\nContext: "{request.context}"'
+    user_msg += (
+        "\n\nSuggest an UPPER_SNAKE_CASE relationship label for the directed edge "
+        "from source to target, and whether it is bidirectional."
+    )
+
+    result = await generate_completion(
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ],
+        temperature=0.0,
+        max_tokens=128,
+    )
+    choices = result.get("choices", [])
+    if not choices:
+        raise HTTPException(status_code=502, detail="LLM returned no choices")
+    content = choices[0]["message"]["content"]
+    data = _extract_json(content)
+    return NameRelationshipResponse(
+        relationship=data["relationship"],
+        bidirectional=data.get("bidirectional", False),
+    )
 
 
 def main() -> None:

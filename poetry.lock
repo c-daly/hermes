@@ -1168,8 +1168,8 @@ uvicorn = {version = "^0.32.0", extras = ["standard"]}
 [package.source]
 type = "git"
 url = "https://github.com/c-daly/logos.git"
-reference = "v0.5.0"
-resolved_reference = "38cb9fc8802e93a8e0120561ebe094c0aabedc7a"
+reference = "v0.6.0"
+resolved_reference = "f42150fd3ef56118b29a8fdf90d29a868fdae2e0"
 
 [[package]]
 name = "marisa-trie"
@@ -5298,4 +5298,4 @@ otel = ["opentelemetry-api", "opentelemetry-exporter-otlp", "opentelemetry-instr
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "b99e7ec83012fe07bf78c8ae016c551b1c4891d0b167d0f74ed464ceb5a58f83"
+content-hash = "7473a248269b819a933aacb0f5f0b598e840b22cec41ebad51a891ba0ddc1e86"

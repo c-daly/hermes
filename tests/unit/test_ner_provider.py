@@ -212,7 +212,7 @@ class TestNERDetectBackend:
         ):
             assert mod._detect_backend() == "spacy"
 
-    def test_auto_detect_openai_with_key(self):
+    def test_auto_detect_combined_with_key(self):
         import hermes.ner_provider as mod
 
         def fake_env(k, **kw):
@@ -223,7 +223,7 @@ class TestNERDetectBackend:
             return kw.get("default")
 
         with patch.object(mod, "get_env_value", side_effect=fake_env):
-            assert mod._detect_backend() == "openai"
+            assert mod._detect_backend() == "combined"
 
     def test_auto_detect_spacy_no_key(self):
         import hermes.ner_provider as mod

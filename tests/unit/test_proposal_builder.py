@@ -244,3 +244,68 @@ class TestProposalBuilder:
 
         assert proposal["metadata"]["experiment_tags"] == ["baseline", "v2"]
         assert "pipeline" in proposal["metadata"]
+
+    async def test_combined_extractor_pipeline(self):
+        """When NER provider is OpenAICombinedExtractor, uses 2-step pipeline."""
+        from hermes.combined_extractor import OpenAICombinedExtractor
+        from hermes.proposal_builder import ProposalBuilder
+
+        builder = ProposalBuilder()
+
+        combined = OpenAICombinedExtractor()
+        combined.extract_entities_and_relations = AsyncMock(
+            return_value=(
+                [
+                    {"name": "Alice", "type": "entity", "start": 0, "end": 5},
+                    {"name": "Google", "type": "entity", "start": 15, "end": 21},
+                ],
+                [
+                    {
+                        "source_name": "Alice",
+                        "target_name": "Google",
+                        "relation": "WORKS_AT",
+                        "confidence": 0.9,
+                        "bidirectional": False,
+                        "properties": {},
+                    }
+                ],
+            )
+        )
+
+        emb_result = {
+            "embedding": [0.1] * 384,
+            "dimension": 384,
+            "model": "all-MiniLM-L6-v2",
+            "embedding_id": "test-id",
+        }
+
+        with (
+            patch(
+                "hermes.proposal_builder.get_ner_provider",
+                return_value=combined,
+            ),
+            patch(
+                "hermes.proposal_builder.get_relation_extractor",
+                return_value=combined,
+            ),
+            patch(
+                "hermes.proposal_builder.generate_embeddings_batch",
+                new_callable=AsyncMock,
+            ) as mock_batch,
+        ):
+            # 2 entity + 1 doc = 3 node embeddings; 1 edge embedding
+            mock_batch.return_value = [emb_result, emb_result, emb_result]
+            proposal = await builder.build(
+                text="Alice works at Google",
+                metadata={},
+            )
+
+        # Combined method was called (not separate NER/RE)
+        combined.extract_entities_and_relations.assert_awaited_once_with(
+            "Alice works at Google"
+        )
+
+        assert len(proposal["proposed_nodes"]) == 2
+        assert proposal["proposed_nodes"][0]["name"] == "Alice"
+        assert proposal["proposed_nodes"][1]["name"] == "Google"
+        assert proposal["metadata"]["pipeline"]["ner_provider"] == "combined"

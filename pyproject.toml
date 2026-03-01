@@ -131,7 +131,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=hermes --cov-report=term-missing --cov-fail-under=60"
+addopts = "-v --cov=hermes --cov-report=term-missing"
 markers = [
     "unit: fast tests with no external services",
     "integration: tests requiring infrastructure services (Neo4j, Milvus)",

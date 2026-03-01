@@ -10,8 +10,7 @@ Covers:
 - llm_service_health reporting
 """
 
-import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
@@ -187,7 +186,9 @@ class TestOpenAIProvider:
             assert result["usage"]["total_tokens"] == 15
 
     async def test_http_status_error(self):
-        mock_request = httpx.Request("POST", "https://api.openai.com/v1/chat/completions")
+        mock_request = httpx.Request(
+            "POST", "https://api.openai.com/v1/chat/completions"
+        )
         mock_response = httpx.Response(
             429,
             text="Rate limit exceeded",
@@ -209,9 +210,7 @@ class TestOpenAIProvider:
                 default_model="gpt-4o-mini",
             )
             with pytest.raises(LLMProviderResponseError):
-                await provider.generate(
-                    messages=[{"role": "user", "content": "hi"}]
-                )
+                await provider.generate(messages=[{"role": "user", "content": "hi"}])
 
     async def test_http_general_error(self):
         with patch("hermes.llm.httpx.AsyncClient") as mock_client_cls:
@@ -227,9 +226,7 @@ class TestOpenAIProvider:
                 default_model="gpt-4o-mini",
             )
             with pytest.raises(LLMProviderError):
-                await provider.generate(
-                    messages=[{"role": "user", "content": "hi"}]
-                )
+                await provider.generate(messages=[{"role": "user", "content": "hi"}])
 
     async def test_empty_choices_fallback(self):
         mock_response = httpx.Response(
@@ -500,7 +497,9 @@ class TestEstimateUsage:
         usage = _estimate_usage("hello world", "hi there")
         assert usage["prompt_tokens"] == max(1, len("hello world") // 4)
         assert usage["completion_tokens"] == max(1, len("hi there") // 4)
-        assert usage["total_tokens"] == usage["prompt_tokens"] + usage["completion_tokens"]
+        assert (
+            usage["total_tokens"] == usage["prompt_tokens"] + usage["completion_tokens"]
+        )
 
     def test_empty_prompt(self):
         usage = _estimate_usage("", "response")

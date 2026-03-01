@@ -1,0 +1,77 @@
+name: Sync Issue Status from PRs
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, closed]
+
+jobs:
+  sync-status:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Extract linked issue numbers
+        id: issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const branch = context.payload.pull_request.head.ref || '';
+
+            // Match "Closes #N", "Fixes #N", "Part of #N"
+            const bodyMatches = body.match(/(?:closes|fixes|resolves|part of)\s+#(\d+)/gi) || [];
+            const issueNums = bodyMatches.map(m => m.match(/#(\d+)/)[1]);
+
+            // Match branch pattern: type/123-description
+            const branchMatch = branch.match(/^\w+\/(\d+)/);
+            if (branchMatch && !issueNums.includes(branchMatch[1])) {
+              issueNums.push(branchMatch[1]);
+            }
+
+            core.setOutput('numbers', JSON.stringify([...new Set(issueNums)]));
+            core.info(`Found issues: ${issueNums.join(', ')}`);
+
+      - name: Update issue labels
+        if: fromJSON(steps.issues.outputs.numbers)[0] != null
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNums = JSON.parse('${{ steps.issues.outputs.numbers }}');
+            const pr = context.payload.pull_request;
+            const action = context.payload.action;
+
+            for (const num of issueNums) {
+              const issueNum = parseInt(num);
+              const statusLabels = ['status:todo', 'status:in-progress', 'status:in-review', 'status:blocked'];
+
+              // Get current issue labels
+              const issue = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNum,
+              });
+              const currentLabels = issue.data.labels.map(l => l.name);
+              const nonStatusLabels = currentLabels.filter(l => !statusLabels.includes(l));
+
+              let newStatus;
+              if (action === 'closed' && pr.merged) {
+                // PR merged — don't add a status label, issue will be closed by "Closes #N"
+                newStatus = null;
+              } else if (action === 'ready_for_review' || (action === 'opened' && !pr.draft)) {
+                newStatus = 'status:in-review';
+              } else if (action === 'opened' && pr.draft) {
+                newStatus = 'status:in-progress';
+              }
+
+              const updatedLabels = newStatus ? [...nonStatusLabels, newStatus] : nonStatusLabels;
+
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNum,
+                labels: updatedLabels,
+              });
+
+              core.info(`Updated #${issueNum}: status=${newStatus || 'cleared'}`);
+            }

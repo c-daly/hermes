@@ -326,7 +326,7 @@ def _detect_backend() -> str:
         return explicit.strip().lower()
     has_key = get_env_value("HERMES_LLM_API_KEY") or get_env_value("OPENAI_API_KEY")
     if has_key:
-        return "openai"
+        return "combined"
     return "spacy"
 
 
@@ -338,7 +338,12 @@ def get_relation_extractor() -> RelationExtractor:
 
     backend = _detect_backend()
 
-    if backend == "openai":
+    if backend == "combined":
+        from hermes.combined_extractor import get_combined_instance
+
+        _extractor = get_combined_instance()
+        logger.info("Relation extractor: combined")
+    elif backend == "openai":
         _extractor = OpenAIRelationExtractor()
         logger.info("Relation extractor: openai")
     elif backend == "spacy":

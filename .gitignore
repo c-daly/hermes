@@ -71,3 +71,7 @@ temp/
 # Docker volumes
 volumes/
 .claude-state/
+
+# Serena / Claude context
+.serena/
+.context/

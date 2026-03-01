@@ -217,10 +217,10 @@ def _detect_backend() -> str:
     explicit = get_env_value("NER_PROVIDER")
     if explicit:
         return explicit.strip().lower()
-    # Prefer OpenAI if an API key is available.
+    # Prefer combined NER+RE if an API key is available.
     has_key = get_env_value("HERMES_LLM_API_KEY") or get_env_value("OPENAI_API_KEY")
     if has_key:
-        return "openai"
+        return "combined"
     return "spacy"
 
 
@@ -232,7 +232,12 @@ def get_ner_provider() -> NERProvider:
 
     backend = _detect_backend()
 
-    if backend == "openai":
+    if backend == "combined":
+        from hermes.combined_extractor import get_combined_instance
+
+        _ner_provider = get_combined_instance()
+        logger.info("NER provider: combined")
+    elif backend == "openai":
         _ner_provider = OpenAINERProvider()
         logger.info("NER provider: openai")
     elif backend == "spacy":

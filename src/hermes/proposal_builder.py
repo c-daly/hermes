@@ -11,6 +11,7 @@ import time
 import uuid as uuid_mod
 from datetime import UTC, datetime
 
+from hermes.combined_extractor import OpenAICombinedExtractor
 from hermes.embedding_provider import get_embedding_provider
 from hermes.ner_provider import get_ner_provider
 from hermes.relation_extractor import get_relation_extractor
@@ -66,23 +67,52 @@ class ProposalBuilder:
         ):
             t0 = time.monotonic()
 
-            # Step 1: NER — must complete before relation extraction
-            with tracer.start_as_current_span("proposal_builder.ner"):
-                entities = await self._run_ner(text)
-            t_ner = time.monotonic()
+            # Detect combined extractor for optimised 2-step pipeline
+            ner_provider = get_ner_provider()
 
-            # Step 2: Run relation extraction and entity+doc embeddings in parallel
-            # Relation extraction only needs entity names, not their embeddings.
-            with tracer.start_as_current_span(
-                "proposal_builder.parallel_extract_embed"
-            ):
-                entity_names = [e["name"] for e in entities]
-                embed_texts = entity_names + [text]  # entities + document text
+            if isinstance(ner_provider, OpenAICombinedExtractor):
+                # -- Combined pipeline: 1 LLM call + parallel embeddings --
+                with tracer.start_as_current_span("proposal_builder.combined_ner_re"):
+                    entities, raw_edges = (
+                        await ner_provider.extract_entities_and_relations(text)
+                    )
+                t_ner = time.monotonic()
 
-                rel_task = self._run_relation_extraction(text, entities)
-                emb_task = self._run_batch_embed(embed_texts)
-                raw_edges, all_embeddings = await asyncio.gather(rel_task, emb_task)
-            t_rel = time.monotonic()
+                # All embeddings in parallel: entities + doc + edges
+                with tracer.start_as_current_span(
+                    "proposal_builder.parallel_embed_all"
+                ):
+                    entity_names = [e["name"] for e in entities]
+                    embed_texts = entity_names + [text]
+
+                    all_embeddings, proposed_edges = await asyncio.gather(
+                        self._run_batch_embed(embed_texts),
+                        self._embed_edges(raw_edges),
+                    )
+                t_rel = t_emb = time.monotonic()
+            else:
+                # -- Legacy 3-step pipeline (separate providers) --
+                # Step 1: NER
+                with tracer.start_as_current_span("proposal_builder.ner"):
+                    entities = await self._run_ner(text)
+                t_ner = time.monotonic()
+
+                # Step 2: relation extraction + entity/doc embeddings in parallel
+                with tracer.start_as_current_span(
+                    "proposal_builder.parallel_extract_embed"
+                ):
+                    entity_names = [e["name"] for e in entities]
+                    embed_texts = entity_names + [text]
+
+                    rel_task = self._run_relation_extraction(text, entities)
+                    emb_task = self._run_batch_embed(embed_texts)
+                    raw_edges, all_embeddings = await asyncio.gather(rel_task, emb_task)
+                t_rel = time.monotonic()
+
+                # Step 3: edge embeddings (needs relation results)
+                with tracer.start_as_current_span("proposal_builder.edge_embedding"):
+                    proposed_edges = await self._embed_edges(raw_edges)
+                t_emb = time.monotonic()
 
             # Unpack embeddings: first N are entities, last one is document
             entity_embeddings = all_embeddings[: len(entities)]
@@ -112,11 +142,6 @@ class ProposalBuilder:
                         "properties": {"start": entity["start"], "end": entity["end"]},
                     }
                 )
-
-            # Step 3: Batch embed edge phrases (needs relation extraction results)
-            with tracer.start_as_current_span("proposal_builder.edge_embedding"):
-                proposed_edges = await self._embed_edges(raw_edges)
-            t_emb = time.monotonic()
 
             # Build pipeline metadata for experiment tracking
             pipeline = self._build_pipeline_metadata(

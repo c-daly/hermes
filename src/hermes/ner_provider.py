@@ -16,6 +16,8 @@ from typing import Any, Protocol, runtime_checkable
 
 from logos_config import get_env_value
 
+from hermes.ontology_client import fetch_type_list
+
 logger = logging.getLogger(__name__)
 
 # DEPRECATED: Sophia now owns type classification via embedding-space centroids.
@@ -111,29 +113,48 @@ class OpenAINERProvider:
 
     name: str = "openai"
 
-    # DEPRECATED: Type classification instructions retained for backward compat.
-    # Sophia ignores the type field. Future: simplify to extract names/spans only.
-    _SYSTEM_PROMPT = (
-        "You are a named-entity recognition system for the LOGOS robotics "
-        "ontology. Given input text, extract all named entities and classify "
-        "each with exactly one of the following types:\n\n"
-        + "\n".join(f"- {t}: {desc}" for t, desc in ONTOLOGY_TYPES.items())
-        + "\n\n"
-        'Return a JSON object with a single key "entities" containing an '
-        "array of objects. Each object must have:\n"
-        '  - "name": the entity text as it appears in the input\n'
-        '  - "type": one of the types listed above\n'
-        '  - "start": character offset where the entity starts in the input\n'
-        '  - "end": character offset where the entity ends in the input\n\n'
-        'If no entities are found, return {"entities": []}.\n'
-        "Return ONLY valid JSON, no other text."
-    )
+    def _build_system_prompt(self, type_list: list[dict] | None = None) -> str:
+        """Build the system prompt, optionally using a dynamic type list."""
+        if type_list is not None:
+            types_section = "\n".join(
+                f"- {t['name']}: {t.get('description', '')}" for t in type_list
+            )
+            types_section += "\nIf none of these types fit, use 'object'."
+        else:
+            types_section = "\n".join(
+                f"- {t}: {desc}" for t, desc in ONTOLOGY_TYPES.items()
+            )
+
+        return (
+            "You are a named-entity recognition system for the LOGOS robotics "
+            "ontology. Given input text, extract all named entities and classify "
+            "each with exactly one of the following types:\n\n"
+            f"{types_section}\n\n"
+            'Return a JSON object with a single key "entities" containing an '
+            "array of objects. Each object must have:\n"
+            '  - "name": the entity text as it appears in the input\n'
+            '  - "type": one of the types listed above\n'
+            '  - "start": character offset where the entity starts in the input\n'
+            '  - "end": character offset where the entity ends in the input\n\n'
+            'If no entities are found, return {"entities": []}.\n'
+            "Return ONLY valid JSON, no other text."
+        )
+
+    async def _get_sophia_url(self) -> str:
+        """Build Sophia base URL from env config."""
+        sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
+        sophia_port = get_env_value("SOPHIA_PORT", default="8080") or "8080"
+        return f"http://{sophia_host}:{sophia_port}"
 
     async def extract_entities(self, text: str) -> list[dict]:
         from hermes.llm import generate_completion
 
+        sophia_url = await self._get_sophia_url()
+        type_list = await fetch_type_list(sophia_url)
+        system_prompt = self._build_system_prompt(type_list)
+
         messages = [
-            {"role": "system", "content": self._SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": text},
         ]
 

@@ -92,7 +92,7 @@ class TestProposalBuilder:
             )
 
         assert len(proposal["proposed_nodes"]) == 2
-        assert proposal["proposed_nodes"][0]["name"] == "Eiffel Tower"
+        assert proposal["proposed_nodes"][0]["name"] == "eiffel tower"
         assert proposal["proposed_nodes"][0]["type"] == "object"
         assert proposal["proposed_nodes"][1]["type"] == "location"
         assert "embedding" in proposal["proposed_nodes"][0]
@@ -306,6 +306,6 @@ class TestProposalBuilder:
         )
 
         assert len(proposal["proposed_nodes"]) == 2
-        assert proposal["proposed_nodes"][0]["name"] == "Alice"
-        assert proposal["proposed_nodes"][1]["name"] == "Google"
+        assert proposal["proposed_nodes"][0]["name"] == "alice"
+        assert proposal["proposed_nodes"][1]["name"] == "google"
         assert proposal["metadata"]["pipeline"]["ner_provider"] == "combined"

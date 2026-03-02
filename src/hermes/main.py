@@ -836,6 +836,29 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                 metadata=request.metadata,
             )
 
+            # --- Post-generation: extract NER from prompt + reply ---
+            if user_text:
+                try:
+                    reply_text = (
+                        result.get("choices", [{}])[0]
+                        .get("message", {})
+                        .get("content", "")
+                    )
+                    if reply_text:
+                        combined_text = f"{user_text}\n\n{reply_text}"
+                        post_meta = dict(request.metadata or {})
+                        post_meta["extraction_source"] = "prompt_and_reply"
+                        if request.experiment_tags:
+                            post_meta["experiment_tags"] = request.experiment_tags
+
+                        await _proposal_builder.build(
+                            text=combined_text,
+                            metadata=post_meta,
+                            correlation_id=request_id,
+                        )
+                except Exception as e:
+                    logger.warning("Post-generation proposal failed: %s", e)
+
             return LLMResponse(**result)
         except HTTPException:
             raise

@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 
 from hermes.combined_extractor import OpenAICombinedExtractor
 from hermes.embedding_provider import get_embedding_provider
+from hermes.name_normalizer import normalize_entities
 from hermes.ner_provider import get_ner_provider
 from hermes.relation_extractor import get_relation_extractor
 from hermes.services import generate_embeddings_batch
@@ -76,6 +77,7 @@ class ProposalBuilder:
                     entities, raw_edges = (
                         await ner_provider.extract_entities_and_relations(text)
                     )
+                entities = normalize_entities(entities, text)
                 t_ner = time.monotonic()
 
                 # All embeddings in parallel: entities + doc + edges
@@ -95,6 +97,7 @@ class ProposalBuilder:
                 # Step 1: NER
                 with tracer.start_as_current_span("proposal_builder.ner"):
                     entities = await self._run_ner(text)
+                entities = normalize_entities(entities, text)
                 t_ner = time.monotonic()
 
                 # Step 2: relation extraction + entity/doc embeddings in parallel

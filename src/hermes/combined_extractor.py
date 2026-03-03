@@ -9,6 +9,7 @@ The active provider is selected via env vars:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -117,8 +118,10 @@ class OpenAICombinedExtractor:
         from hermes.llm import generate_completion
 
         sophia_url = get_sophia_url()
-        type_list = await fetch_type_list(sophia_url)
-        edge_type_list = await fetch_edge_type_list(sophia_url)
+        type_list, edge_type_list = await asyncio.gather(
+            fetch_type_list(sophia_url),
+            fetch_edge_type_list(sophia_url),
+        )
         system_prompt = self._build_system_prompt(type_list, edge_type_list)
 
         messages = [

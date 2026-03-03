@@ -15,6 +15,7 @@ from nltk.stem import WordNetLemmatizer
 logger = logging.getLogger(__name__)
 
 # Ensure WordNet corpus is available (downloads once, ~3 MB).
+# In production, pre-bake the corpus into the container image.
 try:
     nltk.data.find("corpora/wordnet")
 except LookupError:
@@ -86,7 +87,10 @@ def _lemmatize_word(word: str) -> str:
     """Lemmatize a single word as a noun, with suffix-rule fallback."""
     if len(word) <= 2:
         return word
-    lemma = _wnl.lemmatize(word, pos="n")
+    try:
+        lemma = _wnl.lemmatize(word, pos="n")
+    except LookupError:
+        return _singularize_fallback(word)
     if lemma == word:
         # WordNet didn't change it -- try suffix rules
         return _singularize_fallback(word)

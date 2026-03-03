@@ -167,10 +167,20 @@ class OpenAINERProvider:
 
         content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
 
-        return self._parse_response(content, text)
+        # Pass dynamic type names so the validator doesn't coerce them to "entity"
+        valid_types: set[str] | None = None
+        if type_list is not None:
+            valid_types = {t["name"] for t in type_list}
+
+        return self._parse_response(content, text, valid_types=valid_types)
 
     @staticmethod
-    def _parse_response(content: str, original_text: str) -> list[dict]:
+    def _parse_response(
+        content: str,
+        original_text: str,
+        *,
+        valid_types: set[str] | None = None,
+    ) -> list[dict]:
         """Parse the LLM JSON response into entity dicts."""
         try:
             data = json.loads(content)
@@ -195,8 +205,9 @@ class OpenAINERProvider:
             ent_type = ent.get("type", "entity")
             if not name:
                 continue
-            # Validate type is in our vocabulary
-            if ent_type not in ONTOLOGY_TYPES:
+            # Validate type — accept dynamic Sophia types or hardcoded fallback
+            allowed = valid_types if valid_types is not None else set(ONTOLOGY_TYPES)
+            if ent_type not in allowed:
                 ent_type = "entity"
             # Use provided offsets, or find them in the text.
             # Track search offset so repeated entities get distinct spans

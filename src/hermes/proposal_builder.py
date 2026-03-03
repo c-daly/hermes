@@ -36,6 +36,28 @@ except ImportError:
     tracer: Any = _NoopTracer()  # type: ignore[no-redef]
 
 
+def _normalize_edge_names(
+    edges: list[dict], normalized_entities: list[dict]
+) -> list[dict]:
+    """Remap edge source/target names to match normalized entity names.
+
+    Applies the same normalization pipeline (lowercase + lemmatize) to
+    edge endpoint names so they resolve against the normalized entity
+    set in Sophia.
+    """
+    from hermes.name_normalizer import _lemmatize_name
+
+    result: list[dict] = []
+    for edge in edges:
+        edge = dict(edge)  # don't mutate originals
+        src = edge.get("source_name", "")
+        tgt = edge.get("target_name", "")
+        edge["source_name"] = _lemmatize_name(src.lower(), original_name=src)
+        edge["target_name"] = _lemmatize_name(tgt.lower(), original_name=tgt)
+        result.append(edge)
+    return result
+
+
 class ProposalBuilder:
     """Builds structured proposals from conversation turns."""
 
@@ -78,6 +100,7 @@ class ProposalBuilder:
                         await ner_provider.extract_entities_and_relations(text)
                     )
                 entities = normalize_entities(entities, text)
+                raw_edges = _normalize_edge_names(raw_edges, entities)
                 t_ner = time.monotonic()
 
                 # All embeddings in parallel: entities + doc + edges
@@ -100,7 +123,8 @@ class ProposalBuilder:
                 entities = normalize_entities(entities, text)
                 t_ner = time.monotonic()
 
-                # Step 2: relation extraction + entity/doc embeddings in parallel
+                # Step 2: relation extraction + entity/doc embeddings in parallel (legacy only)
+                # Note: edge names normalized after relation extraction below
                 with tracer.start_as_current_span(
                     "proposal_builder.parallel_extract_embed"
                 ):
@@ -110,6 +134,7 @@ class ProposalBuilder:
                     rel_task = self._run_relation_extraction(text, entities)
                     emb_task = self._run_batch_embed(embed_texts)
                     raw_edges, all_embeddings = await asyncio.gather(rel_task, emb_task)
+                raw_edges = _normalize_edge_names(raw_edges, entities)
                 t_rel = time.monotonic()
 
                 # Step 3: edge embeddings (needs relation results)

@@ -144,7 +144,11 @@ class OpenAICombinedExtractor:
 
         content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
 
-        return self._parse_combined_response(content, text)
+        valid_types: set[str] | None = None
+        if type_list is not None:
+            valid_types = {t["name"] for t in type_list}
+
+        return self._parse_combined_response(content, text, valid_types=valid_types)
 
     # -- Protocol compat: NERProvider ------------------------------------
 
@@ -170,7 +174,10 @@ class OpenAICombinedExtractor:
 
     @staticmethod
     def _parse_combined_response(
-        content: str, original_text: str
+        content: str,
+        original_text: str,
+        *,
+        valid_types: set[str] | None = None,
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         """Parse the combined JSON response into (entities, relations)."""
         data = _extract_json(content)
@@ -180,6 +187,7 @@ class OpenAICombinedExtractor:
         entities = OpenAINERProvider._parse_response(
             json.dumps({"entities": data.get("entities", [])}),
             original_text,
+            valid_types=valid_types,
         )
 
         entity_names = {e["name"] for e in entities}

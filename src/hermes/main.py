@@ -767,6 +767,12 @@ async def embed_text(request: EmbedTextRequest) -> EmbedTextResponse:
             raise HTTPException(status_code=500, detail="Internal server error")
 
 
+def _log_background_task_error(task: asyncio.Task) -> None:  # type: ignore[type-arg]
+    """Log exceptions from fire-and-forget background tasks."""
+    if not task.cancelled() and task.exception() is not None:
+        logger.warning("Background proposal task failed: %s", task.exception())
+
+
 @app.post("/llm", response_model=LLMResponse)
 async def llm_generate(request: LLMRequest, http_request: Request) -> LLMResponse:
     """Proxy language model completions through Hermes.
@@ -852,13 +858,14 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                         if request.experiment_tags:
                             post_meta["experiment_tags"] = request.experiment_tags
 
-                        asyncio.create_task(
+                        task = asyncio.create_task(
                             _proposal_builder.build(
                                 text=combined_text,
                                 metadata=post_meta,
                                 correlation_id=request_id,
                             )
                         )
+                        task.add_done_callback(_log_background_task_error)
                 except Exception as e:
                     logger.warning("Post-generation proposal failed: %s", e)
 

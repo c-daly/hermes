@@ -246,3 +246,26 @@ class TestWordNetLemmatization:
         entities = [{"name": "United States'", "type": "entity", "start": 0, "end": 14}]
         result = normalize_entities(entities, "United States'")
         assert result[0]["name"] == "united states"
+
+class TestInvariantNouns:
+    """Invariant nouns must not be mangled by suffix-rule fallback."""
+
+    def test_series_unchanged(self):
+        entities = [{"name": "series", "type": "entity", "start": 0, "end": 6}]
+        result = normalize_entities(entities, "series")
+        assert result[0]["name"] == "series"
+
+    def test_species_unchanged(self):
+        entities = [{"name": "Species", "type": "entity", "start": 0, "end": 7}]
+        result = normalize_entities(entities, "Species")
+        assert result[0]["name"] == "species"
+
+    def test_corps_unchanged(self):
+        entities = [{"name": "corps", "type": "entity", "start": 0, "end": 5}]
+        result = normalize_entities(entities, "corps")
+        assert result[0]["name"] == "corps"
+
+    def test_chassis_unchanged(self):
+        entities = [{"name": "chassis", "type": "entity", "start": 0, "end": 7}]
+        result = normalize_entities(entities, "chassis")
+        assert result[0]["name"] == "chassis"

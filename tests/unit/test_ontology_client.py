@@ -1,6 +1,6 @@
 """Tests for ontology_client — fetches type lists from Sophia with caching."""
 
-import time
+import asyncio
 
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
@@ -161,7 +161,7 @@ class TestTypeCache:
             "hermes.ontology_client.httpx.AsyncClient", return_value=mock_client
         ):
             await fetch_type_list("http://localhost:8080", _cache=cache)
-            time.sleep(0.02)  # Wait for TTL to expire
+            await asyncio.sleep(0.02)  # Wait for TTL to expire
             await fetch_type_list("http://localhost:8080", _cache=cache)
 
         # Two HTTP calls — cache expired

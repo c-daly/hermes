@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 
 import nltk
+from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
 
 logger = logging.getLogger(__name__)
@@ -83,8 +84,27 @@ def _singularize_fallback(word: str) -> str:
     return word
 
 
+def _is_wordnet_lemma(word: str) -> bool:
+    """Check if *word* is itself a lemma form in WordNet (not just morphologically related)."""
+    try:
+        for ss in wordnet.synsets(word, pos="n"):
+            if word in [lemma.name() for lemma in ss.lemmas()]:
+                return True
+    except LookupError:
+        pass
+    return False
+
+
 def _lemmatize_word(word: str) -> str:
-    """Lemmatize a single word as a noun, with suffix-rule fallback."""
+    """Lemmatize a single word as a noun, with suffix-rule fallback.
+
+    Guards against two classes of error:
+    1. Invariant nouns that WordNet incorrectly treats as plurals
+       (e.g. "species" -> "specie").  Detected by checking whether
+       the *original* word is itself a WordNet lemma.
+    2. Informal/slang words absent from WordNet (e.g. "rotties").
+       Handled by suffix-rule fallback.
+    """
     if len(word) <= 2:
         return word
     try:
@@ -92,8 +112,17 @@ def _lemmatize_word(word: str) -> str:
     except LookupError:
         return _singularize_fallback(word)
     if lemma == word:
-        # WordNet didn't change it -- try suffix rules
+        # WordNet didn't change it -- if it recognises the word as a
+        # noun it's already correct; only apply suffix rules for words
+        # WordNet doesn't know at all (e.g. "rotties").
+        if _is_wordnet_lemma(word):
+            return word
         return _singularize_fallback(word)
+    # Lemmatizer changed the word.  But the original may itself be a
+    # valid lemma that WordNet incorrectly maps elsewhere
+    # (e.g. "species" -> "specie", "corps" -> "corp").
+    if _is_wordnet_lemma(word):
+        return word
     return str(lemma)
 
 

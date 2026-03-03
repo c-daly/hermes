@@ -59,8 +59,8 @@ def _normalize_edge_names(
         edge["target_name"] = _lemmatize_name(tgt.lower(), original_name=tgt)
 
         if edge["source_name"] not in known_names or edge["target_name"] not in known_names:
-            logger.debug(
-                "Dropping edge %s -> %s: endpoint not in entity set",
+            logger.warning(
+                "Dropping edge %s -> %s: endpoint not in normalized entity set",
                 edge["source_name"],
                 edge["target_name"],
             )

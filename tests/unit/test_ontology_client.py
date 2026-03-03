@@ -25,7 +25,9 @@ class TestFetchTypeList:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("hermes.ontology_client.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "hermes.ontology_client.httpx.AsyncClient", return_value=mock_client
+        ):
             result = await fetch_type_list("http://localhost:8080", _cache=_TypeCache())
 
         assert result is not None
@@ -42,7 +44,9 @@ class TestFetchTypeList:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.get = AsyncMock(side_effect=httpx.ConnectError("refused"))
 
-        with patch("hermes.ontology_client.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "hermes.ontology_client.httpx.AsyncClient", return_value=mock_client
+        ):
             result = await fetch_type_list("http://localhost:8080", _cache=_TypeCache())
 
         assert result is None
@@ -57,7 +61,9 @@ class TestFetchTypeList:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("hermes.ontology_client.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "hermes.ontology_client.httpx.AsyncClient", return_value=mock_client
+        ):
             result = await fetch_type_list("http://localhost:8080", _cache=_TypeCache())
 
         assert result is None
@@ -80,8 +86,12 @@ class TestFetchEdgeTypeList:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("hermes.ontology_client.httpx.AsyncClient", return_value=mock_client):
-            result = await fetch_edge_type_list("http://localhost:8080", _cache=_TypeCache())
+        with patch(
+            "hermes.ontology_client.httpx.AsyncClient", return_value=mock_client
+        ):
+            result = await fetch_edge_type_list(
+                "http://localhost:8080", _cache=_TypeCache()
+            )
 
         assert result is not None
         assert len(result) == 2
@@ -96,8 +106,12 @@ class TestFetchEdgeTypeList:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.get = AsyncMock(side_effect=httpx.ConnectError("refused"))
 
-        with patch("hermes.ontology_client.httpx.AsyncClient", return_value=mock_client):
-            result = await fetch_edge_type_list("http://localhost:8080", _cache=_TypeCache())
+        with patch(
+            "hermes.ontology_client.httpx.AsyncClient", return_value=mock_client
+        ):
+            result = await fetch_edge_type_list(
+                "http://localhost:8080", _cache=_TypeCache()
+            )
 
         assert result is None
 
@@ -118,7 +132,9 @@ class TestTypeCache:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("hermes.ontology_client.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "hermes.ontology_client.httpx.AsyncClient", return_value=mock_client
+        ):
             result1 = await fetch_type_list("http://localhost:8080", _cache=cache)
             result2 = await fetch_type_list("http://localhost:8080", _cache=cache)
 
@@ -141,7 +157,9 @@ class TestTypeCache:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("hermes.ontology_client.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "hermes.ontology_client.httpx.AsyncClient", return_value=mock_client
+        ):
             await fetch_type_list("http://localhost:8080", _cache=cache)
             time.sleep(0.02)  # Wait for TTL to expire
             await fetch_type_list("http://localhost:8080", _cache=cache)

@@ -84,7 +84,9 @@ class TestPostGenerationProposal:
             response = client.post(
                 "/llm",
                 json={
-                    "messages": [{"role": "user", "content": "Tell me about rottweilers"}],
+                    "messages": [
+                        {"role": "user", "content": "Tell me about rottweilers"}
+                    ],
                 },
             )
 
@@ -124,13 +126,16 @@ class TestPostGenerationProposal:
             response = client.post(
                 "/llm",
                 json={
-                    "messages": [{"role": "user", "content": "Tell me about rottweilers"}],
+                    "messages": [
+                        {"role": "user", "content": "Tell me about rottweilers"}
+                    ],
                 },
             )
 
         assert response.status_code == 200
         post_gen_calls = [
-            c for c in build_calls
+            c
+            for c in build_calls
             if "Tell me about rottweilers" in c["text"]
             and "Rottweilers are a loyal breed" in c["text"]
         ]
@@ -169,13 +174,16 @@ class TestPostGenerationProposal:
             response = client.post(
                 "/llm",
                 json={
-                    "messages": [{"role": "user", "content": "Tell me about rottweilers"}],
+                    "messages": [
+                        {"role": "user", "content": "Tell me about rottweilers"}
+                    ],
                 },
             )
 
         assert response.status_code == 200
         post_gen_calls = [
-            c for c in build_calls
+            c
+            for c in build_calls
             if c["metadata"].get("extraction_source") == "prompt_and_reply"
         ]
         assert len(post_gen_calls) == 1
@@ -184,6 +192,7 @@ class TestPostGenerationProposal:
         self, mock_generate_llm_response, mock_sophia_context, mock_proposal
     ):
         """If the post-generation proposal build fails, endpoint still returns."""
+
         async def failing_build(text, metadata, **kwargs):
             if metadata.get("extraction_source") == "prompt_and_reply":
                 raise RuntimeError("Proposal build exploded")
@@ -212,7 +221,9 @@ class TestPostGenerationProposal:
             response = client.post(
                 "/llm",
                 json={
-                    "messages": [{"role": "user", "content": "Tell me about rottweilers"}],
+                    "messages": [
+                        {"role": "user", "content": "Tell me about rottweilers"}
+                    ],
                 },
             )
 

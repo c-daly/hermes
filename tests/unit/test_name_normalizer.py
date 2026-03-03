@@ -1,6 +1,5 @@
 """Tests for name_normalizer — lowercasing, singularization, and dedup."""
 
-
 from hermes.name_normalizer import normalize_entities
 
 

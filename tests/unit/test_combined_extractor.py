@@ -9,8 +9,16 @@ from unittest.mock import AsyncMock, patch
 def _patch_ontology_client():
     """Patch ontology client to return None (fallback to hardcoded types)."""
     return (
-        patch("hermes.combined_extractor.fetch_type_list", new_callable=AsyncMock, return_value=None),
-        patch("hermes.combined_extractor.fetch_edge_type_list", new_callable=AsyncMock, return_value=None),
+        patch(
+            "hermes.combined_extractor.fetch_type_list",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+        patch(
+            "hermes.combined_extractor.fetch_edge_type_list",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
     )
 
 
@@ -60,10 +68,14 @@ class TestCombinedExtraction:
         }
 
         p1, p2 = _patch_ontology_client()
-        with p1, p2, patch(
-            "hermes.llm.generate_completion",
-            new_callable=AsyncMock,
-            return_value=llm_response,
+        with (
+            p1,
+            p2,
+            patch(
+                "hermes.llm.generate_completion",
+                new_callable=AsyncMock,
+                return_value=llm_response,
+            ),
         ):
             entities, relations = await extractor.extract_entities_and_relations(
                 "Paris is the capital of France"
@@ -106,10 +118,14 @@ class TestCombinedExtraction:
 
         text = "Alice works at Google"
         p1, p2 = _patch_ontology_client()
-        with p1, p2, patch(
-            "hermes.llm.generate_completion",
-            new_callable=AsyncMock,
-            return_value=llm_response,
+        with (
+            p1,
+            p2,
+            patch(
+                "hermes.llm.generate_completion",
+                new_callable=AsyncMock,
+                return_value=llm_response,
+            ),
         ):
             entities, _ = await extractor.extract_entities_and_relations(text)
 
@@ -156,10 +172,14 @@ class TestCombinedExtraction:
         }
 
         p1, p2 = _patch_ontology_client()
-        with p1, p2, patch(
-            "hermes.llm.generate_completion",
-            new_callable=AsyncMock,
-            return_value=llm_response,
+        with (
+            p1,
+            p2,
+            patch(
+                "hermes.llm.generate_completion",
+                new_callable=AsyncMock,
+                return_value=llm_response,
+            ),
         ):
             entities, relations = await extractor.extract_entities_and_relations(
                 "Paris"
@@ -177,10 +197,14 @@ class TestCombinedExtraction:
         llm_response = {"choices": [{"message": {"content": "not valid json at all"}}]}
 
         p1, p2 = _patch_ontology_client()
-        with p1, p2, patch(
-            "hermes.llm.generate_completion",
-            new_callable=AsyncMock,
-            return_value=llm_response,
+        with (
+            p1,
+            p2,
+            patch(
+                "hermes.llm.generate_completion",
+                new_callable=AsyncMock,
+                return_value=llm_response,
+            ),
         ):
             entities, relations = await extractor.extract_entities_and_relations(
                 "some text"
@@ -196,10 +220,14 @@ class TestCombinedExtraction:
         extractor = OpenAICombinedExtractor()
 
         p1, p2 = _patch_ontology_client()
-        with p1, p2, patch(
-            "hermes.llm.generate_completion",
-            new_callable=AsyncMock,
-            side_effect=RuntimeError("API down"),
+        with (
+            p1,
+            p2,
+            patch(
+                "hermes.llm.generate_completion",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("API down"),
+            ),
         ):
             entities, relations = await extractor.extract_entities_and_relations(
                 "some text"
@@ -230,10 +258,14 @@ class TestCombinedExtraction:
         llm_response = {"choices": [{"message": {"content": raw}}]}
 
         p1, p2 = _patch_ontology_client()
-        with p1, p2, patch(
-            "hermes.llm.generate_completion",
-            new_callable=AsyncMock,
-            return_value=llm_response,
+        with (
+            p1,
+            p2,
+            patch(
+                "hermes.llm.generate_completion",
+                new_callable=AsyncMock,
+                return_value=llm_response,
+            ),
         ):
             entities, relations = await extractor.extract_entities_and_relations("Bob")
 
@@ -256,13 +288,27 @@ class TestDynamicTypePrompt:
         ]
 
         llm_response = {
-            "choices": [{"message": {"content": json.dumps({"entities": [], "relations": []})}}]
+            "choices": [
+                {"message": {"content": json.dumps({"entities": [], "relations": []})}}
+            ]
         }
 
         with (
-            patch("hermes.combined_extractor.fetch_type_list", new_callable=AsyncMock, return_value=fetched_types),
-            patch("hermes.combined_extractor.fetch_edge_type_list", new_callable=AsyncMock, return_value=None),
-            patch("hermes.llm.generate_completion", new_callable=AsyncMock, return_value=llm_response) as mock_llm,
+            patch(
+                "hermes.combined_extractor.fetch_type_list",
+                new_callable=AsyncMock,
+                return_value=fetched_types,
+            ),
+            patch(
+                "hermes.combined_extractor.fetch_edge_type_list",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "hermes.llm.generate_completion",
+                new_callable=AsyncMock,
+                return_value=llm_response,
+            ) as mock_llm,
         ):
             await extractor.extract_entities_and_relations("test")
 
@@ -278,13 +324,21 @@ class TestDynamicTypePrompt:
         extractor = OpenAICombinedExtractor()
 
         llm_response = {
-            "choices": [{"message": {"content": json.dumps({"entities": [], "relations": []})}}]
+            "choices": [
+                {"message": {"content": json.dumps({"entities": [], "relations": []})}}
+            ]
         }
 
         p1, p2 = _patch_ontology_client()
-        with p1, p2, patch(
-            "hermes.llm.generate_completion", new_callable=AsyncMock, return_value=llm_response
-        ) as mock_llm:
+        with (
+            p1,
+            p2,
+            patch(
+                "hermes.llm.generate_completion",
+                new_callable=AsyncMock,
+                return_value=llm_response,
+            ) as mock_llm,
+        ):
             await extractor.extract_entities_and_relations("test")
 
         system_msg = mock_llm.call_args[1]["messages"][0]["content"]
@@ -302,13 +356,27 @@ class TestDynamicTypePrompt:
         ]
 
         llm_response = {
-            "choices": [{"message": {"content": json.dumps({"entities": [], "relations": []})}}]
+            "choices": [
+                {"message": {"content": json.dumps({"entities": [], "relations": []})}}
+            ]
         }
 
         with (
-            patch("hermes.combined_extractor.fetch_type_list", new_callable=AsyncMock, return_value=None),
-            patch("hermes.combined_extractor.fetch_edge_type_list", new_callable=AsyncMock, return_value=fetched_edge_types),
-            patch("hermes.llm.generate_completion", new_callable=AsyncMock, return_value=llm_response) as mock_llm,
+            patch(
+                "hermes.combined_extractor.fetch_type_list",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "hermes.combined_extractor.fetch_edge_type_list",
+                new_callable=AsyncMock,
+                return_value=fetched_edge_types,
+            ),
+            patch(
+                "hermes.llm.generate_completion",
+                new_callable=AsyncMock,
+                return_value=llm_response,
+            ) as mock_llm,
         ):
             await extractor.extract_entities_and_relations("test")
 
@@ -351,10 +419,14 @@ class TestProtocolCompat:
         }
 
         p1, p2 = _patch_ontology_client()
-        with p1, p2, patch(
-            "hermes.llm.generate_completion",
-            new_callable=AsyncMock,
-            return_value=llm_response,
+        with (
+            p1,
+            p2,
+            patch(
+                "hermes.llm.generate_completion",
+                new_callable=AsyncMock,
+                return_value=llm_response,
+            ),
         ):
             entities = await extractor.extract_entities("X")
 
@@ -403,10 +475,14 @@ class TestProtocolCompat:
         }
 
         p1, p2 = _patch_ontology_client()
-        with p1, p2, patch(
-            "hermes.llm.generate_completion",
-            new_callable=AsyncMock,
-            return_value=llm_response,
+        with (
+            p1,
+            p2,
+            patch(
+                "hermes.llm.generate_completion",
+                new_callable=AsyncMock,
+                return_value=llm_response,
+            ),
         ):
             relations = await extractor.extract(
                 "A knows B", [{"name": "A"}, {"name": "B"}]

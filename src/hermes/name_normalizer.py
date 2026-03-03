@@ -25,15 +25,17 @@ _wnl = WordNetLemmatizer()
 # ---------------------------------------------------------------------------
 # Suffix-rule fallback for words not in WordNet
 # ---------------------------------------------------------------------------
-_NO_STRIP_SUFFIXES = frozenset({
-    "ss",      # grass, lass, class
-    "us",      # bus, campus, virus
-    "is",      # analysis, basis, diabetes
-    "sis",     # thesis, crisis
-    "ous",     # dangerous, famous
-    "ics",     # physics, mathematics
-    "ies",     # handled separately by _ies rule
-})
+_NO_STRIP_SUFFIXES = frozenset(
+    {
+        "ss",  # grass, lass, class
+        "us",  # bus, campus, virus
+        "is",  # analysis, basis, diabetes
+        "sis",  # thesis, crisis
+        "ous",  # dangerous, famous
+        "ics",  # physics, mathematics
+        "ies",  # handled separately by _ies rule
+    }
+)
 
 _VOWELS = frozenset("aeiou")
 
@@ -99,9 +101,7 @@ def _lemmatize_name(name: str) -> str:
     return " ".join(_lemmatize_word(w) for w in words)
 
 
-def normalize_entities(
-    entities: list[dict], text: str
-) -> list[dict]:
+def normalize_entities(entities: list[dict], text: str) -> list[dict]:
     """Normalize entity names: lowercase, lemmatize, deduplicate.
 
     Args:
@@ -123,12 +123,14 @@ def normalize_entities(
 
         norm_name = _lemmatize_name(name.lower())
 
-        normalized.append({
-            "name": norm_name,
-            "type": ent.get("type", "entity"),
-            "start": ent.get("start", 0),
-            "end": ent.get("end", 0),
-        })
+        normalized.append(
+            {
+                "name": norm_name,
+                "type": ent.get("type", "entity"),
+                "start": ent.get("start", 0),
+                "end": ent.get("end", 0),
+            }
+        )
 
     # Phase 2: deduplicate -- keep the entity with the longer span
     seen: dict[str, int] = {}

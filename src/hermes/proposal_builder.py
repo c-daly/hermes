@@ -110,9 +110,10 @@ class ProposalBuilder:
             if isinstance(ner_provider, OpenAICombinedExtractor):
                 # -- Combined pipeline: 1 LLM call + parallel embeddings --
                 with tracer.start_as_current_span("proposal_builder.combined_ner_re"):
-                    entities, raw_edges = (
-                        await ner_provider.extract_entities_and_relations(text)
-                    )
+                    (
+                        entities,
+                        raw_edges,
+                    ) = await ner_provider.extract_entities_and_relations(text)
                 entities = normalize_entities(entities, text)
                 raw_edges = _normalize_edge_names(raw_edges, entities)
                 t_ner = time.monotonic()

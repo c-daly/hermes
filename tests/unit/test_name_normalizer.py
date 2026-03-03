@@ -247,6 +247,7 @@ class TestWordNetLemmatization:
         result = normalize_entities(entities, "United States'")
         assert result[0]["name"] == "united states"
 
+
 class TestInvariantNouns:
     """Invariant nouns must not be mangled by suffix-rule fallback."""
 

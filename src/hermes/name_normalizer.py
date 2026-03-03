@@ -1,17 +1,30 @@
 """Post-extraction entity name normalization.
 
-Cleans entity names via lowercasing, singularization, and deduplication
-before they leave Hermes. No extra LLM call — pure string processing.
+Cleans entity names via lowercasing, lemmatization, and deduplication
+before they leave Hermes.  Uses NLTK WordNet for dictionary words and
+falls back to suffix rules for informal/slang terms not in WordNet.
 """
 
 from __future__ import annotations
 
 import logging
 
+import nltk
+from nltk.stem import WordNetLemmatizer
+
 logger = logging.getLogger(__name__)
 
-# Words ending in these suffixes should not have trailing 's' stripped.
-# Covers common English words that end in 's' but are not plurals.
+# Ensure WordNet corpus is available (downloads once, ~3 MB).
+try:
+    nltk.data.find("corpora/wordnet")
+except LookupError:
+    nltk.download("wordnet", quiet=True)
+
+_wnl = WordNetLemmatizer()
+
+# ---------------------------------------------------------------------------
+# Suffix-rule fallback for words not in WordNet
+# ---------------------------------------------------------------------------
 _NO_STRIP_SUFFIXES = frozenset({
     "ss",      # grass, lass, class
     "us",      # bus, campus, virus
@@ -22,41 +35,36 @@ _NO_STRIP_SUFFIXES = frozenset({
     "ies",     # handled separately by _ies rule
 })
 
-
 _VOWELS = frozenset("aeiou")
 
 
-def _singularize(word: str) -> str:
-    """Lightweight English singularization using suffix rules.
+def _singularize_fallback(word: str) -> str:
+    """Suffix-rule singularization for words not in WordNet.
 
-    Handles common plural patterns without a full NLP library.
-    Expects a lowercased input. Returns the word unchanged if it
-    doesn't match a known plural pattern.
+    Handles informal/slang plurals that the WordNet lemmatizer
+    returns unchanged (e.g. "rotties" -> "rottie").
+    Expects a lowercased input.
     """
     if len(word) <= 2:
         return word
 
-    # -ies → -ie (rotties → rottie, puppies → puppie)
+    # -ies -> -ie (rotties -> rottie)
     if word.endswith("ies") and len(word) > 4:
         return word[:-3] + "ie"
 
-    # -sses → -ss (grasses → grass)
+    # -sses -> -ss (grasses -> grass)
     if word.endswith("sses"):
         return word[:-2]
 
-    # -ches → -ch (watches → watch)
-    if word.endswith("ches"):
+    # -ches -> -ch, -shes -> -sh
+    if word.endswith("ches") or word.endswith("shes"):
         return word[:-2]
 
-    # -shes → -sh (bushes → bush)
-    if word.endswith("shes"):
-        return word[:-2]
-
-    # -xes → -x (boxes → box)
+    # -xes -> -x (boxes -> box)
     if word.endswith("xes"):
         return word[:-2]
 
-    # -zes → -z (quizzes → quiz)
+    # -zes -> -z (quizzes -> quiz)
     if word.endswith("zes") and len(word) > 4:
         return word[:-2]
 
@@ -65,18 +73,36 @@ def _singularize(word: str) -> str:
         if word.endswith(suffix):
             return word
 
-    # -s after a consonant → strip (dogs → dog, checkups → checkup)
-    # Don't strip -s after vowels to avoid mangling non-plurals (diabetes)
+    # -s after a consonant -> strip (dogs -> dog)
     if word.endswith("s") and len(word) > 2 and word[-2] not in _VOWELS:
         return word[:-1]
 
     return word
 
 
+def _lemmatize_word(word: str) -> str:
+    """Lemmatize a single word as a noun, with suffix-rule fallback."""
+    if len(word) <= 2:
+        return word
+    lemma = _wnl.lemmatize(word, pos="n")
+    if lemma == word:
+        # WordNet didn't change it -- try suffix rules
+        return _singularize_fallback(word)
+    return lemma
+
+
+def _lemmatize_name(name: str) -> str:
+    """Lemmatize each word in a (possibly multi-word) entity name."""
+    words = name.split()
+    if not words:
+        return name
+    return " ".join(_lemmatize_word(w) for w in words)
+
+
 def normalize_entities(
     entities: list[dict], text: str
 ) -> list[dict]:
-    """Normalize entity names: lowercase, singularize, deduplicate.
+    """Normalize entity names: lowercase, lemmatize, deduplicate.
 
     Args:
         entities: List of entity dicts with name, type, start, end fields.
@@ -95,7 +121,7 @@ def normalize_entities(
         if not name:
             continue
 
-        norm_name = _singularize(name.lower())
+        norm_name = _lemmatize_name(name.lower())
 
         normalized.append({
             "name": norm_name,
@@ -104,8 +130,8 @@ def normalize_entities(
             "end": ent.get("end", 0),
         })
 
-    # Phase 2: deduplicate — keep the entity with the longer span
-    seen: dict[str, int] = {}  # normalized name -> index in result
+    # Phase 2: deduplicate -- keep the entity with the longer span
+    seen: dict[str, int] = {}
     result: list[dict] = []
 
     for ent in normalized:

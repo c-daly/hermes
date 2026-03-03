@@ -1,6 +1,5 @@
 """Tests for name_normalizer — lowercasing, singularization, and dedup."""
 
-import pytest
 
 from hermes.name_normalizer import normalize_entities
 
@@ -150,3 +149,84 @@ class TestEdgeCases:
         entities = [{"name": "", "type": "entity", "start": 0, "end": 0}]
         result = normalize_entities(entities, "text")
         assert result == []
+
+
+class TestWordNetLemmatization:
+    """Tests for irregular plurals handled by WordNet (not suffix rules)."""
+
+    def test_irregular_children(self):
+        entities = [{"name": "Children", "type": "entity", "start": 0, "end": 8}]
+        result = normalize_entities(entities, "Children")
+        assert result[0]["name"] == "child"
+
+    def test_irregular_mice(self):
+        entities = [{"name": "mice", "type": "entity", "start": 0, "end": 4}]
+        result = normalize_entities(entities, "mice")
+        assert result[0]["name"] == "mouse"
+
+    def test_irregular_people(self):
+        entities = [{"name": "People", "type": "entity", "start": 0, "end": 6}]
+        result = normalize_entities(entities, "People")
+        assert result[0]["name"] == "people"
+
+    def test_irregular_wolves(self):
+        entities = [{"name": "wolves", "type": "entity", "start": 0, "end": 6}]
+        result = normalize_entities(entities, "wolves")
+        assert result[0]["name"] == "wolf"
+
+    def test_irregular_knives(self):
+        entities = [{"name": "knives", "type": "entity", "start": 0, "end": 6}]
+        result = normalize_entities(entities, "knives")
+        assert result[0]["name"] == "knife"
+
+    def test_ies_to_y_companies(self):
+        """WordNet correctly maps -ies -> -y for dictionary words."""
+        entities = [{"name": "Companies", "type": "entity", "start": 0, "end": 9}]
+        result = normalize_entities(entities, "Companies")
+        assert result[0]["name"] == "company"
+
+    def test_ies_to_y_entities(self):
+        entities = [{"name": "entities", "type": "entity", "start": 0, "end": 8}]
+        result = normalize_entities(entities, "entities")
+        assert result[0]["name"] == "entity"
+
+    def test_ies_to_y_communities(self):
+        entities = [{"name": "communities", "type": "entity", "start": 0, "end": 11}]
+        result = normalize_entities(entities, "communities")
+        assert result[0]["name"] == "community"
+
+    def test_latin_plural_matrices(self):
+        entities = [{"name": "matrices", "type": "entity", "start": 0, "end": 8}]
+        result = normalize_entities(entities, "matrices")
+        assert result[0]["name"] == "matrix"
+
+    def test_latin_plural_analyses(self):
+        entities = [{"name": "analyses", "type": "entity", "start": 0, "end": 8}]
+        result = normalize_entities(entities, "analyses")
+        assert result[0]["name"] == "analysis"
+
+    def test_buses(self):
+        entities = [{"name": "buses", "type": "entity", "start": 0, "end": 5}]
+        result = normalize_entities(entities, "buses")
+        assert result[0]["name"] == "bus"
+
+    def test_heroes(self):
+        entities = [{"name": "heroes", "type": "entity", "start": 0, "end": 6}]
+        result = normalize_entities(entities, "heroes")
+        assert result[0]["name"] == "hero"
+
+    def test_potatoes(self):
+        entities = [{"name": "potatoes", "type": "entity", "start": 0, "end": 8}]
+        result = normalize_entities(entities, "potatoes")
+        assert result[0]["name"] == "potato"
+
+    def test_multi_word_entity(self):
+        """Each word in a multi-word name is lemmatized independently."""
+        entities = [{"name": "dog breeds", "type": "entity", "start": 0, "end": 10}]
+        result = normalize_entities(entities, "dog breeds")
+        assert result[0]["name"] == "dog breed"
+
+    def test_multi_word_irregular(self):
+        entities = [{"name": "Field Mice", "type": "entity", "start": 0, "end": 10}]
+        result = normalize_entities(entities, "Field Mice")
+        assert result[0]["name"] == "field mouse"

@@ -66,7 +66,7 @@ def _singularize_fallback(word: str) -> str:
     if word.endswith("xes"):
         return word[:-2]
 
-    # -zes -> -z (quizzes -> quiz)
+    # -zes -> -z (fizzes -> fizz)
     if word.endswith("zes") and len(word) > 4:
         return word[:-2]
 

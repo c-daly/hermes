@@ -4,6 +4,7 @@ Implements the canonical Hermes OpenAPI contract from Project LOGOS.
 See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 """
 
+import asyncio
 import importlib.util
 import json
 import logging
@@ -851,11 +852,11 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                         if request.experiment_tags:
                             post_meta["experiment_tags"] = request.experiment_tags
 
-                        await _proposal_builder.build(
+                        asyncio.create_task(_proposal_builder.build(
                             text=combined_text,
                             metadata=post_meta,
                             correlation_id=request_id,
-                        )
+                        ))
                 except Exception as e:
                     logger.warning("Post-generation proposal failed: %s", e)
 

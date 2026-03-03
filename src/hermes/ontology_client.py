@@ -10,6 +10,7 @@ import logging
 import time
 
 import httpx
+from logos_config import get_env_value
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,14 @@ class _TypeCache:
     def set(self, key: str, value: list[dict]) -> None:
         self._data[key] = (time.monotonic(), value)
 
+
+
+
+def get_sophia_url() -> str:
+    """Build Sophia base URL from env config."""
+    sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
+    sophia_port = get_env_value("SOPHIA_PORT", default="8080") or "8080"
+    return f"http://{sophia_host}:{sophia_port}"
 
 # Module-level shared cache instance
 _shared_cache = _TypeCache()

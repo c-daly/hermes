@@ -14,10 +14,9 @@ import logging
 import re
 from typing import Any
 
-from logos_config import get_env_value
 
 from hermes.ner_provider import ONTOLOGY_TYPES, OpenAINERProvider
-from hermes.ontology_client import fetch_edge_type_list, fetch_type_list
+from hermes.ontology_client import fetch_edge_type_list, fetch_type_list, get_sophia_url
 from hermes.relation_extractor import OpenAIRelationExtractor
 
 logger = logging.getLogger(__name__)
@@ -107,12 +106,6 @@ class OpenAICombinedExtractor:
 
         return prompt
 
-    async def _get_sophia_url(self) -> str:
-        """Build Sophia base URL from env config."""
-        sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
-        sophia_port = get_env_value("SOPHIA_PORT", default="8080") or "8080"
-        return f"http://{sophia_host}:{sophia_port}"
-
     async def extract_entities_and_relations(
         self, text: str
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -123,7 +116,7 @@ class OpenAICombinedExtractor:
         """
         from hermes.llm import generate_completion
 
-        sophia_url = await self._get_sophia_url()
+        sophia_url = get_sophia_url()
         type_list = await fetch_type_list(sophia_url)
         edge_type_list = await fetch_edge_type_list(sophia_url)
         system_prompt = self._build_system_prompt(type_list, edge_type_list)

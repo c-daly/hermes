@@ -4,6 +4,7 @@ Implements the canonical Hermes OpenAPI contract from Project LOGOS.
 See: https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 """
 
+import asyncio
 import importlib.util
 import json
 import logging
@@ -766,6 +767,12 @@ async def embed_text(request: EmbedTextRequest) -> EmbedTextResponse:
             raise HTTPException(status_code=500, detail="Internal server error")
 
 
+def _log_background_task_error(task: asyncio.Task) -> None:  # type: ignore[type-arg]
+    """Log exceptions from fire-and-forget background tasks."""
+    if not task.cancelled() and task.exception() is not None:
+        logger.warning("Background proposal task failed: %s", task.exception())
+
+
 @app.post("/llm", response_model=LLMResponse)
 async def llm_generate(request: LLMRequest, http_request: Request) -> LLMResponse:
     """Proxy language model completions through Hermes.
@@ -835,6 +842,32 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                 max_tokens=request.max_tokens,
                 metadata=request.metadata,
             )
+
+            # --- Post-generation: extract NER from prompt + reply ---
+            if user_text:
+                try:
+                    reply_text = (
+                        result.get("choices", [{}])[0]
+                        .get("message", {})
+                        .get("content", "")
+                    )
+                    if reply_text:
+                        combined_text = f"{user_text}\n\n{reply_text}"
+                        post_meta = dict(request.metadata or {})
+                        post_meta["extraction_source"] = "prompt_and_reply"
+                        if request.experiment_tags:
+                            post_meta["experiment_tags"] = request.experiment_tags
+
+                        task = asyncio.create_task(
+                            _proposal_builder.build(
+                                text=combined_text,
+                                metadata=post_meta,
+                                correlation_id=request_id,
+                            )
+                        )
+                        task.add_done_callback(_log_background_task_error)
+                except Exception as e:
+                    logger.warning("Post-generation proposal failed: %s", e)
 
             return LLMResponse(**result)
         except HTTPException:

@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 
 from hermes.combined_extractor import OpenAICombinedExtractor
 from hermes.embedding_provider import get_embedding_provider
+from hermes.name_normalizer import normalize_entities
 from hermes.ner_provider import get_ner_provider
 from hermes.relation_extractor import get_relation_extractor
 from hermes.services import generate_embeddings_batch
@@ -33,6 +34,42 @@ except ImportError:
             return nullcontext()
 
     tracer: Any = _NoopTracer()  # type: ignore[no-redef]
+
+
+def _normalize_edge_names(
+    edges: list[dict], normalized_entities: list[dict]
+) -> list[dict]:
+    """Normalize edge endpoint names and drop edges with unresolvable endpoints.
+
+    Applies the same normalization pipeline (lowercase + lemmatize) to
+    edge endpoint names, then validates both endpoints exist in the
+    normalized entity set.  Edges referencing non-existent entities are
+    dropped with a warning — they would fail silently in Sophia anyway.
+    """
+    from hermes.name_normalizer import _lemmatize_name
+
+    known_names = {e["name"] for e in normalized_entities}
+
+    result: list[dict] = []
+    for edge in edges:
+        edge = dict(edge)  # don't mutate originals
+        src = edge.get("source_name", "")
+        tgt = edge.get("target_name", "")
+        edge["source_name"] = _lemmatize_name(src.lower(), original_name=src)
+        edge["target_name"] = _lemmatize_name(tgt.lower(), original_name=tgt)
+
+        if (
+            edge["source_name"] not in known_names
+            or edge["target_name"] not in known_names
+        ):
+            logger.warning(
+                "Dropping edge %s -> %s: endpoint not in normalized entity set",
+                edge["source_name"],
+                edge["target_name"],
+            )
+            continue
+        result.append(edge)
+    return result
 
 
 class ProposalBuilder:
@@ -73,9 +110,12 @@ class ProposalBuilder:
             if isinstance(ner_provider, OpenAICombinedExtractor):
                 # -- Combined pipeline: 1 LLM call + parallel embeddings --
                 with tracer.start_as_current_span("proposal_builder.combined_ner_re"):
-                    entities, raw_edges = (
-                        await ner_provider.extract_entities_and_relations(text)
-                    )
+                    (
+                        entities,
+                        raw_edges,
+                    ) = await ner_provider.extract_entities_and_relations(text)
+                entities = normalize_entities(entities, text)
+                raw_edges = _normalize_edge_names(raw_edges, entities)
                 t_ner = time.monotonic()
 
                 # All embeddings in parallel: entities + doc + edges
@@ -95,9 +135,11 @@ class ProposalBuilder:
                 # Step 1: NER
                 with tracer.start_as_current_span("proposal_builder.ner"):
                     entities = await self._run_ner(text)
+                entities = normalize_entities(entities, text)
                 t_ner = time.monotonic()
 
-                # Step 2: relation extraction + entity/doc embeddings in parallel
+                # Step 2: relation extraction + entity/doc embeddings in parallel (legacy only)
+                # Note: edge names normalized after relation extraction below
                 with tracer.start_as_current_span(
                     "proposal_builder.parallel_extract_embed"
                 ):
@@ -107,6 +149,7 @@ class ProposalBuilder:
                     rel_task = self._run_relation_extraction(text, entities)
                     emb_task = self._run_batch_embed(embed_texts)
                     raw_edges, all_embeddings = await asyncio.gather(rel_task, emb_task)
+                raw_edges = _normalize_edge_names(raw_edges, entities)
                 t_rel = time.monotonic()
 
                 # Step 3: edge embeddings (needs relation results)

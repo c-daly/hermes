@@ -25,6 +25,7 @@ dependencies = [
   "logos-foundry @ git+https://github.com/c-daly/logos.git@v0.6.0 ; python_version >= '3.12' and python_version < '4.0'",
   "numpy>=1.24.0,<2.4",
   "redis>=5.0.0",
+  "nltk>=3.8.0",
 ]
 
 [project.optional-dependencies]
@@ -117,6 +118,8 @@ module = [
   "logos_test_utils",
   "logos_test_utils.*",
   "logos_observability",
+  "nltk",
+  "nltk.*",
   "logos_observability.*",
   "opentelemetry",
   "opentelemetry.*",

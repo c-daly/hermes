@@ -90,7 +90,7 @@ def _lemmatize_word(word: str) -> str:
     if lemma == word:
         # WordNet didn't change it -- try suffix rules
         return _singularize_fallback(word)
-    return lemma
+    return str(lemma)
 
 
 def _lemmatize_name(name: str) -> str:

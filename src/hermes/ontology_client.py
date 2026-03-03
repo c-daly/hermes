@@ -72,7 +72,7 @@ async def fetch_type_list(
             )
             return None
         data = response.json()
-        types = data.get("types", [])
+        types: list[dict] = data.get("types", [])
         cache.set(cache_key, types)
         return types
     except Exception as e:
@@ -111,7 +111,7 @@ async def fetch_edge_type_list(
             )
             return None
         data = response.json()
-        types = data.get("types", [])
+        types: list[dict] = data.get("types", [])
         cache.set(cache_key, types)
         return types
     except Exception as e:

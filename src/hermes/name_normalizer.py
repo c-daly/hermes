@@ -97,12 +97,37 @@ def _lemmatize_word(word: str) -> str:
     return str(lemma)
 
 
-def _lemmatize_name(name: str) -> str:
-    """Lemmatize each word in a (possibly multi-word) entity name."""
+def _strip_possessive(word: str) -> str:
+    """Strip English possessive suffixes ('s / ’s)."""
+    if word.endswith("’s") or word.endswith("'s"):
+        return word[:-2]
+    # Plural possessive: dogs' -> dogs (then lemmatized to dog)
+    if word.endswith("’") or word.endswith("'"):
+        return word[:-1]
+    return word
+
+
+def _lemmatize_name(name: str, original_name: str | None = None) -> str:
+    """Lemmatize each word in a (possibly multi-word) entity name.
+
+    Words that were capitalized in the original text are assumed to be
+    proper nouns and are lowercased but not lemmatized (e.g. "United
+    States" stays "united states", not "united state").
+    """
     words = name.split()
     if not words:
         return name
-    return " ".join(_lemmatize_word(w) for w in words)
+    orig_words = original_name.split() if original_name else []
+    result: list[str] = []
+    for i, w in enumerate(words):
+        w = _strip_possessive(w)
+        # If the original word was capitalized and this is a multi-word
+        # entity, treat it as a proper noun — lowercase only, no lemma.
+        if len(words) > 1 and i < len(orig_words) and orig_words[i][0:1].isupper():
+            result.append(w)
+        else:
+            result.append(_lemmatize_word(w))
+    return " ".join(result)
 
 
 def normalize_entities(entities: list[dict], text: str) -> list[dict]:
@@ -125,7 +150,7 @@ def normalize_entities(entities: list[dict], text: str) -> list[dict]:
         if not name:
             continue
 
-        norm_name = _lemmatize_name(name.lower())
+        norm_name = _lemmatize_name(name.lower(), original_name=name)
 
         normalized.append(
             {

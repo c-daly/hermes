@@ -225,7 +225,24 @@ class TestWordNetLemmatization:
         result = normalize_entities(entities, "dog breeds")
         assert result[0]["name"] == "dog breed"
 
-    def test_multi_word_irregular(self):
+    def test_multi_word_proper_noun_preserved(self):
+        """Capitalized multi-word entities are proper nouns — no lemmatization."""
         entities = [{"name": "Field Mice", "type": "entity", "start": 0, "end": 10}]
         result = normalize_entities(entities, "Field Mice")
+        assert result[0]["name"] == "field mice"
+
+    def test_multi_word_lowercase_lemmatized(self):
+        """Lowercase multi-word entities are lemmatized normally."""
+        entities = [{"name": "field mice", "type": "entity", "start": 0, "end": 10}]
+        result = normalize_entities(entities, "field mice")
         assert result[0]["name"] == "field mouse"
+
+    def test_possessive_stripped(self):
+        entities = [{"name": "rottie's", "type": "entity", "start": 0, "end": 8}]
+        result = normalize_entities(entities, "rottie's")
+        assert result[0]["name"] == "rottie"
+
+    def test_proper_noun_possessive(self):
+        entities = [{"name": "United States'", "type": "entity", "start": 0, "end": 14}]
+        result = normalize_entities(entities, "United States'")
+        assert result[0]["name"] == "united states"

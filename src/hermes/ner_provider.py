@@ -130,6 +130,8 @@ class OpenAINERProvider:
             "ontology. Given input text, extract all named entities and classify "
             "each with exactly one of the following types:\n\n"
             f"{types_section}\n\n"
+            "Extract each entity individually; never combine multiple entities "
+            "with conjunctions like 'and', 'or', or commas into one name.\n\n"
             'Return a JSON object with a single key "entities" containing an '
             "array of objects. Each object must have:\n"
             '  - "name": the entity text as it appears in the input\n'

@@ -92,6 +92,8 @@ class OpenAICombinedExtractor:
             "}\n"
             "```\n\n"
             "## Rules\n"
+            "- Extract each entity individually; never combine multiple entities "
+            "with conjunctions like 'and', 'or', or commas into one name\n"
             "- Entity names must match the text exactly\n"
             "- start/end are character offsets into the input text\n"
             "- Entity type must be one of the types listed above\n"

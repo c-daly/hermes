@@ -852,11 +852,13 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                         if request.experiment_tags:
                             post_meta["experiment_tags"] = request.experiment_tags
 
-                        asyncio.create_task(_proposal_builder.build(
-                            text=combined_text,
-                            metadata=post_meta,
-                            correlation_id=request_id,
-                        ))
+                        asyncio.create_task(
+                            _proposal_builder.build(
+                                text=combined_text,
+                                metadata=post_meta,
+                                correlation_id=request_id,
+                            )
+                        )
                 except Exception as e:
                     logger.warning("Post-generation proposal failed: %s", e)
 

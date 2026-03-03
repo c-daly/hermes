@@ -39,13 +39,16 @@ except ImportError:
 def _normalize_edge_names(
     edges: list[dict], normalized_entities: list[dict]
 ) -> list[dict]:
-    """Remap edge source/target names to match normalized entity names.
+    """Normalize edge endpoint names and drop edges with unresolvable endpoints.
 
     Applies the same normalization pipeline (lowercase + lemmatize) to
-    edge endpoint names so they resolve against the normalized entity
-    set in Sophia.
+    edge endpoint names, then validates both endpoints exist in the
+    normalized entity set.  Edges referencing non-existent entities are
+    dropped with a warning — they would fail silently in Sophia anyway.
     """
     from hermes.name_normalizer import _lemmatize_name
+
+    known_names = {e["name"] for e in normalized_entities}
 
     result: list[dict] = []
     for edge in edges:
@@ -54,6 +57,14 @@ def _normalize_edge_names(
         tgt = edge.get("target_name", "")
         edge["source_name"] = _lemmatize_name(src.lower(), original_name=src)
         edge["target_name"] = _lemmatize_name(tgt.lower(), original_name=tgt)
+
+        if edge["source_name"] not in known_names or edge["target_name"] not in known_names:
+            logger.debug(
+                "Dropping edge %s -> %s: endpoint not in entity set",
+                edge["source_name"],
+                edge["target_name"],
+            )
+            continue
         result.append(edge)
     return result
 

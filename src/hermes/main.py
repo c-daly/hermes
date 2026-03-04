@@ -27,7 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 try:
-    from logos_config import get_env_value
+    from logos_config import RedisConfig, get_env_value
     from logos_config.health import DependencyStatus, HealthResponse
     from logos_config.ports import get_repo_ports
 except ImportError:
@@ -160,11 +160,7 @@ def _get_context_cache() -> ContextCache | None:
     """Return (and lazily create) the module-level ContextCache."""
     global _context_cache
     if _context_cache is None:
-        redis_url = (
-            get_env_value("REDIS_URL", default="redis://localhost:6379/0")
-            or "redis://localhost:6379/0"
-        )
-        _context_cache = ContextCache(redis_url)
+        _context_cache = ContextCache(RedisConfig())
     return _context_cache
 
 

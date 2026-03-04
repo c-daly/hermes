@@ -24,7 +24,7 @@ poetry run pytest tests/unit/ -v
 
 ```bash
 docker pull ghcr.io/c-daly/hermes:latest
-docker run -p 8080:8080 -e MILVUS_HOST=localhost -e MILVUS_PORT=17530 ghcr.io/c-daly/hermes:latest
+docker run -p 8080:8080 -e MILVUS_HOST=localhost -e MILVUS_PORT=19530 ghcr.io/c-daly/hermes:latest
 ```
 
 For ML-enabled builds, use `ghcr.io/c-daly/hermes:ml-latest` (or set `HERMES_IMAGE_TAG=ml-latest` in compose files that reference Hermes).
@@ -48,7 +48,7 @@ For ML-enabled builds, use `ghcr.io/c-daly/hermes:ml-latest` (or set `HERMES_IMA
 ./scripts/run_integration_stack.sh
 ```
 
-Uses port 17xxx range (Neo4j 17474/17687, Milvus 17530).
+Uses shared infrastructure ports (Neo4j 7474/7687, Milvus 19530, Redis 6379). API on port 17000.
 
 ## ML Dependencies
 
@@ -62,7 +62,7 @@ Models download on first use. Without ML extras, endpoints return informative er
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MILVUS_HOST` | localhost | Milvus server host |
-| `MILVUS_PORT` | 17530 | Milvus gRPC port |
+| `MILVUS_PORT` | 19530 | Milvus gRPC port |
 | `OPENAI_API_KEY` | - | For LLM gateway |
 
 ## Documentation

@@ -64,7 +64,7 @@ except ImportError:
 
     def get_repo_ports(repo: str) -> Any:  # type: ignore[misc]
         _defaults = {
-            "hermes": _FallbackPorts(17474, 17687, 17530, 17091, 17000),
+            "hermes": _FallbackPorts(7474, 7687, 19530, 9091, 17000),
             "sophia": _FallbackPorts(47474, 47687, 47530, 47091, 47000),
         }
         return _defaults.get(repo, _FallbackPorts(7474, 7687, 19530, 9091, 8000))

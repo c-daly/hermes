@@ -66,7 +66,7 @@ def get_milvus_port() -> str:
     """Get Milvus port, reading from env on first call."""
     global _milvus_port
     if _milvus_port is None:
-        _milvus_port = get_env_value("MILVUS_PORT", default="17530") or "17530"
+        _milvus_port = get_env_value("MILVUS_PORT", default="19530") or "19530"
     return _milvus_port
 
 

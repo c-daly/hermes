@@ -147,7 +147,7 @@ Response headers: X-Request-ID: my-trace-123
     "milvus": {
       "status": "healthy",
       "connected": true,
-      "details": {"host": "localhost", "port": "17530", "collection": "hermes_embeddings"}
+      "details": {"host": "localhost", "port": "19530", "collection": "hermes_embeddings"}
     },
     "llm": {
       "status": "healthy",

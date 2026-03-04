@@ -49,6 +49,12 @@ except ImportError:
         dependencies: Dict[str, Any] = Field(default_factory=dict)
         capabilities: Dict[str, str] = Field(default_factory=dict)
 
+    class RedisConfig:  # type: ignore[no-redef]
+        """Minimal stub when logos_config is not installed."""
+
+        def __init__(self) -> None:
+            self.url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+
     from collections import namedtuple
 
     _FallbackPorts = namedtuple(
@@ -383,10 +389,9 @@ async def lifespan(app: FastAPI):  # type: ignore
         )
         _type_registry_listener.start()
         logger.info("TypeRegistry subscribed to ontology changes")
-        logger.info("Hermes API startup complete")
     except Exception:
-        logger.error(
-            "Failed to initialize TypeRegistry — Redis is required infrastructure",
+        logger.warning(
+            "TypeRegistry unavailable — ontology type sync disabled",
             exc_info=True,
         )
         if _type_registry_redis_client is not None:
@@ -395,7 +400,10 @@ async def lifespan(app: FastAPI):  # type: ignore
             except Exception:
                 pass
             _type_registry_redis_client = None
-        raise
+        _type_registry = None
+        _type_registry_event_bus = None
+        _type_registry_listener = None
+    logger.info("Hermes API startup complete")
     yield
     # Shutdown
     logger.info("Shutting down Hermes API...")

@@ -326,6 +326,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 _type_registry = None
 _type_registry_event_bus = None
 _type_registry_listener = None
+_type_registry_redis_client = None
 
 
 @asynccontextmanager
@@ -355,21 +356,21 @@ async def lifespan(app: FastAPI):  # type: ignore
     milvus_client.initialize_milvus()
     logger.info("Hermes API startup complete")
     # Initialize TypeRegistry for ontology type sync
-    global _type_registry, _type_registry_event_bus, _type_registry_listener
+    global _type_registry, _type_registry_event_bus, _type_registry_listener, _type_registry_redis_client
     try:
         from hermes.type_registry import TypeRegistry
         import redis
 
         _redis_config = RedisConfig()
-        _redis_client = redis.from_url(_redis_config.url)
-        _type_registry = TypeRegistry(_redis_client)
+        _type_registry_redis_client = redis.from_url(_redis_config.url)
+        _type_registry = TypeRegistry(_type_registry_redis_client)
         logger.info(
             "TypeRegistry initialized with %d types",
             len(_type_registry.get_type_names()),
         )
 
         # Subscribe to ontology changes for live updates
-        from logos_events import EventBus
+        from logos_events import EventBus  # type: ignore[import-untyped]
 
         _type_registry_event_bus = EventBus(_redis_config)
         _type_registry_event_bus.subscribe(
@@ -386,12 +387,20 @@ async def lifespan(app: FastAPI):  # type: ignore
     except Exception:
         logger.exception("Failed to initialize TypeRegistry")
         _type_registry = None
+        _type_registry_event_bus = None
+        _type_registry_listener = None
+        _type_registry_redis_client = None
     yield
     # Shutdown
     logger.info("Shutting down Hermes API...")
     # Stop TypeRegistry event listener
     if _type_registry_event_bus is not None:
         _type_registry_event_bus.stop()
+    if _type_registry_listener is not None:
+        _type_registry_listener.join(timeout=5)
+    if _type_registry_redis_client is not None:
+        _type_registry_redis_client.close()
+    if _type_registry_event_bus is not None or _type_registry_listener is not None:
         logger.info("TypeRegistry event listener stopped")
     milvus_client.disconnect_milvus()
 

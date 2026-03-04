@@ -79,13 +79,18 @@ class TestTypeRegistryUpdate:
     """Tests for TypeRegistry updates via events."""
 
     def test_update_from_event(self):
-        """on_proposal_processed updates type list from event payload."""
+        """on_proposal_processed reloads types from Redis."""
         mock_redis = MagicMock()
-        mock_redis.get.return_value = json.dumps({})
+        # First call (init): empty snapshot
+        # Second call (after event): updated snapshot with new type
+        mock_redis.get.side_effect = [
+            json.dumps({}),
+            json.dumps({"vehicle": {"uuid": "t3", "member_count": 1}}),
+        ]
 
         registry = TypeRegistry(mock_redis)
+        assert registry.get_type_names() == []
 
-        # Simulate receiving an event
         event = {
             "event_type": "proposal_processed",
             "source": "sophia",
@@ -97,5 +102,6 @@ class TestTypeRegistryUpdate:
         }
         registry.on_proposal_processed(event)
 
-        # After event, registry should re-read from Redis
-        assert mock_redis.get.call_count >= 2  # once on init, once on event
+        assert mock_redis.get.call_count == 2
+        assert registry.get_type_names() == ["vehicle"]
+        assert registry.get_type("vehicle") == {"uuid": "t3", "member_count": 1}

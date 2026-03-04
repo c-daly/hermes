@@ -48,7 +48,8 @@ class TypeRegistry:
     def get_type(self, name: str) -> dict | None:
         """Return type properties dict, or None if unknown."""
         with self._lock:
-            return self._types.get(name)
+            t = self._types.get(name)
+            return dict(t) if t is not None else None
 
     def format_for_prompt(self) -> str:
         """Format type list for injection into NER prompt."""

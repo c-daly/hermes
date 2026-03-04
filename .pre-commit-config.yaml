@@ -28,6 +28,7 @@ repos:
 
   - repo: local
     hooks:
+      # NOTE: requires `pre-commit install --hook-type pre-push` to activate
       - id: pytest-push
         name: pytest (pre-push)
         entry: poetry run pytest tests/ -x -q

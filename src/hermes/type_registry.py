@@ -27,16 +27,21 @@ class TypeRegistry:
         self._load_from_redis()
 
     def _load_from_redis(self) -> None:
-        """Load type snapshot from Redis."""
+        """Load type snapshot from Redis.
+
+        The entire read-parse-assign sequence is performed under the lock
+        to prevent TOCTOU races where a slower concurrent reload could
+        overwrite the registry with a stale snapshot.
+        """
         try:
-            raw = self._redis.get(self.REDIS_KEY)
-            if raw is not None:
-                data = json.loads(raw)
-                with self._lock:
-                    self._types = data
-                logger.info("TypeRegistry loaded %d types from Redis", len(data))
-            else:
-                logger.info("TypeRegistry: no snapshot in Redis, starting empty")
+            with self._lock:
+                raw = self._redis.get(self.REDIS_KEY)
+                if raw is not None:
+                    self._types = json.loads(raw)
+                    logger.info("TypeRegistry loaded %d types from Redis", len(self._types))
+                else:
+                    self._types = {}
+                    logger.info("TypeRegistry: no snapshot in Redis, cleared to empty")
         except Exception:
             logger.exception("TypeRegistry: failed to load from Redis")
 

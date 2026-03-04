@@ -398,10 +398,12 @@ async def lifespan(app: FastAPI):  # type: ignore
         _type_registry_event_bus.stop()
     if _type_registry_listener is not None:
         _type_registry_listener.join(timeout=5)
+        if _type_registry_listener.is_alive():
+            logger.warning("TypeRegistry listener thread did not stop within 5s")
+        else:
+            logger.info("TypeRegistry event listener stopped")
     if _type_registry_redis_client is not None:
         _type_registry_redis_client.close()
-    if _type_registry_event_bus is not None or _type_registry_listener is not None:
-        logger.info("TypeRegistry event listener stopped")
     milvus_client.disconnect_milvus()
 
 

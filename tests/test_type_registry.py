@@ -105,3 +105,20 @@ class TestTypeRegistryUpdate:
         assert mock_redis.get.call_count == 2
         assert registry.get_type_names() == ["vehicle"]
         assert registry.get_type("vehicle") == {"uuid": "t3", "member_count": 1}
+
+    def test_reload_clears_types_when_key_missing(self):
+        """on_proposal_processed clears types when Redis key is absent."""
+        mock_redis = MagicMock()
+        # First call (init): has types
+        # Second call (after event): key deleted
+        mock_redis.get.side_effect = [
+            json.dumps({"person": {"uuid": "t1", "member_count": 10}}),
+            None,
+        ]
+
+        registry = TypeRegistry(mock_redis)
+        assert registry.get_type_names() == ["person"]
+
+        registry.on_proposal_processed({"payload": {}})
+
+        assert registry.get_type_names() == []

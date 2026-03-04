@@ -1,10 +1,10 @@
 <!--
-Pull Request template for Project LOGOS
+Pull Request template for hermes
 Ensure the PR references its issue (use `Closes #<issue-number>` when ready to close).
 -->
 
 # PR Title
-[area] Short summary (#<issue>)
+[area] Short summary (#<issue-number>)
 
 ## Summary
 Brief description of the change and why it is needed. Keep it short and focused.
@@ -16,26 +16,24 @@ Or: See #<issue-number> (explain partial coverage)
 ## Changes
 - Files / modules changed:
   - `path/to/file.py`
-  - `webapp/src/components/MyPanel.tsx`
 
 ## How to run / test locally
 Include exact commands and environment setup (copyable):
 
 ```bash
 # From repo root
-pip install -e ".[dev]"
-cd webapp && npm install
-# Start mock webapp
-cd webapp && npm run dev:mock
-# Run Python tests
-pytest
+poetry install -E dev -E otel
+# Start test services
+docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
+# Run tests
+poetry run pytest tests/ -x -q
 ```
 
 ## Checklist (required)
 - [ ] Linked the related issue (`Closes #<n>` or `See #<n>`)
 - [ ] Tests added or updated
-- [ ] Linting/formatting run (`black`/`ruff`; `npm run lint` for webapp)
-- [ ] Type checks (Python `mypy`/TS `npm run type-check`) as applicable
+- [ ] Linting/formatting run (`ruff check --fix .` + `ruff format .`)
+- [ ] Type checks (`poetry run mypy src/`) as applicable
 - [ ] Documentation updated (README, `docs/`, or OpenAPI spec)
 - [ ] CI is passing
 

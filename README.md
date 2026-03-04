@@ -14,7 +14,7 @@ poetry install --extras "dev ml"
 
 # Run
 poetry run hermes
-# or: poetry run uvicorn hermes.main:app --host 0.0.0.0 --port 8080 --reload
+# or: poetry run uvicorn hermes.main:app --host 0.0.0.0 --port 17000 --reload
 
 # Test
 poetry run pytest tests/unit/ -v
@@ -24,7 +24,8 @@ poetry run pytest tests/unit/ -v
 
 ```bash
 docker pull ghcr.io/c-daly/hermes:latest
-docker run -p 8080:8080 -e MILVUS_HOST=localhost -e MILVUS_PORT=19530 ghcr.io/c-daly/hermes:latest
+docker run -p 17000:17000 -e MILVUS_HOST=localhost -e MILVUS_PORT=19530 ghcr.io/c-daly/hermes:latest
+
 ```
 
 For ML-enabled builds, use `ghcr.io/c-daly/hermes:ml-latest` (or set `HERMES_IMAGE_TAG=ml-latest` in compose files that reference Hermes).
@@ -33,14 +34,14 @@ For ML-enabled builds, use `ghcr.io/c-daly/hermes:ml-latest` (or set `HERMES_IMA
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/stt` | POST | Speech-to-text (audio → text) |
-| `/tts` | POST | Text-to-speech (text → audio) |
-| `/embed` | POST | Generate text embeddings (auto-persisted to Milvus) |
-| `/nlp` | POST | NLP preprocessing (tokenize, POS, NER) |
+| `/stt` | POST | Speech-to-text (audio -> text) |
+| `/tts` | POST | Text-to-speech (text -> audio) |
+| `/embed_text` | POST | Generate text embeddings (auto-persisted to Milvus) |
+| `/simple_nlp` | POST | NLP preprocessing (tokenize, POS, NER) |
 | `/llm` | POST | LLM chat completions proxy |
 | `/health` | GET | Health check |
 
-📖 API docs: `http://localhost:8080/docs` (when running)
+API docs: `http://localhost:17000/docs` (when running)
 
 ## Integration Tests
 

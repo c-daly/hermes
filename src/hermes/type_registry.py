@@ -38,7 +38,9 @@ class TypeRegistry:
                 raw = self._redis.get(self.REDIS_KEY)
                 if raw is not None:
                     self._types = json.loads(raw)
-                    logger.info("TypeRegistry loaded %d types from Redis", len(self._types))
+                    logger.info(
+                        "TypeRegistry loaded %d types from Redis", len(self._types)
+                    )
                 else:
                     self._types = {}
                     logger.info("TypeRegistry: no snapshot in Redis, cleared to empty")

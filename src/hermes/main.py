@@ -354,7 +354,6 @@ async def lifespan(app: FastAPI):  # type: ignore
     logger.info("Starting Hermes API...")
     # Initialize Milvus connection and collection
     milvus_client.initialize_milvus()
-    logger.info("Hermes API startup complete")
     # Initialize TypeRegistry for ontology type sync
     global _type_registry, _type_registry_event_bus, _type_registry_listener, _type_registry_redis_client
     try:
@@ -384,11 +383,18 @@ async def lifespan(app: FastAPI):  # type: ignore
         )
         _type_registry_listener.start()
         logger.info("TypeRegistry subscribed to ontology changes")
+        logger.info("Hermes API startup complete")
     except Exception:
         logger.error(
             "Failed to initialize TypeRegistry — Redis is required infrastructure",
             exc_info=True,
         )
+        if _type_registry_redis_client is not None:
+            try:
+                _type_registry_redis_client.close()
+            except Exception:
+                pass
+            _type_registry_redis_client = None
         raise
     yield
     # Shutdown

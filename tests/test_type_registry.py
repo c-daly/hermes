@@ -35,6 +35,36 @@ class TestTypeRegistryInit:
 
         assert registry.get_type_names() == []
 
+    def test_redis_exception_leaves_registry_intact(self):
+        """If Redis raises during reload, existing types are preserved."""
+        mock_redis = MagicMock()
+        mock_redis.get.side_effect = [
+            json.dumps({"person": {"uuid": "t1", "member_count": 10}}),
+            Exception("connection lost"),
+        ]
+
+        registry = TypeRegistry(mock_redis)
+        assert registry.get_type_names() == ["person"]
+
+        registry.on_proposal_processed({"payload": {}})
+
+        # Types preserved because exception was caught
+        assert registry.get_type_names() == ["person"]
+
+    def test_get_type_returns_copy(self):
+        """get_type() returns a copy, not a mutable reference to internal state."""
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = json.dumps(
+            {"person": {"uuid": "t1", "member_count": 10}}
+        )
+
+        registry = TypeRegistry(mock_redis)
+        result = registry.get_type("person")
+        result["member_count"] = 999
+
+        # Internal state unchanged
+        assert registry.get_type("person")["member_count"] == 10
+
     def test_get_type_returns_type_dict(self):
         """get_type() returns the type properties dict."""
         mock_redis = MagicMock()
@@ -59,7 +89,7 @@ class TestTypeRegistryInit:
         assert registry.get_type("unknown") is None
 
     def test_format_for_prompt(self):
-        """format_for_prompt() returns formatted type list string."""
+        """format_for_prompt() returns formatted type list in sorted order."""
         mock_redis = MagicMock()
         mock_redis.get.return_value = json.dumps(
             {
@@ -71,9 +101,8 @@ class TestTypeRegistryInit:
         registry = TypeRegistry(mock_redis)
         prompt = registry.format_for_prompt()
 
-        assert prompt.startswith("Known entity types:\n")
-        assert "- person (10 members)" in prompt
-        assert "- location (5 members)" in prompt
+        expected = "Known entity types:\n- location (5 members)\n- person (10 members)"
+        assert prompt == expected
 
     def test_format_for_prompt_empty(self):
         """format_for_prompt() returns fallback when registry is empty."""

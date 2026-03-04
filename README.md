@@ -25,6 +25,7 @@ poetry run pytest tests/unit/ -v
 ```bash
 docker pull ghcr.io/c-daly/hermes:latest
 docker run -p 17000:17000 -e MILVUS_HOST=localhost -e MILVUS_PORT=19530 ghcr.io/c-daly/hermes:latest
+
 ```
 
 For ML-enabled builds, use `ghcr.io/c-daly/hermes:ml-latest` (or set `HERMES_IMAGE_TAG=ml-latest` in compose files that reference Hermes).
@@ -48,7 +49,7 @@ API docs: `http://localhost:17000/docs` (when running)
 ./scripts/run_integration_stack.sh
 ```
 
-Uses port 17xxx range (Neo4j 17474/17687, Milvus 19530).
+Uses shared infrastructure ports (Neo4j 7474/7687, Milvus 19530, Redis 6379). API on port 17000.
 
 ## ML Dependencies
 

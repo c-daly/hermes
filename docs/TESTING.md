@@ -98,10 +98,10 @@ Run the shared test stack helper (recommended):
 
 The script will:
 
-- Warn you about any conflicting ports (17530/17091 for Milvus)
+- Warn you about any conflicting ports (19530/9091 for Milvus)
 - Start `milvus-etcd`, `milvus-minio`, and `milvus` via `tests/e2e/stack/hermes/docker-compose.test.yml`
 - Wait for each container to report healthy, tailing logs automatically on failure
-- Export the expected `MILVUS_*` variables (port 17530)
+- Export the expected `MILVUS_*` variables (port 19530)
 - Run `poetry run pytest tests/test_milvus_integration.py -v` (pass additional pytest args to override)
 
 Environment overrides (`NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `MILVUS_HOST`, `MILVUS_PORT`) are honored, making it easy to target an already running shared stack instead of launching new containers.
@@ -113,15 +113,15 @@ docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml up -d
 ```
 
 This starts:
-- Milvus (with etcd and MinIO dependencies) on port 17530
+- Milvus (with etcd and MinIO dependencies) on port 19530
 
 ### 2. Wait for Services to be Ready
 
 Skip this step if you used `./scripts/run_integration_stack.sh`; it already polls container health and dumps logs on failure.
 
 ```bash
-# Wait for Milvus (port 17091 for health, 17530 for gRPC)
-timeout 120 bash -c 'until curl -f http://localhost:17091/healthz 2>/dev/null; do echo "Waiting for Milvus..."; sleep 2; done'
+# Wait for Milvus (port 9091 for health, 19530 for gRPC)
+timeout 120 bash -c 'until curl -f http://localhost:9091/healthz 2>/dev/null; do echo "Waiting for Milvus..."; sleep 2; done'
 ```
 
 ### 3. Install ML Dependencies
@@ -173,7 +173,7 @@ from pymilvus import connections, Collection
 import time
 
 # Connect to Milvus
-connections.connect(alias="default", host="localhost", port="17530")
+connections.connect(alias="default", host="localhost", port="19530")
 
 # Get the collection (assumes test created it)
 collection = Collection("hermes_embeddings")
@@ -198,7 +198,7 @@ for result in results:
 ```python
 from neo4j import GraphDatabase
 
-driver = GraphDatabase.driver("bolt://localhost:17687", auth=("neo4j", "password"))
+driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "password"))
 
 with driver.session() as session:
     # Query for test nodes
@@ -227,7 +227,7 @@ poetry run pip install sentence-transformers
 **Check if Milvus is running:**
 ```bash
 docker ps | grep milvus
-curl http://localhost:17530/healthz
+curl http://localhost:19530/healthz
 ```
 
 **View Milvus logs:**
@@ -253,8 +253,8 @@ If you get "port already in use" errors:
 
 ```bash
 # Check what's using the port
-lsof -i :17530  # Milvus
-lsof -i :17687   # Neo4j
+lsof -i :19530  # Milvus
+lsof -i :7687   # Neo4j
 lsof -i :8080   # Hermes
 
 # Stop existing services

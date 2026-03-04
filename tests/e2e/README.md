@@ -34,7 +34,7 @@ Use the helper script from the repo root:
 ```
 
 This will:
-1. Start the Milvus stack (etcd, minio, milvus) on Hermes-specific ports (17530, 17091)
+1. Start the Milvus stack (etcd, minio, milvus) on standard ports (19530, 9091)
 2. Wait for services to become healthy
 3. Run the integration tests
 4. Clean up containers on exit
@@ -45,8 +45,8 @@ Hermes uses unique ports to avoid conflicts with other LOGOS repos:
 
 | Service | Host Port | Container Port | Description |
 |---------|-----------|----------------|-------------|
-| Milvus gRPC | 17530 | 19530 | Vector database API |
-| Milvus health | 17091 | 9091 | Health check endpoint |
+| Milvus gRPC | 19530 | 19530 | Vector database API |
+| Milvus health | 9091 | 9091 | Health check endpoint |
 | MinIO API | 17900 | 9000 | Object storage |
 | MinIO Console | 17901 | 9001 | MinIO web UI |
 
@@ -71,9 +71,9 @@ docker compose -f tests/e2e/stack/hermes/docker-compose.test.yml down -v
 The `.env.test` file exports these variables:
 
 - `MILVUS_HOST=milvus` (container name for internal access)
-- `MILVUS_PORT=17530` (Hermes-specific port)
-- `MILVUS_HEALTHCHECK=http://milvus:17091/healthz`
-- `NEO4J_URI=bolt://neo4j:17687` (Hermes-specific port)
+- `MILVUS_PORT=19530` (standard port)
+- `MILVUS_HEALTHCHECK=http://milvus:9091/healthz`
+- `NEO4J_URI=bolt://neo4j:7687` (standard port)
 - `NEO4J_USER=neo4j`
 - `NEO4J_PASSWORD=neo4jtest`
 

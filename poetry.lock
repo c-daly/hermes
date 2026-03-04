@@ -1144,7 +1144,7 @@ files = [
 
 [[package]]
 name = "logos-foundry"
-version = "0.7.0"
+version = "0.7.1"
 description = "LOGOS Foundry - Canonical source of truth for Project LOGOS specifications, ontology, and infrastructure"
 optional = false
 python-versions = "^3.12"
@@ -1168,8 +1168,8 @@ uvicorn = {version = "^0.32.0", extras = ["standard"]}
 [package.source]
 type = "git"
 url = "https://github.com/c-daly/logos.git"
-reference = "v0.7.0"
-resolved_reference = "f8b1f50d4b8c84726b14dbf17f8a26b58920a7fe"
+reference = "v0.7.1"
+resolved_reference = "d816e602edddc274dd47cbc8b96f88f45cef15fd"
 
 [[package]]
 name = "marisa-trie"
@@ -5322,4 +5322,4 @@ otel = ["opentelemetry-api", "opentelemetry-exporter-otlp", "opentelemetry-instr
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "0c82876ea26d5718beab2107907fac26ff3fee119921e48b860f7d32cad5aa5e"
+content-hash = "63a9b4759b2728ec2dee1f7816f7c6ef88c1242e0d7c072cb683e48aebbfd4db"

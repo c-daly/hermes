@@ -9,6 +9,7 @@ import importlib.util
 import json
 import logging
 import os
+import threading
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -47,6 +48,12 @@ except ImportError:
         version: str = ""
         dependencies: Dict[str, Any] = Field(default_factory=dict)
         capabilities: Dict[str, str] = Field(default_factory=dict)
+
+    class RedisConfig:  # type: ignore[no-redef]
+        """Minimal stub when logos_config is not installed."""
+
+        def __init__(self) -> None:
+            self.url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 
     from collections import namedtuple
 
@@ -322,6 +329,12 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         return response
 
 
+_type_registry = None
+_type_registry_event_bus = None
+_type_registry_listener = None
+_type_registry_redis_client = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # type: ignore
     """Lifespan event handler for application startup and shutdown."""
@@ -347,10 +360,64 @@ async def lifespan(app: FastAPI):  # type: ignore
     logger.info("Starting Hermes API...")
     # Initialize Milvus connection and collection
     milvus_client.initialize_milvus()
+    # Initialize TypeRegistry for ontology type sync
+    global _type_registry, _type_registry_event_bus, _type_registry_listener, _type_registry_redis_client
+    try:
+        from hermes.type_registry import TypeRegistry
+        import redis
+
+        _redis_config = RedisConfig()
+        _type_registry_redis_client = redis.from_url(_redis_config.url)
+        _type_registry = TypeRegistry(_type_registry_redis_client)
+        logger.info(
+            "TypeRegistry initialized with %d types",
+            len(_type_registry.get_type_names()),
+        )
+
+        # Subscribe to ontology changes for live updates
+        from logos_events import EventBus  # type: ignore[import-untyped]
+
+        _type_registry_event_bus = EventBus(_redis_config)
+        _type_registry_event_bus.subscribe(
+            "logos:sophia:proposal_processed",
+            _type_registry.on_proposal_processed,
+        )
+        _type_registry_listener = threading.Thread(
+            target=_type_registry_event_bus.listen,
+            daemon=True,
+            name="type-registry-listener",
+        )
+        _type_registry_listener.start()
+        logger.info("TypeRegistry subscribed to ontology changes")
+    except Exception:
+        logger.warning(
+            "TypeRegistry unavailable — ontology type sync disabled",
+            exc_info=True,
+        )
+        if _type_registry_redis_client is not None:
+            try:
+                _type_registry_redis_client.close()
+            except Exception:
+                pass
+            _type_registry_redis_client = None
+        _type_registry = None
+        _type_registry_event_bus = None
+        _type_registry_listener = None
     logger.info("Hermes API startup complete")
     yield
     # Shutdown
     logger.info("Shutting down Hermes API...")
+    # Stop TypeRegistry event listener
+    if _type_registry_event_bus is not None:
+        _type_registry_event_bus.stop()
+    if _type_registry_listener is not None:
+        _type_registry_listener.join(timeout=5)
+        if _type_registry_listener.is_alive():
+            logger.warning("TypeRegistry listener thread did not stop within 5s")
+        else:
+            logger.info("TypeRegistry event listener stopped")
+    if _type_registry_redis_client is not None:
+        _type_registry_redis_client.close()
     milvus_client.disconnect_milvus()
 
 

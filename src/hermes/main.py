@@ -9,6 +9,7 @@ import importlib.util
 import json
 import logging
 import os
+import threading
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -322,6 +323,11 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         return response
 
 
+_type_registry = None
+_type_registry_event_bus = None
+_type_registry_listener = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # type: ignore
     """Lifespan event handler for application startup and shutdown."""
@@ -348,9 +354,45 @@ async def lifespan(app: FastAPI):  # type: ignore
     # Initialize Milvus connection and collection
     milvus_client.initialize_milvus()
     logger.info("Hermes API startup complete")
+    # Initialize TypeRegistry for ontology type sync
+    global _type_registry, _type_registry_event_bus, _type_registry_listener
+    try:
+        from hermes.type_registry import TypeRegistry
+        import redis
+
+        _redis_config = RedisConfig()
+        _redis_client = redis.from_url(_redis_config.url)
+        _type_registry = TypeRegistry(_redis_client)
+        logger.info(
+            "TypeRegistry initialized with %d types",
+            len(_type_registry.get_type_names()),
+        )
+
+        # Subscribe to ontology changes for live updates
+        from logos_events import EventBus
+
+        _type_registry_event_bus = EventBus(_redis_config)
+        _type_registry_event_bus.subscribe(
+            "logos:sophia:proposal_processed",
+            _type_registry.on_proposal_processed,
+        )
+        _type_registry_listener = threading.Thread(
+            target=_type_registry_event_bus.listen,
+            daemon=True,
+            name="type-registry-listener",
+        )
+        _type_registry_listener.start()
+        logger.info("TypeRegistry subscribed to ontology changes")
+    except Exception:
+        logger.exception("Failed to initialize TypeRegistry")
+        _type_registry = None
     yield
     # Shutdown
     logger.info("Shutting down Hermes API...")
+    # Stop TypeRegistry event listener
+    if _type_registry_event_bus is not None:
+        _type_registry_event_bus.stop()
+        logger.info("TypeRegistry event listener stopped")
     milvus_client.disconnect_milvus()
 
 

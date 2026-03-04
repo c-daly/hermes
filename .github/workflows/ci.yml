@@ -20,8 +20,14 @@ permissions:
   contents: read
 
 jobs:
+  pr-checks:
+    if: github.event_name == 'pull_request'
+    uses: c-daly/logos/.github/workflows/reusable-pr-checks.yml@ci/v2
+    with:
+      require_issue_linkage: false
+
   standard:
-    uses: c-daly/logos/.github/workflows/reusable-standard-ci.yml@main
+    uses: c-daly/logos/.github/workflows/reusable-standard-ci.yml@ci/v2
     with:
       python_versions: '["3.12"]'
       python_package_manager: 'poetry'

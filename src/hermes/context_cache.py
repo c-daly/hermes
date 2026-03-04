@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from typing import Optional
 
 import redis
+from logos_config import RedisConfig
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,9 @@ class ContextCache:
     QUEUE_KEY = "sophia:proposals:pending"
     CONTEXT_PREFIX = "sophia:context:"
 
-    def __init__(self, redis_url: str):
+    def __init__(self, redis_config: RedisConfig):
         try:
-            self._redis: Optional[redis.Redis] = redis.from_url(redis_url)
+            self._redis: Optional[redis.Redis] = redis.from_url(redis_config.url)
             self._redis.ping()
             self._available = True
             logger.info("Context cache connected to Redis")

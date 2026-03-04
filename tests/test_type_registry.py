@@ -71,8 +71,18 @@ class TestTypeRegistryInit:
         registry = TypeRegistry(mock_redis)
         prompt = registry.format_for_prompt()
 
-        assert "person" in prompt
-        assert "location" in prompt
+        assert prompt.startswith("Known entity types:\n")
+        assert "- person (10 members)" in prompt
+        assert "- location (5 members)" in prompt
+
+    def test_format_for_prompt_empty(self):
+        """format_for_prompt() returns fallback when registry is empty."""
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = json.dumps({})
+
+        registry = TypeRegistry(mock_redis)
+
+        assert registry.format_for_prompt() == "No ontology types available."
 
 
 class TestTypeRegistryUpdate:

@@ -389,6 +389,8 @@ async def lifespan(app: FastAPI):  # type: ignore
         _type_registry = None
         _type_registry_event_bus = None
         _type_registry_listener = None
+        if _type_registry_redis_client is not None:
+            _type_registry_redis_client.close()
         _type_registry_redis_client = None
     yield
     # Shutdown

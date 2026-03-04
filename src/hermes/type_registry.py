@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 from typing import Any
 
@@ -45,7 +46,15 @@ class TypeRegistry:
                         )
                         self._types = {}
                     else:
-                        self._types = data
+                        validated = {
+                            k: v for k, v in data.items() if isinstance(v, dict)
+                        }
+                        if len(validated) != len(data):
+                            logger.warning(
+                                "TypeRegistry: dropped %d non-dict entries from snapshot",
+                                len(data) - len(validated),
+                            )
+                        self._types = validated
                         logger.info(
                             "TypeRegistry loaded %d types from Redis", len(self._types)
                         )
@@ -66,6 +75,10 @@ class TypeRegistry:
             t = self._types.get(name)
             return dict(t) if t is not None else None
 
+    def _sanitize_type_name(self, name: str) -> str:
+        """Strip control characters from type names for safe prompt inclusion."""
+        return re.sub(r"[\x00-\x1f\x7f]", "", name)
+
     def format_for_prompt(self) -> str:
         """Format type list for injection into NER prompt."""
         with self._lock:
@@ -75,7 +88,8 @@ class TypeRegistry:
             for name in sorted(self._types):
                 info = self._types[name]
                 count = info.get("member_count", 0)
-                lines.append(f"- {name} ({count} members)")
+                safe_name = self._sanitize_type_name(name)
+                lines.append(f"- {safe_name} ({count} members)")
             return "Known entity types:\n" + "\n".join(lines)
 
     def on_proposal_processed(self, event: dict) -> None:

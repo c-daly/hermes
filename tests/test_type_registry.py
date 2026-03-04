@@ -84,6 +84,29 @@ class TestTypeRegistryInit:
 
         assert registry.format_for_prompt() == "No ontology types available."
 
+    def test_invalid_snapshot_type_clears_registry(self):
+        """Non-dict JSON snapshot (e.g. a list) clears the registry."""
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = json.dumps(["person", "location"])
+
+        registry = TypeRegistry(mock_redis)
+
+        assert registry.get_type_names() == []
+
+    def test_non_dict_values_dropped_from_snapshot(self):
+        """Non-dict nested values are silently dropped from the snapshot."""
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = json.dumps(
+            {
+                "person": {"uuid": "t1", "member_count": 10},
+                "bad_type": "not_a_dict",
+            }
+        )
+
+        registry = TypeRegistry(mock_redis)
+
+        assert registry.get_type_names() == ["person"]
+
 
 class TestTypeRegistryUpdate:
     """Tests for TypeRegistry updates via events."""

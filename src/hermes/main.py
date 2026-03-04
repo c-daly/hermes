@@ -385,13 +385,11 @@ async def lifespan(app: FastAPI):  # type: ignore
         _type_registry_listener.start()
         logger.info("TypeRegistry subscribed to ontology changes")
     except Exception:
-        logger.exception("Failed to initialize TypeRegistry")
-        _type_registry = None
-        _type_registry_event_bus = None
-        _type_registry_listener = None
-        if _type_registry_redis_client is not None:
-            _type_registry_redis_client.close()
-        _type_registry_redis_client = None
+        logger.error(
+            "Failed to initialize TypeRegistry — Redis is required infrastructure",
+            exc_info=True,
+        )
+        raise
     yield
     # Shutdown
     logger.info("Shutting down Hermes API...")

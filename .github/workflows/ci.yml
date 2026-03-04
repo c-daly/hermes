@@ -20,6 +20,12 @@ permissions:
   contents: read
 
 jobs:
+  pr-checks:
+    if: github.event_name == 'pull_request'
+    uses: c-daly/logos/.github/workflows/reusable-pr-checks.yml@main
+    with:
+      require_issue_linkage: false
+
   standard:
     uses: c-daly/logos/.github/workflows/reusable-standard-ci.yml@main
     with:

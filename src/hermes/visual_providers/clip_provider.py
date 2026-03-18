@@ -84,10 +84,11 @@ class CLIPVisualProvider:
             from logos_config import get_env_value
         except ImportError:
             import os
+            from collections.abc import Mapping
 
             def get_env_value(
                 key: str,
-                env: Any = None,
+                env: Mapping[str, str] | None = None,
                 default: str | None = None,
             ) -> str | None:
                 return (env or os.environ).get(key, default)

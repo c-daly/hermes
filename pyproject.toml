@@ -41,7 +41,6 @@ ml = [
   "torch>=2.0.0,<2.10.0",
   "torchvision>=0.15.0,<0.20.0",
   "open-clip-torch>=2.0.0",
-  "Pillow>=10.0.0",
   "torchaudio>=2.0.0,<2.10.0",
   "openai-whisper>=20231117",
   "TTS>=0.22.0; python_version < '3.12'",

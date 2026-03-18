@@ -197,7 +197,6 @@ class TestEmbed:
             assert len(vec) == 1024
 
 
-
 class TestDeviceConfig:
     def test_device_defaults_to_cpu(self, provider_env):
         """Without JEPA_DEVICE env var, device defaults to cpu."""

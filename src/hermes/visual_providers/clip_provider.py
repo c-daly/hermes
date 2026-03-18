@@ -175,7 +175,11 @@ class CLIPVisualProvider:
             if _inference_latency is not None:
                 _inference_latency.record(elapsed_ms)
 
-        result: list[float] = embedding.squeeze(0).cpu().numpy().tolist()
+        embedding = embedding.squeeze(0)
+        norm = embedding.norm()
+        if norm > 0:
+            embedding = embedding / norm
+        result: list[float] = embedding.cpu().numpy().tolist()
         return result
 
     def _infer_batch(
@@ -201,6 +205,8 @@ class CLIPVisualProvider:
             if _inference_latency is not None:
                 _inference_latency.record(elapsed_ms)
 
+        norms = embeddings.norm(dim=-1, keepdim=True).clamp(min=1e-12)
+        embeddings = embeddings / norms
         results: list[list[float]] = embeddings.cpu().numpy().tolist()
         return results
 

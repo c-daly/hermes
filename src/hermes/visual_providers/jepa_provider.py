@@ -217,7 +217,7 @@ class JEPAVisualProvider:
     # ------------------------------------------------------------------
 
     def _preprocess(self, media: bytes, media_type: str) -> "torch.Tensor":
-        """Decode media bytes to a single-frame video tensor.
+        """Decode image bytes to a single-frame tensor.
 
         Returns shape [1, 3, 1, 224, 224] (batch=1, C=3, T=1, H=224, W=224).
 
@@ -298,7 +298,7 @@ class JEPAVisualProvider:
         """Return a 1024-dim embedding for media.
 
         Args:
-            media:      Raw bytes of the image/video.
+            media:      Raw bytes of the image.
             media_type: MIME type hint (e.g. image/jpeg).
 
         Raises:

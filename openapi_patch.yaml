@@ -4,7 +4,7 @@ paths:
   /embed_visual:
     post:
       operationId: embedVisual
-      summary: Generate visual embeddings for an uploaded image or video
+      summary: Generate visual embeddings for an uploaded image
       tags:
         - embeddings
       requestBody:
@@ -19,7 +19,7 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: Image or video file to embed
+                  description: Image file to embed
       responses:
         "200":
           description: Embeddings from all configured visual providers
@@ -55,6 +55,11 @@ paths:
                   media_type:
                     type: string
                     description: Detected MIME type of the uploaded file
+                  errors:
+                    type: object
+                    description: Provider errors when some providers fail (omitted if all succeed)
+                    additionalProperties:
+                      type: string
               examples:
                 success:
                   value:

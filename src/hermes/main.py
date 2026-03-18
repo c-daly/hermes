@@ -848,7 +848,7 @@ def _log_background_task_error(task: asyncio.Task) -> None:  # type: ignore[type
 
 @app.post("/embed_visual")
 async def embed_visual(file: UploadFile = File(...)) -> dict[str, Any]:  # type: ignore[assignment]
-    """Generate visual embeddings for an uploaded image or video."""
+    """Generate visual embeddings for an uploaded image."""
     if file.size and file.size > _MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=400, detail="File too large (max 16MB)")
     with tracer.start_as_current_span("hermes.embed_visual") as span:

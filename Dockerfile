@@ -21,11 +21,8 @@ ARG HERMES_INSTALL_ML=0
 
 # Note: foundry base already has Poetry and common dependencies
 RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
-      pip install --no-cache-dir --force-reinstall numpy && \
-      pip install --no-cache-dir \
-        torch==2.2.2 \
-        torchaudio==2.2.2 \
-        --index-url https://download.pytorch.org/whl/cpu && \
+      #pip install --no-cache-dir --force-reinstall numpy && \
+      #pip install --no-cache-dir --force-reinstall torch==2.2.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cpu || true
       poetry install --only main --extras ml --extras otel --no-interaction --no-ansi && \
       poetry run python -m spacy download en_core_web_sm; \
     else \

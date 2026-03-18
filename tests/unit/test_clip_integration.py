@@ -13,8 +13,9 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-import torch
-from torchvision import transforms
+
+torch = pytest.importorskip("torch")
+transforms = pytest.importorskip("torchvision.transforms")
 
 
 # ---------------------------------------------------------------------------

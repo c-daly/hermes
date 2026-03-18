@@ -19,14 +19,14 @@ COPY pyproject.toml poetry.lock README.md ./
 # Install ML dependencies only when requested to keep standard images small
 ARG HERMES_INSTALL_ML=0
 
-# Note: foundry base already has Poetry and common dependencies
-# Pre-install torch ecosystem from CPU index before Poetry to avoid:
-#   1. numpy f2py build failure (force-reinstall workaround)
-#   2. Poetry resolver conflicts with pip-installed torch versions
-# Versions MUST match poetry.lock (Python <3.14 markers)
+# Note: foundry base already has Poetry and common dependencies (virtualenvs.create=false)
+# Pre-install torch ecosystem from CPU index before Poetry:
+#   - numpy force-reinstall fixes f2py build issue
+#   - torch force-reinstall writes RECORD files so Poetry can manage them
+# Versions must match poetry.lock (Python <3.14 markers)
 RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
       pip install --no-cache-dir --force-reinstall numpy && \
-      pip install --no-cache-dir \
+      pip install --no-cache-dir --force-reinstall \
         torch==2.3.1 \
         torchaudio==2.3.1 \
         torchvision==0.18.1 \

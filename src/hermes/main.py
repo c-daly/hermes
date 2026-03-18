@@ -28,7 +28,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 try:
-    from logos_config import RedisConfig, get_env_value
+    from logos_config import get_env_value
+    from logos_config import RedisConfig  # type: ignore[attr-defined]
     from logos_config.health import DependencyStatus, HealthResponse
     from logos_config.ports import get_repo_ports
 except ImportError:

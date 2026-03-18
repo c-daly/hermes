@@ -12,7 +12,18 @@ from datetime import UTC, datetime
 from typing import Optional
 
 import redis
-from logos_config import RedisConfig
+
+try:
+    from logos_config import RedisConfig  # type: ignore[attr-defined]
+except (ImportError, AttributeError):
+    import os
+
+    class RedisConfig:  # type: ignore[no-redef]
+        """Minimal stub when logos_config lacks RedisConfig."""
+
+        def __init__(self) -> None:
+            self.url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+
 
 logger = logging.getLogger(__name__)
 

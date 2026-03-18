@@ -888,7 +888,10 @@ async def embed_visual(file: UploadFile = File(...)) -> dict[str, Any]:  # type:
                 500, detail=f"All visual embedding providers failed: {errors}"
             )
 
-        return {"embeddings": embeddings, "media_type": media_type}
+        result: dict[str, Any] = {"embeddings": embeddings, "media_type": media_type}
+        if errors:
+            result["errors"] = errors
+        return result
 
 
 @app.post("/llm", response_model=LLMResponse)

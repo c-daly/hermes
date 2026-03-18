@@ -148,8 +148,11 @@ class JEPAVisualProvider:
         """Load V-JEPA ViT-H/14 (idempotent -- only runs once)."""
         if self._model is not None:
             return self._model
+        with self._load_lock:
+            if self._model is not None:
+                return self._model
 
-        t0 = time.monotonic()
+            t0 = time.monotonic()
         logger.info("Loading V-JEPA ViT-H/14 (device=%s)...", self._device)
 
         model: Any = None
@@ -180,34 +183,22 @@ class JEPAVisualProvider:
                         f"and via weights file ({load_exc})"
                     ) from load_exc
             else:
-                # CPU fallback: retry hub without pretrained weights so
-                # architecture is at least available for testing
-                try:
-                    model = torch.hub.load(
-                        "facebookresearch/jepa",
-                        "vjepa_vith14",
-                        pretrained=False,
-                    )
-                    logger.warning(
-                        "V-JEPA loaded without pretrained weights (hub pretrained "
-                        "download failed and JEPA_WEIGHTS_PATH not set)"
-                    )
-                except Exception as fallback_exc:
-                    raise RuntimeError(
-                        f"V-JEPA load failed: hub={hub_exc}, fallback={fallback_exc}"
-                    ) from fallback_exc
+                raise RuntimeError(
+                    f"V-JEPA model load failed (hub: {hub_exc}). "
+                    "Set JEPA_WEIGHTS_PATH to a local checkpoint file."
+                ) from hub_exc
 
-        model = model.to(self._device)
-        model = model.to(dtype=self._dtype)
-        model.eval()
-        self._model = model
+            model = model.to(self._device)
+            model = model.to(dtype=self._dtype)
+            model.eval()
+            self._model = model
 
-        elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.info("V-JEPA model ready in %.1f ms", elapsed_ms)
-        if _OTEL_AVAILABLE:
-            _model_load_time.record(elapsed_ms)
+            elapsed_ms = (time.monotonic() - t0) * 1000
+            logger.info("V-JEPA model ready in %.1f ms", elapsed_ms)
+            if _OTEL_AVAILABLE:
+                _model_load_time.record(elapsed_ms)
 
-        return self._model
+            return self._model
 
     # ------------------------------------------------------------------
     # Preprocessing

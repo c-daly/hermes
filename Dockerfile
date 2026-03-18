@@ -23,12 +23,13 @@ ARG HERMES_INSTALL_ML=0
 # Pre-install torch ecosystem from CPU index before Poetry to avoid:
 #   1. numpy f2py build failure (force-reinstall workaround)
 #   2. Poetry resolver conflicts with pip-installed torch versions
+# Versions MUST match poetry.lock (Python <3.14 markers)
 RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
       pip install --no-cache-dir --force-reinstall numpy && \
       pip install --no-cache-dir \
-        torch==2.2.2 \
-        torchaudio==2.2.2 \
-        torchvision==0.17.2 \
+        torch==2.3.1 \
+        torchaudio==2.3.1 \
+        torchvision==0.18.1 \
         --index-url https://download.pytorch.org/whl/cpu && \
       poetry install --only main --extras ml --extras otel --no-interaction --no-ansi && \
       poetry run python -m spacy download en_core_web_sm; \

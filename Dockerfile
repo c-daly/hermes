@@ -20,15 +20,18 @@ COPY pyproject.toml poetry.lock README.md ./
 ARG HERMES_INSTALL_ML=0
 
 # Note: foundry base already has Poetry and common dependencies (virtualenvs.create=false)
-# For ML builds, use pip backend with PyTorch CPU index as primary source.
-# numpy force-reinstall fixes f2py build issue in foundry base image.
+# For ML builds, use poetry export + pip install. Poetry 2's installer cannot
+# handle PyTorch's CPU wheel index (+cpu version suffix), so we let pip manage
+# the actual installation with the CPU index as primary source.
 RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
       pip install --no-cache-dir --force-reinstall numpy && \
-      poetry config installer.modern-installation false && \
-      PIP_INDEX_URL=https://download.pytorch.org/whl/cpu \
-      PIP_EXTRA_INDEX_URL=https://pypi.org/simple/ \
-      poetry install --only main --extras ml --extras otel --no-interaction --no-ansi && \
-      poetry run python -m spacy download en_core_web_sm; \
+      poetry export --only main --extras ml --extras otel --without-hashes \
+        -f requirements.txt -o /tmp/req.txt && \
+      pip install --no-cache-dir -r /tmp/req.txt \
+        --index-url https://download.pytorch.org/whl/cpu \
+        --extra-index-url https://pypi.org/simple/ && \
+      pip install --no-cache-dir --no-deps -e . && \
+      python -m spacy download en_core_web_sm; \
     else \
       poetry install --only main --extras otel --no-interaction --no-ansi; \
     fi

@@ -323,7 +323,7 @@ def _detect_backend() -> str:
     """Auto-detect the best available relation extraction backend."""
     explicit = get_env_value("RELATION_EXTRACTOR")
     if explicit:
-        return explicit.strip().lower()
+        return str(explicit).strip().lower()
     has_key = get_env_value("HERMES_LLM_API_KEY") or get_env_value("OPENAI_API_KEY")
     if has_key:
         return "combined"

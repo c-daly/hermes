@@ -244,7 +244,7 @@ def _detect_backend() -> str:
     """Auto-detect the best available NER backend."""
     explicit = get_env_value("NER_PROVIDER")
     if explicit:
-        return explicit.strip().lower()
+        return str(explicit).strip().lower()
     # Prefer combined NER+RE if an API key is available.
     has_key = get_env_value("HERMES_LLM_API_KEY") or get_env_value("OPENAI_API_KEY")
     if has_key:

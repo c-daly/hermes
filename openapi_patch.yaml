@@ -1,0 +1,104 @@
+# OpenAPI patch for /embed_visual endpoint.
+# Apply to logos/contracts/hermes.openapi.yaml to document visual embedding.
+paths:
+  /embed_visual:
+    post:
+      operationId: embedVisual
+      summary: Generate visual embeddings for an uploaded image
+      tags:
+        - embeddings
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file to embed
+      responses:
+        "200":
+          description: Embeddings from all configured visual providers
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - embeddings
+                  - media_type
+                properties:
+                  embeddings:
+                    type: object
+                    description: Map of provider name to embedding result
+                    additionalProperties:
+                      type: object
+                      required:
+                        - embedding
+                        - dim
+                        - model
+                      properties:
+                        embedding:
+                          type: array
+                          items:
+                            type: number
+                          description: Embedding vector
+                        dim:
+                          type: integer
+                          description: Embedding dimensionality
+                        model:
+                          type: string
+                          description: Model identifier
+                  media_type:
+                    type: string
+                    description: Detected MIME type of the uploaded file
+                  errors:
+                    type: object
+                    description: Provider errors when some providers fail (omitted if all succeed)
+                    additionalProperties:
+                      type: string
+              examples:
+                success:
+                  value:
+                    embeddings:
+                      jepa:
+                        embedding: [0.1, 0.2]
+                        dim: 1024
+                        model: "vjepa-vit-h14"
+                      clip:
+                        embedding: [0.3, 0.4]
+                        dim: 768
+                        model: "clip-vit-l14"
+                    media_type: "image/png"
+        "400":
+          description: File too large (max 16MB)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+        "422":
+          description: Validation error — file field missing
+        "500":
+          description: Provider inference failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+        "503":
+          description: No visual embedding providers configured
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string

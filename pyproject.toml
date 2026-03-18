@@ -39,6 +39,8 @@ otel = [
 # ML dependencies with CPU-only PyTorch (default, faster install, no CUDA)
 ml = [
   "torch>=2.0.0,<2.10.0",
+  "torchvision>=0.15.0,<0.20.0",
+  "open-clip-torch>=2.0.0",
   "torchaudio>=2.0.0,<2.10.0",
   "openai-whisper>=20231117",
   "TTS>=0.22.0; python_version < '3.12'",
@@ -121,8 +123,18 @@ module = [
   "nltk",
   "nltk.*",
   "logos_observability.*",
+  "logos_events",
+  "logos_events.*",
   "opentelemetry",
   "opentelemetry.*",
+  "torchvision",
+  "torchvision.*",
+  "open_clip",
+  "open_clip.*",
+  "torch",
+  "torch.*",
+  "PIL",
+  "PIL.*",
 ]
 ignore_missing_imports = true
 

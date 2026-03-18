@@ -252,7 +252,7 @@ def get_visual_embedding_providers() -> dict[str, VisualEmbeddingProvider]:
     if _visual_providers is not None:
         return _visual_providers
 
-    _visual_providers = {}
+    result: dict[str, VisualEmbeddingProvider] = {}
 
     raw = get_env_value("EMBEDDING_PROVIDER_VISUAL") or ""
     names = [n.strip().lower() for n in raw.split(",") if n.strip()]
@@ -262,19 +262,20 @@ def get_visual_embedding_providers() -> dict[str, VisualEmbeddingProvider]:
             try:
                 from hermes.visual_providers.jepa_provider import JEPAVisualProvider
 
-                _visual_providers["jepa"] = JEPAVisualProvider()
+                result["jepa"] = JEPAVisualProvider()
                 logger.info("Loaded visual provider: jepa")
-            except ImportError as exc:
+            except Exception as exc:
                 logger.warning("jepa visual provider unavailable: %s", exc)
         elif name == "clip":
             try:
                 from hermes.visual_providers.clip_provider import CLIPVisualProvider
 
-                _visual_providers["clip"] = CLIPVisualProvider()
+                result["clip"] = CLIPVisualProvider()
                 logger.info("Loaded visual provider: clip")
-            except ImportError as exc:
+            except Exception as exc:
                 logger.warning("clip visual provider unavailable: %s", exc)
         else:
             logger.warning("Unknown visual provider name: %r — skipping", name)
 
+    _visual_providers = result
     return _visual_providers

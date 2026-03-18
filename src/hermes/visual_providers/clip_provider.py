@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import io
 import logging
+import threading
 import time
 from typing import Any
 
@@ -79,11 +80,18 @@ class CLIPVisualProvider:
                 "CLIPVisualProvider requires 'open_clip_torch', 'torch', and 'Pillow'. "
                 "Install with: pip install open_clip_torch torch Pillow"
             )
-        from logos_config import get_env_value
+        try:
+            from logos_config import get_env_value
+        except ImportError:
+            import os
+
+            def get_env_value(key: str, default: str | None = None) -> str | None:
+                return os.environ.get(key, default)
 
         self._device: str = get_env_value("CLIP_DEVICE") or "cpu"
         self._model: Any = None
         self._preprocess: Any = None
+        self._load_lock = threading.Lock()
 
     # ------------------------------------------------------------------
     # Protocol properties
@@ -105,7 +113,11 @@ class CLIPVisualProvider:
 
     def _load(self) -> tuple[Any, Any]:
         """Lazy-load CLIP model and preprocessor (once per instance)."""
-        if self._model is None:
+        if self._model is not None:
+            return self._model, self._preprocess
+        with self._load_lock:
+            if self._model is not None:
+                return self._model, self._preprocess
             t0 = time.monotonic()
             logger.info(
                 "Loading CLIP model %s/%s on device=%s",

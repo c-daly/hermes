@@ -19,6 +19,7 @@ import io
 import logging
 import math
 import os
+import threading
 import time
 from typing import Any
 
@@ -90,7 +91,12 @@ class JEPAVisualProvider:
                 "Install them with: pip install torch torchvision Pillow"
             )
 
-        from logos_config import get_env_value
+        try:
+            from logos_config import get_env_value
+        except ImportError:
+
+            def get_env_value(key: str, default: str | None = None) -> str | None:
+                return os.environ.get(key, default)
 
         device_str = get_env_value("JEPA_DEVICE") or "cpu"
         self._device = torch.device(device_str)
@@ -104,6 +110,7 @@ class JEPAVisualProvider:
         self._dtype = _dtype_map.get(dtype_str, torch.float32)
 
         self._weights_path: str | None = get_env_value("JEPA_WEIGHTS_PATH")
+        self._load_lock = threading.Lock()
         self._model: Any = None
 
         self._transform = transforms.Compose(

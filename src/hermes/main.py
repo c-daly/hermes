@@ -152,6 +152,8 @@ logger = (
 )
 tracer = get_tracer("hermes.api")
 
+_MAX_UPLOAD_BYTES = 16 * 1024 * 1024  # 16 MB
+
 # Proposal builder for cognitive-loop context injection
 _proposal_builder = ProposalBuilder()
 
@@ -846,10 +848,12 @@ def _log_background_task_error(task: asyncio.Task) -> None:  # type: ignore[type
 @app.post("/embed_visual")
 async def embed_visual(file: UploadFile = File(...)) -> dict[str, Any]:  # type: ignore[assignment]
     """Generate visual embeddings for an uploaded image or video."""
-    if file.size and file.size > 16 * 1024 * 1024:
+    if file.size and file.size > _MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=400, detail="File too large (max 16MB)")
     with tracer.start_as_current_span("hermes.embed_visual") as span:
         media = await file.read()
+        if len(media) > _MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=400, detail="File too large (max 16MB)")
         media_type = file.content_type or "application/octet-stream"
         span.set_attribute("embed.media_type", media_type)
 
@@ -860,7 +864,8 @@ async def embed_visual(file: UploadFile = File(...)) -> dict[str, Any]:  # type:
                 "No visual embedding providers configured. Set EMBEDDING_PROVIDER_VISUAL env var.",
             )
 
-        embeddings = {}
+        embeddings: dict[str, Any] = {}
+        errors: dict[str, str] = {}
         for name, provider in providers.items():
             try:
                 embedding = await provider.embed(media, media_type)
@@ -870,9 +875,17 @@ async def embed_visual(file: UploadFile = File(...)) -> dict[str, Any]:  # type:
                     "model": provider.model_name,
                 }
             except Exception as e:
-                raise HTTPException(
-                    500, detail=f"Embedding failed for {name}: {str(e)}"
+                logger.error(
+                    "Embedding failed for provider %s: %s", name, e, exc_info=True
                 )
+                span.record_exception(e)
+                errors[name] = str(e)
+
+        if not embeddings:
+            span.set_status(StatusCode.ERROR, "All visual providers failed")
+            raise HTTPException(
+                500, detail=f"All visual embedding providers failed: {errors}"
+            )
 
         return {"embeddings": embeddings, "media_type": media_type}
 

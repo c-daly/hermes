@@ -145,7 +145,7 @@ class JEPAVisualProvider:
     # ------------------------------------------------------------------
 
     def _load_model(self) -> Any:
-        """Load V-JEPA ViT-H/14 (idempotent -- only runs once)."""
+        """Load V-JEPA ViT-H/14 (idempotent, thread-safe)."""
         if self._model is not None:
             return self._model
         with self._load_lock:
@@ -153,50 +153,53 @@ class JEPAVisualProvider:
                 return self._model
 
             t0 = time.monotonic()
-        logger.info("Loading V-JEPA ViT-H/14 (device=%s)...", self._device)
+            logger.info("Loading V-JEPA ViT-H/14 (device=%s)...", self._device)
 
-        model: Any = None
+            model: Any = None
 
-        # Primary path: torch hub
-        try:
-            model = torch.hub.load(
-                "facebookresearch/jepa",
-                "vjepa_vith14",
-                pretrained=True,
-            )
-            logger.info("V-JEPA loaded from torch hub")
-        except Exception as hub_exc:
-            logger.warning("torch.hub load failed (%s); trying local weights", hub_exc)
+            # Primary path: torch hub with pretrained weights
+            try:
+                model = torch.hub.load(
+                    "facebookresearch/jepa",
+                    "vjepa_vith14",
+                    pretrained=True,
+                )
+                logger.info("V-JEPA loaded from torch hub")
+            except Exception as hub_exc:
+                logger.warning(
+                    "torch.hub load failed (%s); trying local weights", hub_exc
+                )
 
-            # Fallback: local weights file from JEPA_WEIGHTS_PATH
-            if self._weights_path and os.path.exists(self._weights_path):
-                try:
-                    # Instantiate architecture (unweighted), then load state dict.
-                    # torch.load(weights_only=True) returns an OrderedDict, not
-                    # an nn.Module, so we cannot call .to()/.eval() on it directly.
-                    model = torch.hub.load(
-                        "facebookresearch/jepa",
-                        "vjepa_vith14",
-                        pretrained=False,
-                    )
-                    state_dict = torch.load(
-                        self._weights_path,
-                        map_location=self._device,
-                        weights_only=True,
-                    )
-                    model.load_state_dict(state_dict)
-                    logger.info("V-JEPA loaded from %s", self._weights_path)
-                except Exception as load_exc:
+                # Fallback: local checkpoint from JEPA_WEIGHTS_PATH
+                if self._weights_path and os.path.exists(self._weights_path):
+                    try:
+                        # Instantiate architecture first, then load state dict.
+                        # torch.load(weights_only=True) returns an OrderedDict,
+                        # not an nn.Module.
+                        model = torch.hub.load(
+                            "facebookresearch/jepa",
+                            "vjepa_vith14",
+                            pretrained=False,
+                        )
+                        state_dict = torch.load(
+                            self._weights_path,
+                            map_location=self._device,
+                            weights_only=True,
+                        )
+                        model.load_state_dict(state_dict)
+                        logger.info("V-JEPA loaded from %s", self._weights_path)
+                    except Exception as load_exc:
+                        raise RuntimeError(
+                            f"V-JEPA load failed via hub ({hub_exc}) "
+                            f"and via weights file ({load_exc})"
+                        ) from load_exc
+                else:
                     raise RuntimeError(
-                        f"V-JEPA load failed via hub ({hub_exc}) "
-                        f"and via weights file ({load_exc})"
-                    ) from load_exc
-            else:
-                raise RuntimeError(
-                    f"V-JEPA model load failed (hub: {hub_exc}). "
-                    "Set JEPA_WEIGHTS_PATH to a local checkpoint file."
-                ) from hub_exc
+                        f"V-JEPA model load failed (hub: {hub_exc}). "
+                        "Set JEPA_WEIGHTS_PATH to a local checkpoint file."
+                    ) from hub_exc
 
+            # Common post-load setup — runs for both hub and fallback paths
             model = model.to(self._device)
             model = model.to(dtype=self._dtype)
             model.eval()
@@ -204,7 +207,7 @@ class JEPAVisualProvider:
 
             elapsed_ms = (time.monotonic() - t0) * 1000
             logger.info("V-JEPA model ready in %.1f ms", elapsed_ms)
-            if _OTEL_AVAILABLE:
+            if _OTEL_AVAILABLE and _model_load_time is not None:
                 _model_load_time.record(elapsed_ms)
 
             return self._model

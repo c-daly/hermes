@@ -171,11 +171,20 @@ class JEPAVisualProvider:
             # Fallback: local weights file from JEPA_WEIGHTS_PATH
             if self._weights_path and os.path.exists(self._weights_path):
                 try:
-                    model = torch.load(
+                    # Instantiate architecture (unweighted), then load state dict.
+                    # torch.load(weights_only=True) returns an OrderedDict, not
+                    # an nn.Module, so we cannot call .to()/.eval() on it directly.
+                    model = torch.hub.load(
+                        "facebookresearch/jepa",
+                        "vjepa_vith14",
+                        pretrained=False,
+                    )
+                    state_dict = torch.load(
                         self._weights_path,
                         map_location=self._device,
                         weights_only=True,
                     )
+                    model.load_state_dict(state_dict)
                     logger.info("V-JEPA loaded from %s", self._weights_path)
                 except Exception as load_exc:
                     raise RuntimeError(

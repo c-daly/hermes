@@ -20,17 +20,13 @@ COPY pyproject.toml poetry.lock README.md ./
 ARG HERMES_INSTALL_ML=0
 
 # Note: foundry base already has Poetry and common dependencies (virtualenvs.create=false)
-# Pre-install torch ecosystem from CPU index before Poetry:
-#   - numpy force-reinstall fixes f2py build issue
-#   - torch force-reinstall writes RECORD files so Poetry can manage them
-# Versions must match poetry.lock (Python <3.14 markers)
+# For ML builds, use pip backend with PyTorch CPU index as primary source.
+# numpy force-reinstall fixes f2py build issue in foundry base image.
 RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
       pip install --no-cache-dir --force-reinstall numpy && \
-      pip install --no-cache-dir --force-reinstall \
-        torch==2.3.1 \
-        torchaudio==2.3.1 \
-        torchvision==0.18.1 \
-        --index-url https://download.pytorch.org/whl/cpu && \
+      poetry config installer.modern-installation false && \
+      PIP_INDEX_URL=https://download.pytorch.org/whl/cpu \
+      PIP_EXTRA_INDEX_URL=https://pypi.org/simple/ \
       poetry install --only main --extras ml --extras otel --no-interaction --no-ansi && \
       poetry run python -m spacy download en_core_web_sm; \
     else \

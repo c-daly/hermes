@@ -129,6 +129,7 @@ from hermes.llm import (
     LLMProviderNotConfiguredError,
     generate_completion,
 )
+from hermes.embedding_provider import get_visual_embedding_providers
 from hermes.proposal_builder import ProposalBuilder
 from hermes.services import (
     generate_embedding,
@@ -648,6 +649,12 @@ async def health() -> HealthResponse:
         if importlib.util.find_spec("sentence_transformers")
         else "unavailable"
     )
+    # Visual embedding providers
+    visual_providers = get_visual_embedding_providers()
+    if visual_providers:
+        capabilities["visual_embeddings"] = ",".join(sorted(visual_providers.keys()))
+    else:
+        capabilities["visual_embeddings"] = "unavailable"
 
     # Determine overall status (Milvus is critical)
     if not milvus_connected:
@@ -834,6 +841,39 @@ def _log_background_task_error(task: asyncio.Task) -> None:  # type: ignore[type
     """Log exceptions from fire-and-forget background tasks."""
     if not task.cancelled() and task.exception() is not None:
         logger.warning("Background proposal task failed: %s", task.exception())
+
+
+
+@app.post("/embed_visual")
+async def embed_visual(file: UploadFile = File(...)):  # type: ignore[assignment]
+    """Generate visual embeddings for an uploaded image or video."""
+    if file.size and file.size > 16 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 16MB)")
+    with tracer.start_as_current_span("hermes.embed_visual") as span:
+        media = await file.read()
+        media_type = file.content_type or "application/octet-stream"
+        span.set_attribute("embed.media_type", media_type)
+
+        providers = get_visual_embedding_providers()
+        if not providers:
+            raise HTTPException(
+                503,
+                "No visual embedding providers configured. Set EMBEDDING_PROVIDER_VISUAL env var.",
+            )
+
+        embeddings = {}
+        for name, provider in providers.items():
+            try:
+                embedding = await provider.embed(media, media_type)
+                embeddings[name] = {
+                    "embedding": embedding,
+                    "dim": provider.dimension,
+                    "model": provider.model_name,
+                }
+            except Exception as e:
+                raise HTTPException(500, detail=f"Embedding failed for {name}: {str(e)}")
+
+        return {"embeddings": embeddings, "media_type": media_type}
 
 
 @app.post("/llm", response_model=LLMResponse)

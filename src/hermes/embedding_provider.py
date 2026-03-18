@@ -1,12 +1,14 @@
 """Pluggable embedding providers for Hermes.
 
-Defines a protocol for embedding providers and implementations using
+Defines protocols for embedding providers and implementations using
 sentence-transformers (local) or OpenAI (API). The active provider is
 selected via env vars:
 
-    EMBEDDING_PROVIDER  (default: auto-detect — "openai" if API key present,
-                         else "sentence-transformers")
-    EMBEDDING_MODEL     (default depends on provider)
+    EMBEDDING_PROVIDER        (default: auto-detect — "openai" if API key present,
+                               else "sentence-transformers")
+    EMBEDDING_MODEL           (default depends on provider)
+    EMBEDDING_PROVIDER_VISUAL (comma-separated list of visual providers to load,
+                               e.g. "jepa,clip")
 """
 
 from __future__ import annotations
@@ -23,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 @runtime_checkable
 class EmbeddingProvider(Protocol):
-    """Protocol for embedding providers."""
+    """Base protocol for all embedding providers."""
 
     @property
     def dimension(self) -> int: ...
@@ -31,9 +33,25 @@ class EmbeddingProvider(Protocol):
     @property
     def model_name(self) -> str: ...
 
+
+@runtime_checkable
+class TextEmbeddingProvider(EmbeddingProvider, Protocol):
+    """Protocol for text embedding providers."""
+
     async def embed(self, text: str) -> list[float]: ...
 
     async def embed_batch(self, texts: list[str]) -> list[list[float]]: ...
+
+
+@runtime_checkable
+class VisualEmbeddingProvider(EmbeddingProvider, Protocol):
+    """Protocol for visual (image/video) embedding providers."""
+
+    async def embed(self, media: bytes, media_type: str) -> list[float]: ...
+
+    async def embed_batch(
+        self, media_list: list[bytes], media_type: str
+    ) -> list[list[float]]: ...
 
 
 class SentenceTransformerProvider:
@@ -162,9 +180,10 @@ class OpenAIEmbeddingProvider:
 
 
 # ---------------------------------------------------------------------------
-# Singleton accessor
+# Singleton accessors
 # ---------------------------------------------------------------------------
-_provider: EmbeddingProvider | None = None
+_provider: TextEmbeddingProvider | None = None
+_visual_providers: dict[str, VisualEmbeddingProvider] | None = None
 
 
 def _detect_backend() -> str:
@@ -179,8 +198,8 @@ def _detect_backend() -> str:
     return "sentence-transformers"
 
 
-def get_embedding_provider() -> EmbeddingProvider:
-    """Return the configured embedding provider (lazy singleton)."""
+def get_embedding_provider() -> TextEmbeddingProvider:
+    """Return the configured text embedding provider (lazy singleton)."""
     global _provider
     if _provider is not None:
         return _provider
@@ -220,3 +239,42 @@ def get_embedding_provider() -> EmbeddingProvider:
         raise ValueError(f"Unknown EMBEDDING_PROVIDER: {backend!r}")
 
     return _provider
+
+
+def get_visual_embedding_providers() -> dict[str, VisualEmbeddingProvider]:
+    """Return configured visual embedding providers (lazy singleton).
+
+    Reads ``EMBEDDING_PROVIDER_VISUAL`` (comma-separated provider names).
+    Supported names: ``jepa``, ``clip``.  Missing optional dependencies are
+    logged as warnings rather than raising.
+    """
+    global _visual_providers
+    if _visual_providers is not None:
+        return _visual_providers
+
+    _visual_providers = {}
+
+    raw = get_env_value("EMBEDDING_PROVIDER_VISUAL") or ""
+    names = [n.strip().lower() for n in raw.split(",") if n.strip()]
+
+    for name in names:
+        if name == "jepa":
+            try:
+                from hermes.visual_providers.jepa_provider import JEPAVisualProvider
+
+                _visual_providers["jepa"] = JEPAVisualProvider()
+                logger.info("Loaded visual provider: jepa")
+            except ImportError as exc:
+                logger.warning("jepa visual provider unavailable: %s", exc)
+        elif name == "clip":
+            try:
+                from hermes.visual_providers.clip_provider import CLIPVisualProvider
+
+                _visual_providers["clip"] = CLIPVisualProvider()
+                logger.info("Loaded visual provider: clip")
+            except ImportError as exc:
+                logger.warning("clip visual provider unavailable: %s", exc)
+        else:
+            logger.warning("Unknown visual provider name: %r — skipping", name)
+
+    return _visual_providers

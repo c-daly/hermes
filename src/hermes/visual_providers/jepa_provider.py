@@ -95,8 +95,12 @@ class JEPAVisualProvider:
             from logos_config import get_env_value
         except ImportError:
 
-            def get_env_value(key: str, default: str | None = None) -> str | None:
-                return os.environ.get(key, default)
+            def get_env_value(
+                key: str,
+                env: Any = None,
+                default: str | None = None,
+            ) -> str | None:
+                return (env or os.environ).get(key, default)
 
         device_str = get_env_value("JEPA_DEVICE") or "cpu"
         self._device = torch.device(device_str)

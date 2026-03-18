@@ -85,8 +85,12 @@ class CLIPVisualProvider:
         except ImportError:
             import os
 
-            def get_env_value(key: str, default: str | None = None) -> str | None:
-                return os.environ.get(key, default)
+            def get_env_value(
+                key: str,
+                env: Any = None,
+                default: str | None = None,
+            ) -> str | None:
+                return (env or os.environ).get(key, default)
 
         self._device: str = get_env_value("CLIP_DEVICE") or "cpu"
         self._model: Any = None

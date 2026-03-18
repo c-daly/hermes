@@ -125,6 +125,10 @@ module = [
   "logos_observability.*",
   "opentelemetry",
   "opentelemetry.*",
+  "torchvision",
+  "torchvision.*",
+  "open_clip",
+  "open_clip.*",
 ]
 ignore_missing_imports = true
 

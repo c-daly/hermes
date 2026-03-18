@@ -39,7 +39,13 @@ async def test_embed_visual_success():
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.post(
                 "/embed_visual",
-                files={"file": ("test.jpg", b"\xff\xd8\xff\xe0" + b"\x00" * 100, "image/jpeg")},
+                files={
+                    "file": (
+                        "test.jpg",
+                        b"\xff\xd8\xff\xe0" + b"\x00" * 100,
+                        "image/jpeg",
+                    )
+                },
             )
     assert resp.status_code == 200
     body = resp.json()
@@ -59,7 +65,13 @@ async def test_embed_visual_no_providers_returns_503():
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.post(
                 "/embed_visual",
-                files={"file": ("test.jpg", b"\xff\xd8\xff\xe0" + b"\x00" * 100, "image/jpeg")},
+                files={
+                    "file": (
+                        "test.jpg",
+                        b"\xff\xd8\xff\xe0" + b"\x00" * 100,
+                        "image/jpeg",
+                    )
+                },
             )
     assert resp.status_code == 503
 
@@ -68,12 +80,20 @@ async def test_embed_visual_provider_error_returns_500():
     """POST /embed_visual returns 500 when provider.embed raises."""
     provider = _make_mock_provider("jepa", 1024)
     provider.embed = AsyncMock(side_effect=RuntimeError("GPU OOM"))
-    with patch("hermes.main.get_visual_embedding_providers", return_value={"jepa": provider}):
+    with patch(
+        "hermes.main.get_visual_embedding_providers", return_value={"jepa": provider}
+    ):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.post(
                 "/embed_visual",
-                files={"file": ("test.jpg", b"\xff\xd8\xff\xe0" + b"\x00" * 100, "image/jpeg")},
+                files={
+                    "file": (
+                        "test.jpg",
+                        b"\xff\xd8\xff\xe0" + b"\x00" * 100,
+                        "image/jpeg",
+                    )
+                },
             )
     assert resp.status_code == 500
     assert "GPU OOM" in resp.json()["detail"]
@@ -90,7 +110,13 @@ async def test_embed_visual_multiple_providers():
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.post(
                 "/embed_visual",
-                files={"file": ("test.jpg", b"\xff\xd8\xff\xe0" + b"\x00" * 100, "image/jpeg")},
+                files={
+                    "file": (
+                        "test.jpg",
+                        b"\xff\xd8\xff\xe0" + b"\x00" * 100,
+                        "image/jpeg",
+                    )
+                },
             )
     assert resp.status_code == 200
     body = resp.json()

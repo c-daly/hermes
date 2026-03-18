@@ -190,7 +190,7 @@ def _detect_backend() -> str:
     """Auto-detect the best available backend."""
     explicit = get_env_value("EMBEDDING_PROVIDER")
     if explicit:
-        return explicit.strip().lower()
+        return str(explicit).strip().lower()
     # Prefer OpenAI if an API key is available.
     has_key = get_env_value("HERMES_LLM_API_KEY") or get_env_value("OPENAI_API_KEY")
     if has_key:

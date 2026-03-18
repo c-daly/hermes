@@ -21,7 +21,9 @@ def _make_mock_torch() -> MagicMock:
     mock_torch = MagicMock(name="torch")
 
     # torch.device returns something whose str() gives the device name
-    mock_torch.device = MagicMock(side_effect=lambda s: MagicMock(__str__=lambda _self: s))
+    mock_torch.device = MagicMock(
+        side_effect=lambda s: MagicMock(__str__=lambda _self: s)
+    )
 
     # dtype sentinels
     mock_torch.float32 = "torch.float32"

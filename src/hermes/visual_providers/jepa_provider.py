@@ -60,9 +60,9 @@ try:
     _OTEL_AVAILABLE = True
 except Exception:  # noqa: BLE001
     _OTEL_AVAILABLE = False
-    _inference_count = None
-    _inference_latency = None
-    _model_load_time = None
+    _inference_count = None  # type: ignore[assignment]
+    _inference_latency = None  # type: ignore[assignment]
+    _model_load_time = None  # type: ignore[assignment]
 
 # ---------------------------------------------------------------------------
 # Standard ImageNet normalisation (shared with CLIP / most ViT models)
@@ -96,7 +96,11 @@ class JEPAVisualProvider:
         self._device = torch.device(device_str)
 
         dtype_str = (get_env_value("JEPA_DTYPE") or "fp32").lower()
-        _dtype_map = {"fp32": torch.float32, "fp16": torch.float16, "bf16": torch.bfloat16}
+        _dtype_map = {
+            "fp32": torch.float32,
+            "fp16": torch.float16,
+            "bf16": torch.bfloat16,
+        }
         self._dtype = _dtype_map.get(dtype_str, torch.float32)
 
         self._weights_path: str | None = get_env_value("JEPA_WEIGHTS_PATH")
@@ -215,7 +219,9 @@ class JEPAVisualProvider:
         # frame: (C, H, W)
         frame: torch.Tensor = self._transform(image)
         # video: (B=1, C=3, T=1, H=224, W=224)
-        video = frame.unsqueeze(0).unsqueeze(2).to(device=self._device, dtype=self._dtype)
+        video = (
+            frame.unsqueeze(0).unsqueeze(2).to(device=self._device, dtype=self._dtype)
+        )
         return video
 
     # ------------------------------------------------------------------
@@ -256,9 +262,7 @@ class JEPAVisualProvider:
             # Already a flat vector
             embedding = output
         else:
-            raise RuntimeError(
-                f"Unexpected model output shape: {tuple(output.shape)}"
-            )
+            raise RuntimeError(f"Unexpected model output shape: {tuple(output.shape)}")
 
         result: list[float] = embedding.cpu().float().tolist()
 

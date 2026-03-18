@@ -40,9 +40,9 @@ try:
     _OTEL_AVAILABLE = True
 except Exception:  # noqa: BLE001
     _OTEL_AVAILABLE = False
-    _inference_count = None
-    _inference_latency = None
-    _model_load_time = None
+    _inference_count = None  # type: ignore[assignment]
+    _inference_latency = None  # type: ignore[assignment]
+    _model_load_time = None  # type: ignore[assignment]
 
 # ---------------------------------------------------------------------------
 # Heavy optional deps — wrapped so the module remains importable without them

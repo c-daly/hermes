@@ -180,9 +180,7 @@ class TestDecodeImage:
 
         # Make PIL.Image.open raise on garbage data
         mock_pil_image = mocks["pil_image"]
-        mock_pil_image.open.return_value.convert.side_effect = Exception(
-            "bad image"
-        )
+        mock_pil_image.open.return_value.convert.side_effect = Exception("bad image")
 
         with pytest.raises(ValueError, match="Cannot decode"):
             provider._decode_image(b"\x00\x01\x02not-an-image", "image/jpeg")

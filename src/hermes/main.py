@@ -843,7 +843,6 @@ def _log_background_task_error(task: asyncio.Task) -> None:  # type: ignore[type
         logger.warning("Background proposal task failed: %s", task.exception())
 
 
-
 @app.post("/embed_visual")
 async def embed_visual(file: UploadFile = File(...)):  # type: ignore[assignment]
     """Generate visual embeddings for an uploaded image or video."""
@@ -871,7 +870,9 @@ async def embed_visual(file: UploadFile = File(...)):  # type: ignore[assignment
                     "model": provider.model_name,
                 }
             except Exception as e:
-                raise HTTPException(500, detail=f"Embedding failed for {name}: {str(e)}")
+                raise HTTPException(
+                    500, detail=f"Embedding failed for {name}: {str(e)}"
+                )
 
         return {"embeddings": embeddings, "media_type": media_type}
 

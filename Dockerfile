@@ -20,19 +20,17 @@ COPY pyproject.toml poetry.lock README.md ./
 ARG HERMES_INSTALL_ML=0
 
 # Note: foundry base already has Poetry and common dependencies (virtualenvs.create=false)
-# For ML builds, use poetry export + pip install. Poetry 2's installer cannot
-# handle PyTorch's CPU wheel index (+cpu version suffix), so we let pip manage
-# the actual installation with the CPU index as primary source.
+# For ML builds, pip installs CPU-only torch from the PyTorch wheel index, then
+# Poetry installs the remaining ML deps via the ml-gpu extra (which excludes torch).
 RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
       pip install --no-cache-dir --force-reinstall numpy && \
-      pip install --no-cache-dir poetry-plugin-export && \
-      poetry export --only main --extras ml --extras otel --without-hashes \
-        -f requirements.txt -o /tmp/req.txt && \
-      pip install --no-cache-dir -r /tmp/req.txt \
-        --index-url https://download.pytorch.org/whl/cpu \
-        --extra-index-url https://pypi.org/simple/ && \
-      pip install --no-cache-dir --no-deps -e . && \
-      python -m spacy download en_core_web_sm; \
+      pip install --no-cache-dir \
+        torch==2.3.1 \
+        torchaudio==2.3.1 \
+        torchvision==0.18.1 \
+        --index-url https://download.pytorch.org/whl/cpu && \
+      poetry install --only main --extras ml-gpu --extras otel --no-interaction --no-ansi && \
+      poetry run python -m spacy download en_core_web_sm; \
     else \
       poetry install --only main --extras otel --no-interaction --no-ansi; \
     fi

@@ -73,6 +73,15 @@ paths:
                         dim: 768
                         model: "clip-vit-l14"
                     media_type: "image/png"
+        "400":
+          description: File too large (max 16MB)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
         "422":
           description: Validation error — file field missing
         "500":

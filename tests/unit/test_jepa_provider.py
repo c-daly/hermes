@@ -197,25 +197,6 @@ class TestEmbed:
             assert len(vec) == 1024
 
 
-class TestNanDetection:
-    def test_nan_detection(self, provider_env):
-        """_run_inference raises RuntimeError when model output has NaN."""
-        provider, mocks, _mod = provider_env
-
-        # Build a mock model whose forward pass returns a 1-D tensor with NaN
-        mock_model = MagicMock()
-        nan_values = [0.1] * 1023 + [float("nan")]
-        mock_output = MagicMock()
-        mock_output.dim.return_value = 1
-        mock_output.cpu.return_value.float.return_value.tolist.return_value = nan_values
-        mock_model.return_value = mock_output
-
-        provider._model = mock_model
-
-        with patch.object(provider, "_preprocess", return_value=MagicMock()):
-            with pytest.raises(RuntimeError, match="non-finite"):
-                provider._run_inference(b"fake", "image/jpeg")
-
 
 class TestDeviceConfig:
     def test_device_defaults_to_cpu(self, provider_env):

@@ -279,6 +279,11 @@ class JEPAVisualProvider:
         else:
             raise RuntimeError(f"Unexpected model output shape: {tuple(output.shape)}")
 
+        # L2-normalize to match CLIP provider convention
+        norm = embedding.norm()
+        if norm > 0:
+            embedding = embedding / norm
+
         result: list[float] = embedding.cpu().float().tolist()
 
         if len(result) != self.dimension:

@@ -62,9 +62,10 @@ def _make_fake_jepa_model(dim: int = 1024, n_tokens: int = 32) -> MagicMock:
 
 @pytest.fixture(autouse=True)
 def _ensure_logos_config():
-    """Mock logos_config if not installed."""
+    """Mock logos_config if not installed; clean up after."""
     import os
 
+    injected = False
     if "logos_config" not in sys.modules or not hasattr(
         sys.modules["logos_config"], "get_env_value"
     ):
@@ -73,6 +74,10 @@ def _ensure_logos_config():
             key, default
         )
         sys.modules["logos_config"] = mock_lc
+        injected = True
+    yield
+    if injected:
+        sys.modules.pop("logos_config", None)
 
 
 @pytest.fixture()

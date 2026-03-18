@@ -4,7 +4,6 @@ Mock open_clip to return a fake model, but let the actual preprocessing,
 normalization, and inference pipeline run.
 """
 
-import asyncio
 import math
 import struct
 import sys
@@ -111,19 +110,15 @@ def clip_provider():
 @pytest.mark.unit
 class TestCLIPNormalization:
 
-    def test_single_embed_is_unit_vector(self, clip_provider):
-        result = asyncio.get_event_loop().run_until_complete(
-            clip_provider.embed(_tiny_png(), "image/png")
-        )
+    async def test_single_embed_is_unit_vector(self, clip_provider):
+        result = await clip_provider.embed(_tiny_png(), "image/png")
         assert len(result) == 768
         magnitude = math.sqrt(sum(v * v for v in result))
         assert abs(magnitude - 1.0) < 1e-4, f"Not unit-norm: magnitude={magnitude}"
 
-    def test_batch_embeds_are_unit_vectors(self, clip_provider):
+    async def test_batch_embeds_are_unit_vectors(self, clip_provider):
         png = _tiny_png()
-        results = asyncio.get_event_loop().run_until_complete(
-            clip_provider.embed_batch([png, png, png], "image/png")
-        )
+        results = await clip_provider.embed_batch([png, png, png], "image/png")
         for i, emb in enumerate(results):
             magnitude = math.sqrt(sum(v * v for v in emb))
             assert (
@@ -139,24 +134,18 @@ class TestCLIPNormalization:
 @pytest.mark.unit
 class TestCLIPInferencePipeline:
 
-    def test_embed_produces_768_dim(self, clip_provider):
-        result = asyncio.get_event_loop().run_until_complete(
-            clip_provider.embed(_tiny_png(), "image/png")
-        )
+    async def test_embed_produces_768_dim(self, clip_provider):
+        result = await clip_provider.embed(_tiny_png(), "image/png")
         assert len(result) == 768
         assert all(isinstance(v, float) for v in result)
 
-    def test_embed_all_finite(self, clip_provider):
-        result = asyncio.get_event_loop().run_until_complete(
-            clip_provider.embed(_tiny_png(), "image/png")
-        )
+    async def test_embed_all_finite(self, clip_provider):
+        result = await clip_provider.embed(_tiny_png(), "image/png")
         assert all(math.isfinite(v) for v in result)
 
-    def test_embed_invalid_bytes_raises(self, clip_provider):
+    async def test_embed_invalid_bytes_raises(self, clip_provider):
         with pytest.raises((ValueError, RuntimeError)):
-            asyncio.get_event_loop().run_until_complete(
-                clip_provider.embed(b"garbage", "image/png")
-            )
+            await clip_provider.embed(b"garbage", "image/png")
 
     def test_load_idempotent(self, clip_provider):
         m1, _ = clip_provider._load()

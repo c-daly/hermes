@@ -176,10 +176,14 @@ class CLIPVisualProvider:
                 _inference_latency.record(elapsed_ms)
 
         embedding = embedding.squeeze(0)
+        if not torch.isfinite(embedding).all():
+            raise RuntimeError("Non-finite values in CLIP embedding output")
         norm = embedding.norm()
         if norm > 0:
             embedding = embedding / norm
-        result: list[float] = embedding.cpu().numpy().tolist()
+        result: list[float] = embedding.cpu().float().tolist()
+        if len(result) != self._DIM:
+            raise RuntimeError(f"Expected {self._DIM}-d embedding, got {len(result)}-d")
         return result
 
     def _infer_batch(
@@ -205,9 +209,16 @@ class CLIPVisualProvider:
             if _inference_latency is not None:
                 _inference_latency.record(elapsed_ms)
 
+        if not torch.isfinite(embeddings).all():
+            raise RuntimeError("Non-finite values in CLIP batch embedding output")
         norms = embeddings.norm(dim=-1, keepdim=True).clamp(min=1e-12)
         embeddings = embeddings / norms
-        results: list[list[float]] = embeddings.cpu().numpy().tolist()
+        results: list[list[float]] = embeddings.cpu().float().tolist()
+        for emb in results:
+            if len(emb) != self._DIM:
+                raise RuntimeError(
+                    f"Expected {self._DIM}-d embedding, got {len(emb)}-d"
+                )
         return results
 
     # ------------------------------------------------------------------

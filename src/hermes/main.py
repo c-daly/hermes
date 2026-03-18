@@ -867,20 +867,36 @@ async def embed_visual(file: UploadFile = File(...)) -> dict[str, Any]:  # type:
 
         embeddings: dict[str, Any] = {}
         errors: dict[str, str] = {}
-        for name, provider in providers.items():
+
+        async def _run_provider(
+            name: str, provider: Any
+        ) -> tuple[str, dict[str, Any] | None, str | None]:
             try:
                 embedding = await provider.embed(media, media_type)
-                embeddings[name] = {
-                    "embedding": embedding,
-                    "dim": provider.dimension,
-                    "model": provider.model_name,
-                }
+                return (
+                    name,
+                    {
+                        "embedding": embedding,
+                        "dim": provider.dimension,
+                        "model": provider.model_name,
+                    },
+                    None,
+                )
             except Exception as e:
                 logger.error(
                     "Embedding failed for provider %s: %s", name, e, exc_info=True
                 )
                 span.record_exception(e)
-                errors[name] = str(e)
+                return name, None, str(e)
+
+        results = await asyncio.gather(
+            *(_run_provider(n, p) for n, p in providers.items())
+        )
+        for pname, pdata, perror in results:
+            if pdata is not None:
+                embeddings[pname] = pdata
+            if perror is not None:
+                errors[pname] = perror
 
         if not embeddings:
             span.set_status(StatusCode.ERROR, "All visual providers failed")

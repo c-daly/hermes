@@ -4,7 +4,6 @@ Mock torch.hub.load to return a fake nn.Module, but let the actual
 preprocessing, inference pipeline, and validation run.
 """
 
-import asyncio
 import math
 import struct
 import sys
@@ -134,29 +133,21 @@ class TestJEPALoadModel:
 @pytest.mark.unit
 class TestJEPAInferencePipeline:
 
-    def test_embed_produces_1024_dim(self, jepa_provider):
-        result = asyncio.get_event_loop().run_until_complete(
-            jepa_provider.embed(_tiny_png(), "image/png")
-        )
+    async def test_embed_produces_1024_dim(self, jepa_provider):
+        result = await jepa_provider.embed(_tiny_png(), "image/png")
         assert isinstance(result, list)
         assert len(result) == 1024
 
-    def test_embed_all_finite(self, jepa_provider):
-        result = asyncio.get_event_loop().run_until_complete(
-            jepa_provider.embed(_tiny_png(), "image/png")
-        )
+    async def test_embed_all_finite(self, jepa_provider):
+        result = await jepa_provider.embed(_tiny_png(), "image/png")
         assert all(math.isfinite(v) for v in result)
 
-    def test_embed_batch_shapes(self, jepa_provider):
+    async def test_embed_batch_shapes(self, jepa_provider):
         png = _tiny_png()
-        batch = asyncio.get_event_loop().run_until_complete(
-            jepa_provider.embed_batch([png, png], "image/png")
-        )
+        batch = await jepa_provider.embed_batch([png, png], "image/png")
         assert len(batch) == 2
         assert all(len(emb) == 1024 for emb in batch)
 
-    def test_embed_invalid_bytes_raises(self, jepa_provider):
+    async def test_embed_invalid_bytes_raises(self, jepa_provider):
         with pytest.raises((ValueError, RuntimeError)):
-            asyncio.get_event_loop().run_until_complete(
-                jepa_provider.embed(b"not an image", "image/png")
-            )
+            await jepa_provider.embed(b"not an image", "image/png")

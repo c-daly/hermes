@@ -25,6 +25,7 @@ ARG HERMES_INSTALL_ML=0
 # the actual installation with the CPU index as primary source.
 RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
       pip install --no-cache-dir --force-reinstall numpy && \
+      pip install --no-cache-dir poetry-plugin-export && \
       poetry export --only main --extras ml --extras otel --without-hashes \
         -f requirements.txt -o /tmp/req.txt && \
       pip install --no-cache-dir -r /tmp/req.txt \

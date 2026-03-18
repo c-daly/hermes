@@ -123,6 +123,8 @@ module = [
   "nltk",
   "nltk.*",
   "logos_observability.*",
+  "logos_events",
+  "logos_events.*",
   "opentelemetry",
   "opentelemetry.*",
   "torchvision",

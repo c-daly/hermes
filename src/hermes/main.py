@@ -376,7 +376,7 @@ async def lifespan(app: FastAPI):  # type: ignore
         )
 
         # Subscribe to ontology changes for live updates
-        from logos_events import EventBus  # type: ignore[import-untyped]
+        from logos_events import EventBus  # type: ignore[import-not-found]
 
         _type_registry_event_bus = EventBus(_redis_config)
         _type_registry_event_bus.subscribe(
@@ -844,7 +844,7 @@ def _log_background_task_error(task: asyncio.Task) -> None:  # type: ignore[type
 
 
 @app.post("/embed_visual")
-async def embed_visual(file: UploadFile = File(...)):  # type: ignore[assignment]
+async def embed_visual(file: UploadFile = File(...)) -> dict[str, Any]:  # type: ignore[assignment]
     """Generate visual embeddings for an uploaded image or video."""
     if file.size and file.size > 16 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 16MB)")

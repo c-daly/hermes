@@ -131,6 +131,10 @@ module = [
   "torchvision.*",
   "open_clip",
   "open_clip.*",
+  "torch",
+  "torch.*",
+  "PIL",
+  "PIL.*",
 ]
 ignore_missing_imports = true
 

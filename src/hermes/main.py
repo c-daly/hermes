@@ -1378,6 +1378,77 @@ async def name_type(request: NameTypeRequest) -> NameTypeResponse:
     return NameTypeResponse(type_name=data["type_name"])
 
 
+class NameClusterMember(BaseModel):
+    name: str
+    type: Optional[str] = None
+    hermes_type_hint: Optional[str] = None
+    neighbors: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class NameClusterRequest(BaseModel):
+    members: List[NameClusterMember]
+    candidates: List[str] = Field(default_factory=list)
+
+
+class NameClusterResponse(BaseModel):
+    label: str
+    description: str = ""
+    confidence: float = 0.5
+
+
+@app.post("/name-cluster", response_model=NameClusterResponse)
+async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
+    """Name the single category that binds a cluster of nodes (Sophia emergence #505).
+
+    Sophia knows *that* the members belong together; Hermes says *what* they are.
+    """
+    member_lines = []
+    for mem in request.members:
+        line = f"- {mem.name}"
+        if mem.hermes_type_hint:
+            line += f" (hint: {mem.hermes_type_hint})"
+        if mem.neighbors:
+            rels = ", ".join(
+                f"{n.get('relation', '?')}->{n.get('neighbor_name', '?')}"
+                for n in mem.neighbors
+            )
+            line += f"; relations: {rels}"
+        member_lines.append(line)
+    members_block = "\n".join(member_lines)
+    candidates = ", ".join(request.candidates) if request.candidates else "(none)"
+
+    system_msg = (
+        "You name the single category that binds a cluster of entities together. "
+        "Find the common thread even if it must be broad; never refuse. Prefer an "
+        "existing category if one genuinely fits, otherwise propose a new lowercase "
+        'noun. Return ONLY a JSON object: '
+        '{"label": "<noun>", "description": "<short>", "confidence": <0.0-1.0>}.'
+    )
+    user_msg = (
+        f"Existing categories: {candidates}\n\n"
+        "These entities were grouped together (semantically and structurally "
+        f"similar):\n{members_block}\n\nWhat single category binds them?"
+    )
+
+    result = await generate_completion(
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ],
+        temperature=0.0,
+        max_tokens=128,
+    )
+    choices = result.get("choices", [])
+    if not choices:
+        raise HTTPException(status_code=502, detail="LLM returned no choices")
+    data = _extract_json(choices[0]["message"]["content"])
+    return NameClusterResponse(
+        label=str(data["label"]).strip().lower(),
+        description=str(data.get("description", "")),
+        confidence=float(data.get("confidence", 0.5)),
+    )
+
+
 class NameRelationshipRequest(BaseModel):
     source_name: str = Field(..., description="Source node name")
     target_name: str = Field(..., description="Target node name")

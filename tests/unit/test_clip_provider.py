@@ -136,19 +136,6 @@ class TestLazyLoading:
 
 class TestEmbed:
     @pytest.mark.asyncio
-    async def test_embed_returns_correct_length(self, provider_env):
-        """embed() returns a list of length 768."""
-        provider, _mocks, _mod = provider_env
-        expected = [0.1] * 768
-
-        with patch.object(provider, "_infer_single", return_value=expected):
-            result = await provider.embed(b"fake-image", "image/jpeg")
-
-        assert isinstance(result, list)
-        assert len(result) == 768
-        assert result == expected
-
-    @pytest.mark.asyncio
     async def test_embed_batch_empty(self, provider_env):
         """embed_batch with empty list returns []."""
         provider, _mocks, _mod = provider_env

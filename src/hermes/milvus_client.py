@@ -33,25 +33,29 @@ except ImportError:
 _milvus_connected = False
 _milvus_collection: Optional[Any] = None
 
-# Default embedding dimension used when LOGOS_EMBEDDING_DIM is not set.
-EMBEDDING_DIMENSION_DEFAULT = "384"
-
 # Lazy-loaded configuration - deferred until first use to avoid import-time env reads
 _milvus_host: Optional[str] = None
 _milvus_port: Optional[str] = None
 _collection_name: Optional[str] = None
-_embedding_dimension: Optional[int] = None
 
 
 def get_embedding_dimension() -> int:
-    """Get embedding dimension, reading from env on first call."""
-    global _embedding_dimension
-    if _embedding_dimension is None:
-        _embedding_dimension = int(
-            get_env_value("LOGOS_EMBEDDING_DIM", default=EMBEDDING_DIMENSION_DEFAULT)
-            or EMBEDDING_DIMENSION_DEFAULT
-        )
-    return _embedding_dimension
+    """Resolve the embedding dimension from the live provider.
+
+    The running provider's declared dimension is the source of truth; an explicit
+    ``LOGOS_EMBEDDING_DIM`` override is validated against it and fails loud on
+    disagreement (see :func:`logos_config.resolve_embedding_dim`). There is
+    intentionally no hardcoded default — a wrong constant silently drops
+    embeddings (logos#535: a 1536-dim provider writing a 384-dim collection).
+    """
+    from logos_config import get_embedding_dim_override, resolve_embedding_dim
+
+    from hermes import embedding_provider
+
+    declared = embedding_provider.get_embedding_provider().dimension
+    return resolve_embedding_dim(
+        measured_dim=declared, override=get_embedding_dim_override()
+    )
 
 
 def get_milvus_host() -> str:

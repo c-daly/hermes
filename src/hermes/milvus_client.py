@@ -58,6 +58,15 @@ def get_embedding_dimension() -> int:
     )
 
 
+def _embedding_field_dim(collection: Any) -> Optional[int]:
+    """Return the dim of the collection's ``embedding`` FLOAT_VECTOR field, or None."""
+    for field in collection.schema.fields:
+        if field.name == "embedding":
+            params = getattr(field, "params", None) or {}
+            return params.get("dim")
+    return None
+
+
 def get_milvus_host() -> str:
     """Get Milvus host, reading from env on first call."""
     global _milvus_host
@@ -156,12 +165,25 @@ def ensure_collection() -> Optional[Any]:
 
     try:
         collection_name = get_collection_name()
-        # Check if collection already exists
+        expected_dim = get_embedding_dimension()
+        # Reuse an existing collection only if its embedding dimension matches the
+        # provider's. Otherwise drop + recreate so we never write mismatched
+        # vectors (logos#535: a stale 384-dim collection vs a 1536-dim provider).
         if utility.has_collection(collection_name):
-            # Always get a fresh collection reference to avoid stale references
-            # (e.g., if collection was dropped and recreated externally)
-            _milvus_collection = Collection(name=collection_name)
-            return _milvus_collection
+            existing = Collection(name=collection_name)
+            actual_dim = _embedding_field_dim(existing)
+            if actual_dim == expected_dim:
+                _milvus_collection = existing
+                return _milvus_collection
+            logger.warning(
+                "Milvus collection %s has embedding dim %s but the provider needs "
+                "%s — dropping and recreating.",
+                collection_name,
+                actual_dim,
+                expected_dim,
+            )
+            utility.drop_collection(collection_name)
+            _milvus_collection = None
 
         # Create new collection with schema from c-daly/logos#155
         logger.info(f"Creating Milvus collection: {collection_name}")

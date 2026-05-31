@@ -57,7 +57,9 @@ def test_ensure_collection_recreates_on_dim_mismatch(
         name=name,
         schema=CollectionSchema(
             [
-                FieldSchema("embedding_id", DataType.VARCHAR, is_primary=True, max_length=64),
+                FieldSchema(
+                    "embedding_id", DataType.VARCHAR, is_primary=True, max_length=64
+                ),
                 FieldSchema("embedding", DataType.FLOAT_VECTOR, dim=384),
                 FieldSchema("model", DataType.VARCHAR, max_length=256),
                 FieldSchema("text", DataType.VARCHAR, max_length=65535),

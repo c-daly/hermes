@@ -605,13 +605,18 @@ async def serve_ui() -> FileResponse:
     return FileResponse(static_dir / "index.html")
 
 
-@app.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse)
+@app.get("/health", response_model=HealthResponse, operation_id="getHealth")
+@app.head("/health", include_in_schema=False)
 async def health() -> HealthResponse:
     """Health check endpoint with detailed service status.
 
     Returns the overall health status and availability of ML services,
     Milvus connectivity, and LLM provider status.
     Supports both GET and HEAD methods for health probes.
+
+    The HEAD variant is registered for lightweight liveness probes but is
+    excluded from the OpenAPI schema so the served document does not emit a
+    duplicate ``operationId`` for the same path.
     """
     # Build dependency status for Milvus
     milvus_connected = milvus_client._milvus_connected

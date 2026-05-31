@@ -165,13 +165,20 @@ def ensure_collection() -> Optional[Any]:
 
     try:
         collection_name = get_collection_name()
+        # Resolve the provider dimension ONCE and reuse it for both the mismatch
+        # check below and the FieldSchema dim at creation. Calling the provider
+        # twice risks a race/provider-reset creating the collection at a different
+        # dim than the check compared against (#108).
         expected_dim = get_embedding_dimension()
         # Fast path: already cached at the right dim — skip the has_collection /
         # schema round-trips that would otherwise run on every persist (gemini review).
+        # Return a freshly-fetched server-side reference rather than the cached
+        # Python snapshot, preserving the always-fresh-reference guarantee (#108).
         if (
             _milvus_collection is not None
             and _embedding_field_dim(_milvus_collection) == expected_dim
         ):
+            _milvus_collection = Collection(name=collection_name)
             return _milvus_collection
         # Reuse an existing collection only if its embedding dimension matches the
         # provider's. Otherwise drop + recreate so we never write mismatched
@@ -205,7 +212,9 @@ def ensure_collection() -> Optional[Any]:
             FieldSchema(
                 name="embedding",
                 dtype=DataType.FLOAT_VECTOR,
-                dim=get_embedding_dimension(),
+                # Reuse the dim resolved above so the created collection matches the
+                # dim that the mismatch check compared against (#108).
+                dim=expected_dim,
             ),
             FieldSchema(name="model", dtype=DataType.VARCHAR, max_length=256),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),

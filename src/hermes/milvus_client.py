@@ -33,25 +33,38 @@ except ImportError:
 _milvus_connected = False
 _milvus_collection: Optional[Any] = None
 
-# Default embedding dimension used when LOGOS_EMBEDDING_DIM is not set.
-EMBEDDING_DIMENSION_DEFAULT = "384"
-
 # Lazy-loaded configuration - deferred until first use to avoid import-time env reads
 _milvus_host: Optional[str] = None
 _milvus_port: Optional[str] = None
 _collection_name: Optional[str] = None
-_embedding_dimension: Optional[int] = None
 
 
 def get_embedding_dimension() -> int:
-    """Get embedding dimension, reading from env on first call."""
-    global _embedding_dimension
-    if _embedding_dimension is None:
-        _embedding_dimension = int(
-            get_env_value("LOGOS_EMBEDDING_DIM", default=EMBEDDING_DIMENSION_DEFAULT)
-            or EMBEDDING_DIMENSION_DEFAULT
-        )
-    return _embedding_dimension
+    """Resolve the embedding dimension from the live provider.
+
+    The running provider's declared dimension is the source of truth; an explicit
+    ``LOGOS_EMBEDDING_DIM`` override is validated against it and fails loud on
+    disagreement (see :func:`logos_config.resolve_embedding_dim`). There is
+    intentionally no hardcoded default — a wrong constant silently drops
+    embeddings (logos#535: a 1536-dim provider writing a 384-dim collection).
+    """
+    from logos_config import get_embedding_dim_override, resolve_embedding_dim
+
+    from hermes import embedding_provider
+
+    declared = embedding_provider.get_embedding_provider().dimension
+    return resolve_embedding_dim(
+        measured_dim=declared, override=get_embedding_dim_override()
+    )
+
+
+def _embedding_field_dim(collection: Any) -> Optional[int]:
+    """Return the dim of the collection's ``embedding`` FLOAT_VECTOR field, or None."""
+    for field in collection.schema.fields:
+        if field.name == "embedding":
+            params = getattr(field, "params", None) or {}
+            return params.get("dim")
+    return None
 
 
 def get_milvus_host() -> str:
@@ -152,12 +165,39 @@ def ensure_collection() -> Optional[Any]:
 
     try:
         collection_name = get_collection_name()
-        # Check if collection already exists
-        if utility.has_collection(collection_name):
-            # Always get a fresh collection reference to avoid stale references
-            # (e.g., if collection was dropped and recreated externally)
+        # Resolve the provider dimension ONCE and reuse it for both the mismatch
+        # check below and the FieldSchema dim at creation. Calling the provider
+        # twice risks a race/provider-reset creating the collection at a different
+        # dim than the check compared against (#108).
+        expected_dim = get_embedding_dimension()
+        # Fast path: already cached at the right dim — skip the has_collection /
+        # schema round-trips that would otherwise run on every persist (gemini review).
+        # Return a freshly-fetched server-side reference rather than the cached
+        # Python snapshot, preserving the always-fresh-reference guarantee (#108).
+        if (
+            _milvus_collection is not None
+            and _embedding_field_dim(_milvus_collection) == expected_dim
+        ):
             _milvus_collection = Collection(name=collection_name)
             return _milvus_collection
+        # Reuse an existing collection only if its embedding dimension matches the
+        # provider's. Otherwise drop + recreate so we never write mismatched
+        # vectors (logos#535: a stale 384-dim collection vs a 1536-dim provider).
+        if utility.has_collection(collection_name):
+            existing = Collection(name=collection_name)
+            actual_dim = _embedding_field_dim(existing)
+            if actual_dim == expected_dim:
+                _milvus_collection = existing
+                return _milvus_collection
+            logger.warning(
+                "Milvus collection %s has embedding dim %s but the provider needs "
+                "%s — dropping and recreating.",
+                collection_name,
+                actual_dim,
+                expected_dim,
+            )
+            utility.drop_collection(collection_name)
+            _milvus_collection = None
 
         # Create new collection with schema from c-daly/logos#155
         logger.info(f"Creating Milvus collection: {collection_name}")
@@ -172,7 +212,9 @@ def ensure_collection() -> Optional[Any]:
             FieldSchema(
                 name="embedding",
                 dtype=DataType.FLOAT_VECTOR,
-                dim=get_embedding_dimension(),
+                # Reuse the dim resolved above so the created collection matches the
+                # dim that the mismatch check compared against (#108).
+                dim=expected_dim,
             ),
             FieldSchema(name="model", dtype=DataType.VARCHAR, max_length=256),
             FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=65535),
@@ -199,6 +241,12 @@ def ensure_collection() -> Optional[Any]:
 
     except Exception as e:
         logger.error(f"Failed to create/ensure collection: {str(e)}")
+        # Invalidate the cached handle so a transient failure self-heals on the
+        # next call. Otherwise, if the fast-path Collection() fetch raises (e.g.
+        # the collection was dropped externally or Milvus blipped), the global
+        # keeps its stale non-None value, the fast-path fires again, fails again,
+        # and ensure_collection() returns None forever until restart (#108 review).
+        _milvus_collection = None
         return None
 
 

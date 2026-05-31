@@ -26,7 +26,7 @@ https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
 from __future__ import annotations
 
 from collections import Counter
-from typing import Dict, Set, Tuple
+from typing import Dict, Generator, Set, Tuple
 
 import pytest
 from starlette.routing import Route
@@ -130,10 +130,18 @@ def _schema_path_methods(schema: Dict) -> Dict[str, Set[str]]:
 
 
 @pytest.fixture(scope="module")
-def openapi_schema() -> Dict:
-    """The served OpenAPI document, regenerated fresh for the test session."""
+def openapi_schema() -> Generator[Dict, None, None]:
+    """The served OpenAPI document, regenerated fresh and restored on teardown.
+
+    Restoring ``app.openapi_schema`` keeps this module from leaking a cleared
+    cache into later test modules that import the same ``app`` (greptile review).
+    """
+    previous = app.openapi_schema
     app.openapi_schema = None  # force regeneration, ignore any cached schema
-    return app.openapi()
+    try:
+        yield app.openapi()
+    finally:
+        app.openapi_schema = previous
 
 
 # ---------------------------------------------------------------------------
@@ -268,7 +276,7 @@ def test_schema_path_methods_ignores_non_operation_keys() -> None:
         "public routes. Expanding the canonical contract to cover the remaining "
         "endpoints is tracked as a follow-up to logos#91."
     ),
-    strict=False,
+    strict=True,
 )
 def test_canonical_contract_covers_all_public_routes() -> None:
     """The canonical contract should eventually document every public route.

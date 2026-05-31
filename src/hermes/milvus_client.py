@@ -241,6 +241,12 @@ def ensure_collection() -> Optional[Any]:
 
     except Exception as e:
         logger.error(f"Failed to create/ensure collection: {str(e)}")
+        # Invalidate the cached handle so a transient failure self-heals on the
+        # next call. Otherwise, if the fast-path Collection() fetch raises (e.g.
+        # the collection was dropped externally or Milvus blipped), the global
+        # keeps its stale non-None value, the fast-path fires again, fails again,
+        # and ensure_collection() returns None forever until restart (#108 review).
+        _milvus_collection = None
         return None
 
 

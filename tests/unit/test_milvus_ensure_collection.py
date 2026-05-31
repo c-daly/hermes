@@ -100,3 +100,26 @@ def test_dimension_resolved_once_per_call(
     assert result is not None
     assert calls["n"] == 1
     assert captured["dim"] == 1536
+
+
+def test_fast_path_failure_invalidates_cache(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """If the fast-path Collection() fetch raises (collection dropped externally /
+    Milvus blip), the stale cache must be reset to None so the next call retries
+    via the slow path instead of the fast-path failing forever (#108 review)."""
+    monkeypatch.setattr(mc, "get_embedding_dimension", lambda: 1536)
+
+    def _boom(name: str, schema: Any = None) -> Any:
+        raise RuntimeError("collection dropped externally")
+
+    monkeypatch.setattr(mc, "Collection", _boom)
+
+    # Seed a stale snapshot at the matching dim so the fast path fires.
+    mc._milvus_collection = _FakeCollection("unit_embeddings", dim=1536)
+
+    result = mc.ensure_collection()
+
+    assert result is None
+    # Cache invalidated -> the next call won't re-enter the failing fast path.
+    assert mc._milvus_collection is None

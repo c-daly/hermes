@@ -166,6 +166,13 @@ def ensure_collection() -> Optional[Any]:
     try:
         collection_name = get_collection_name()
         expected_dim = get_embedding_dimension()
+        # Fast path: already cached at the right dim — skip the has_collection /
+        # schema round-trips that would otherwise run on every persist (gemini review).
+        if (
+            _milvus_collection is not None
+            and _embedding_field_dim(_milvus_collection) == expected_dim
+        ):
+            return _milvus_collection
         # Reuse an existing collection only if its embedding dimension matches the
         # provider's. Otherwise drop + recreate so we never write mismatched
         # vectors (logos#535: a stale 384-dim collection vs a 1536-dim provider).

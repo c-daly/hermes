@@ -105,11 +105,22 @@ def _public_api_routes() -> Dict[str, Set[str]]:
     }
 
 
+# An OpenAPI Path Item Object may hold non-operation keys (summary, description,
+# parameters, servers, $ref) alongside HTTP operations. Only these keys are
+# operations; filtering on them keeps the conformance checks from mis-reading a
+# non-method field as an operation (or crashing when its value isn't a dict).
+HTTP_METHODS = frozenset(
+    {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
+)
+
+
 def _schema_path_methods(schema: Dict) -> Dict[str, Set[str]]:
     """Return ``{path: {METHOD, ...}}`` documented in an OpenAPI ``paths`` block."""
     result: Dict[str, Set[str]] = {}
     for path, item in schema.get("paths", {}).items():
-        result[path] = {method.upper() for method in item}
+        result[path] = {
+            method.upper() for method in item if method.lower() in HTTP_METHODS
+        }
     return result
 
 
@@ -201,6 +212,8 @@ def test_every_operation_documents_responses(openapi_schema: Dict) -> None:
     offenders: list[str] = []
     for path, item in openapi_schema["paths"].items():
         for method, operation in item.items():
+            if method.lower() not in HTTP_METHODS:
+                continue
             responses = operation.get("responses") or {}
             if not responses:
                 offenders.append(f"{method.upper()} {path}")
@@ -219,11 +232,29 @@ def test_no_duplicate_operation_ids(openapi_schema: Dict) -> None:
     op_ids = [
         operation.get("operationId")
         for item in openapi_schema["paths"].values()
-        for operation in item.values()
-        if operation.get("operationId") is not None
+        for method, operation in item.items()
+        if method.lower() in HTTP_METHODS and operation.get("operationId") is not None
     ]
     duplicates = {op_id: count for op_id, count in Counter(op_ids).items() if count > 1}
     assert not duplicates, f"Duplicate operationId(s) in served schema: {duplicates}"
+
+
+def test_schema_path_methods_ignores_non_operation_keys() -> None:
+    """Path Item non-operation keys (summary, parameters, $ref) are not methods.
+
+    Without filtering, these would be mis-read as HTTP methods (e.g. "PARAMETERS")
+    and their non-dict values would crash the operation-level checks.
+    """
+    schema = {
+        "paths": {
+            "/x": {
+                "summary": "x",
+                "parameters": [{"name": "q", "in": "query"}],
+                "get": {"responses": {"200": {}}},
+            }
+        }
+    }
+    assert _schema_path_methods(schema) == {"/x": {"GET"}}
 
 
 # ---------------------------------------------------------------------------

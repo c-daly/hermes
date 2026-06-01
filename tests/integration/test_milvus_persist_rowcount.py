@@ -53,12 +53,16 @@ async def test_persist_embedding_grows_row_count_by_n(
         lambda: SimpleNamespace(dimension=_DIM, model_name="fake-persist"),
     )
 
-    # Reset module connection/cache globals so the patched env/provider take effect.
-    mc._milvus_connected = False
-    mc._milvus_collection = None
-    mc._collection_name = None
-    mc._milvus_host = None
-    mc._milvus_port = None
+    # Reset module connection/cache globals so the patched env/provider take
+    # effect. Use monkeypatch.setattr (not direct assignment) so all five are
+    # automatically restored to their pre-test values at teardown — this leaves
+    # no leaked module state (incl. the _milvus_collection cache handle) for
+    # other tests, regardless of what this test mutates mid-run.
+    monkeypatch.setattr(mc, "_milvus_connected", False)
+    monkeypatch.setattr(mc, "_milvus_collection", None)
+    monkeypatch.setattr(mc, "_collection_name", None)
+    monkeypatch.setattr(mc, "_milvus_host", None)
+    monkeypatch.setattr(mc, "_milvus_port", None)
 
     assert mc.connect_milvus(), "could not connect to dev Milvus"
 

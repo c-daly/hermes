@@ -161,6 +161,12 @@ _proposal_builder = ProposalBuilder()
 # Redis context cache (lazily initialised on first use)
 _context_cache: ContextCache | None = None
 
+# Strong references to fire-and-forget background tasks. asyncio holds only weak
+# references to tasks, so a task kept solely in a local variable can be garbage
+# collected mid-execution. Tasks are registered here and discard themselves on
+# completion (see _spawn_background_task).
+_background_tasks: set[asyncio.Task] = set()  # type: ignore[type-arg]
+
 
 # -------------------------------------------------------------------
 # Cognitive-loop helpers: context retrieval from Sophia
@@ -175,114 +181,55 @@ def _get_context_cache() -> ContextCache | None:
     return _context_cache
 
 
-async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> list[dict]:
-    """Retrieve relevant context for the LLM prompt.
+async def _build_and_enqueue_proposal(
+    text: str, request_id: str, metadata: dict, conversation_id: str
+) -> None:
+    """Build a proposal from *text* and enqueue it for background ingestion.
 
-    Strategy:
-    1. Check Redis for cached context from a prior Sophia processing turn.
-       If found, return it immediately (no synchronous Sophia call).
-    2. Build a proposal and enqueue it to Redis for background processing.
-    3. If Redis is unavailable, fall back to the original synchronous
-       Sophia call so the cognitive loop still works.
-
-    Never raises -- if everything fails, returns empty list.
+    Best-effort, fire-and-forget: runs off the response path. If Redis (the
+    proposal queue) is unavailable the turn is simply not ingested -- context is
+    eventually-consistent, so an occasional miss is acceptable.
     """
-    # --- Fast path: try Redis cache first ---
+    cache = _get_context_cache()
+    if cache is None or not cache.available:
+        return
+    try:
+        proposal = await _proposal_builder.build(
+            text=text,
+            metadata=metadata or {},
+            correlation_id=request_id,
+        )
+        cache.enqueue_proposal(proposal, conversation_id=conversation_id)
+    except Exception as e:
+        logger.warning(f"Background proposal build/enqueue failed: {e}", exc_info=True)
+
+
+async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> list[dict]:
+    """Opportunistically return cached context; enqueue ingestion in the background.
+
+    Non-blocking by design -- the response never waits on Sophia:
+    - Context is opportunistic: if the conversation already has cached context
+      (written by the background worker as it ingests prior turns), use it; on a
+      miss, return [] and generate without graph context. We never call Sophia
+      synchronously and never wait/compute to obtain context.
+    - The proposal is built and enqueued fire-and-forget for background ingestion.
+
+    Context is eventually-consistent: a turn or two of lag is acceptable and the
+    cache warms over the conversation. Never raises -- returns [] on any failure.
+    """
     cache = _get_context_cache()
     conversation_id = metadata.get("conversation_id") or request_id
-    reusable_proposal: dict | None = None
 
+    context: list[dict] = []
     if cache is not None and cache.available:
-        cached = cache.get_context(conversation_id)
-        if cached:
-            logger.debug(
-                "Using cached Sophia context for %s (%d items)",
-                conversation_id,
-                len(cached),
-            )
-            # Fire-and-forget: enqueue proposal for background processing
-            try:
-                proposal = await _proposal_builder.build(
-                    text=text,
-                    metadata=metadata or {},
-                    correlation_id=request_id,
-                )
-                cache.enqueue_proposal(proposal, conversation_id=conversation_id)
-            except Exception as e:
-                logger.warning(
-                    f"Background proposal enqueue failed: {e}", exc_info=True
-                )
-            return cached
-
-        # No cached context yet — still enqueue and fall through
-        try:
-            reusable_proposal = await _proposal_builder.build(
-                text=text,
-                metadata=metadata or {},
-                correlation_id=request_id,
-            )
-            cache.enqueue_proposal(reusable_proposal, conversation_id=conversation_id)
-            logger.debug(
-                "No cached context for %s; proposal enqueued for background processing",
-                conversation_id,
-            )
-        except Exception as e:
-            logger.warning(f"Proposal build/enqueue failed: {e}", exc_info=True)
-
-        # For a first-turn conversation with no cache, fall through to
-        # synchronous Sophia call so the user still gets context.
-
-    # --- Fallback: synchronous Sophia call ---
-    sophia_host = get_env_value("SOPHIA_HOST", default="localhost") or "localhost"
-    sophia_port = get_env_value("SOPHIA_PORT", default=str(_SOPHIA_PORTS.api)) or str(
-        _SOPHIA_PORTS.api
-    )
-    sophia_token = get_env_value("SOPHIA_API_KEY") or get_env_value("SOPHIA_API_TOKEN")
-
-    if not sophia_token:
-        logger.debug(
-            "SOPHIA_API_KEY/SOPHIA_API_TOKEN not configured -- context disabled"
+        context = cache.get_context(conversation_id)
+        # Fire-and-forget background ingestion -- never blocks, never calls Sophia
+        # synchronously.
+        _spawn_background_task(
+            _build_and_enqueue_proposal(text, request_id, metadata, conversation_id)
         )
-        return []
 
-    # Reuse proposal from the enqueue path if available
-    proposal: dict | None = reusable_proposal  # type: ignore[no-redef]
-    if proposal is None:
-        try:
-            proposal = await _proposal_builder.build(
-                text=text,
-                metadata=metadata or {},
-                correlation_id=request_id,
-            )
-        except Exception as e:
-            logger.warning(f"Proposal building failed: {e}", exc_info=True)
-            return []
-
-    try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0)) as client:
-            response = await client.post(
-                f"http://{sophia_host}:{sophia_port}/ingest/hermes_proposal",
-                json=proposal,
-                headers={"Authorization": f"Bearer {sophia_token}"},
-            )
-            if response.status_code == 201:
-                data: dict[str, list[dict[str, Any]]] = response.json()
-                return list(data.get("relevant_context", []))
-            logger.warning(
-                f"Sophia returned {response.status_code}: {response.text[:200]}"
-            )
-            return []
-    except httpx.ConnectError as e:
-        logger.warning(f"Cannot reach Sophia at {sophia_host}:{sophia_port}: {e}")
-        return []
-    except httpx.TimeoutException:
-        logger.warning(f"Sophia request timed out ({sophia_host}:{sophia_port})")
-        return []
-    except Exception as e:
-        logger.error(
-            f"Unexpected error during Sophia context retrieval: {e}", exc_info=True
-        )
-        return []
+    return context
 
 
 def _build_context_message(context: list[dict]) -> dict | None:
@@ -851,6 +798,20 @@ def _log_background_task_error(task: asyncio.Task) -> None:  # type: ignore[type
         logger.warning("Background proposal task failed: %s", task.exception())
 
 
+def _spawn_background_task(coro) -> asyncio.Task:  # type: ignore[type-arg, no-untyped-def]
+    """Schedule *coro* fire-and-forget while holding a strong reference.
+
+    asyncio keeps only a weak reference to a task, so a task held solely by a
+    local variable can be garbage-collected before it completes. Registering
+    it in a module-level set (and discarding on completion) keeps it alive.
+    """
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+    task.add_done_callback(_log_background_task_error)
+    return task
+
+
 @app.post("/embed_visual")
 async def embed_visual(file: UploadFile = File(...)) -> dict[str, Any]:  # type: ignore[assignment]
     """Generate visual embeddings for an uploaded image."""
@@ -1000,14 +961,13 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                         if request.experiment_tags:
                             post_meta["experiment_tags"] = request.experiment_tags
 
-                        task = asyncio.create_task(
+                        _spawn_background_task(
                             _proposal_builder.build(
                                 text=combined_text,
                                 metadata=post_meta,
                                 correlation_id=request_id,
                             )
                         )
-                        task.add_done_callback(_log_background_task_error)
                 except Exception as e:
                     logger.warning("Post-generation proposal failed: %s", e)
 

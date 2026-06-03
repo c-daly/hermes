@@ -1419,9 +1419,12 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
 
     system_msg = (
         "You name the single category that binds a cluster of entities together. "
-        "Find the common thread even if it must be broad; never refuse. Prefer an "
-        "existing category if one genuinely fits, otherwise propose a new lowercase "
-        'noun. Return ONLY a JSON object: '
+        "Find the common thread; never refuse. Reuse one of the existing categories "
+        "ONLY if this cluster is the same kind of thing as that category. If it "
+        "differs from every existing category, coin a NEW, specific lowercase noun "
+        "that distinguishes it from them -- do NOT reuse a broad existing label for "
+        "a distinct group (e.g. do not name three different groups all 'ecosystem'; "
+        "use 'forest ecosystem', 'coral reef', etc.). Return ONLY a JSON object: "
         '{"label": "<noun>", "description": "<short>", "confidence": <0.0-1.0>}.'
     )
     user_msg = (

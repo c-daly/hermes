@@ -39,9 +39,9 @@ class TestOpportunisticContext:
         result = await main._get_sophia_context(
             "hello", "req-1", {"conversation_id": "c1"}
         )
-        # let the fire-and-forget background task run
-        await asyncio.sleep(0)
-        await asyncio.sleep(0)
+        # Deterministically drain the fire-and-forget background task(s)
+        # instead of relying on event-loop scheduling.
+        await asyncio.gather(*list(main._background_tasks))
         return result, cache, sync_client, build
 
     async def test_cache_hit_returns_cached_no_sync_call(self, monkeypatch):
@@ -56,3 +56,29 @@ class TestOpportunisticContext:
         assert result == []
         assert sync_client.call_count == 0, "must not make a synchronous Sophia call"
         cache.enqueue_proposal.assert_called_once()
+
+    async def test_cache_unavailable_returns_empty_no_enqueue(self, monkeypatch):
+        cache = MagicMock()
+        cache.available = False
+        monkeypatch.setattr(main, "_get_context_cache", lambda: cache)
+        sync_client = MagicMock()
+        monkeypatch.setattr(main.httpx, "AsyncClient", sync_client)
+
+        result = await main._get_sophia_context(
+            "hello", "req-1", {"conversation_id": "c1"}
+        )
+        assert result == []
+        assert sync_client.call_count == 0, "must not make a synchronous Sophia call"
+        cache.get_context.assert_not_called()
+        cache.enqueue_proposal.assert_not_called()
+
+    async def test_cache_none_returns_empty_no_enqueue(self, monkeypatch):
+        monkeypatch.setattr(main, "_get_context_cache", lambda: None)
+        sync_client = MagicMock()
+        monkeypatch.setattr(main.httpx, "AsyncClient", sync_client)
+
+        result = await main._get_sophia_context(
+            "hello", "req-1", {"conversation_id": "c1"}
+        )
+        assert result == []
+        assert sync_client.call_count == 0, "must not make a synchronous Sophia call"

@@ -161,6 +161,12 @@ _proposal_builder = ProposalBuilder()
 # Redis context cache (lazily initialised on first use)
 _context_cache: ContextCache | None = None
 
+# Strong references to fire-and-forget background tasks. asyncio holds only weak
+# references to tasks, so a task kept solely in a local variable can be garbage
+# collected mid-execution. Tasks are registered here and discard themselves on
+# completion (see _spawn_background_task).
+_background_tasks: set[asyncio.Task] = set()  # type: ignore[type-arg]
+
 
 # -------------------------------------------------------------------
 # Cognitive-loop helpers: context retrieval from Sophia
@@ -219,10 +225,9 @@ async def _get_sophia_context(text: str, request_id: str, metadata: dict) -> lis
         context = cache.get_context(conversation_id)
         # Fire-and-forget background ingestion -- never blocks, never calls Sophia
         # synchronously.
-        task = asyncio.create_task(
+        _spawn_background_task(
             _build_and_enqueue_proposal(text, request_id, metadata, conversation_id)
         )
-        task.add_done_callback(_log_background_task_error)
 
     return context
 
@@ -793,6 +798,20 @@ def _log_background_task_error(task: asyncio.Task) -> None:  # type: ignore[type
         logger.warning("Background proposal task failed: %s", task.exception())
 
 
+def _spawn_background_task(coro) -> asyncio.Task:  # type: ignore[type-arg, no-untyped-def]
+    """Schedule *coro* fire-and-forget while holding a strong reference.
+
+    asyncio keeps only a weak reference to a task, so a task held solely by a
+    local variable can be garbage-collected before it completes. Registering
+    it in a module-level set (and discarding on completion) keeps it alive.
+    """
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+    task.add_done_callback(_log_background_task_error)
+    return task
+
+
 @app.post("/embed_visual")
 async def embed_visual(file: UploadFile = File(...)) -> dict[str, Any]:  # type: ignore[assignment]
     """Generate visual embeddings for an uploaded image."""
@@ -942,14 +961,13 @@ async def llm_generate(request: LLMRequest, http_request: Request) -> LLMRespons
                         if request.experiment_tags:
                             post_meta["experiment_tags"] = request.experiment_tags
 
-                        task = asyncio.create_task(
+                        _spawn_background_task(
                             _proposal_builder.build(
                                 text=combined_text,
                                 metadata=post_meta,
                                 correlation_id=request_id,
                             )
                         )
-                        task.add_done_callback(_log_background_task_error)
                 except Exception as e:
                     logger.warning("Post-generation proposal failed: %s", e)
 

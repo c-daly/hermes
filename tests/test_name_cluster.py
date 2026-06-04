@@ -128,7 +128,7 @@ def test_name_cluster_maps_removed_names_to_ids(monkeypatch):
 def test_name_cluster_removed_defaults_empty(monkeypatch):
     """A response with no 'removed' key yields an empty list, not an error (#504)."""
 
-    async def fake_completion(messages, temperature=0.0, max_tokens=128):
+    async def fake_completion(messages, temperature=0.0, max_tokens=512):
         return {
             "choices": [
                 {"message": {"content": '{"label": "tree", "confidence": 0.9}'}}
@@ -143,3 +143,32 @@ def test_name_cluster_removed_defaults_empty(monkeypatch):
     )
     assert resp.status_code == 200, resp.text
     assert resp.json()["removed"] == []
+
+
+def test_name_cluster_malformed_removed_degrades_not_500(monkeypatch):
+    """A non-list 'removed' (here an int) must not crash the mapping (greptile):
+    the label is still valid, so degrade to no outliers rather than a 500."""
+
+    async def fake_completion(messages, temperature=0.0, max_tokens=512):
+        # `removed` is a bare int -> not iterable. Pre-fix this raised a 500.
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"label": "tree", "confidence": 0.9, '
+                        '"removed": 7}'
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(m, "generate_completion", fake_completion)
+    client = TestClient(m.app)
+    resp = client.post(
+        "/name-cluster",
+        json={"members": [{"name": "oak", "id": "n1"}]},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["label"] == "tree"
+    assert body["removed"] == []

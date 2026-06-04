@@ -1419,7 +1419,10 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
             {"role": "user", "content": user_msg},
         ],
         temperature=0.0,
-        max_tokens=128,
+        # Label + description are short, but the response now also carries a
+        # `removed` array of member names; 128 tokens could truncate it mid-array
+        # into unparseable JSON (a 502). Give the outlier list room to complete.
+        max_tokens=512,
     )
     choices = result.get("choices", [])
     if not choices:
@@ -1445,7 +1448,12 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
         )
     # Hermes flags outliers by name; map them back to the caller's member ids so
     # Sophia can exclude them from the minted type without re-matching names.
+    # `removed` is optional and secondary: a malformed value (non-list, null, or
+    # a truncated array) must not 500 or discard an otherwise-valid name -- degrade
+    # to "no outliers", mirroring how confidence is defaulted above.
     removed_raw = data.get("removed", [])
+    if not isinstance(removed_raw, list):
+        removed_raw = []
     removed_names = {
         str(n).strip().lower() for n in removed_raw if isinstance(n, (str, int, float))
     }

@@ -87,3 +87,59 @@ def test_name_cluster_malformed_llm_response_is_502(monkeypatch):
     client = TestClient(m.app)
     resp = client.post("/name-cluster", json={"members": [{"name": "x"}]})
     assert resp.status_code == 502, resp.text
+
+
+def test_name_cluster_maps_removed_names_to_ids(monkeypatch):
+    """Outliers Hermes flags by name come back as the caller's member ids (#504)."""
+
+    async def fake_completion(messages, temperature=0.0, max_tokens=128):
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"label": "tree", "confidence": 0.9, '
+                        '"removed": ["Tusk", "amber sap"]}'
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(m, "generate_completion", fake_completion)
+    client = TestClient(m.app)
+    resp = client.post(
+        "/name-cluster",
+        json={
+            "members": [
+                {"name": "oak", "id": "n1"},
+                {"name": "pine", "id": "n2"},
+                {"name": "tusk", "id": "n3"},  # case-insensitive match to "Tusk"
+                {"name": "amber sap", "id": "n4"},
+            ],
+            "candidates": [],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["label"] == "tree"
+    # Names map back to ids, case-insensitively; coherent majority is untouched.
+    assert set(body["removed"]) == {"n3", "n4"}
+
+
+def test_name_cluster_removed_defaults_empty(monkeypatch):
+    """A response with no 'removed' key yields an empty list, not an error (#504)."""
+
+    async def fake_completion(messages, temperature=0.0, max_tokens=128):
+        return {
+            "choices": [
+                {"message": {"content": '{"label": "tree", "confidence": 0.9}'}}
+            ]
+        }
+
+    monkeypatch.setattr(m, "generate_completion", fake_completion)
+    client = TestClient(m.app)
+    resp = client.post(
+        "/name-cluster",
+        json={"members": [{"name": "oak", "id": "n1"}]},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["removed"] == []

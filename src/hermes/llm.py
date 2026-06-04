@@ -97,6 +97,13 @@ class EchoProvider(BaseLLMProvider):
         }
 
 
+def _is_reasoning_model(model: str) -> bool:
+    """OpenAI reasoning models reject temperature/max_tokens and use
+    max_completion_tokens + reasoning_effort instead (gpt-5.x, o1/o3/o4)."""
+    m = (model or "").lower()
+    return m.startswith("gpt-5") or m.startswith(("o1", "o3", "o4"))
+
+
 class OpenAIProvider(BaseLLMProvider):
     """OpenAI Chat Completions provider."""
 
@@ -118,14 +125,28 @@ class OpenAIProvider(BaseLLMProvider):
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         del metadata  # Not used directly, reserved for future routing hints
+        model_id = model or self.default_model
         payload: Dict[str, Any] = {
-            "model": model or self.default_model,
+            "model": model_id,
             "messages": messages,
         }
-        if temperature is not None:
-            payload["temperature"] = temperature
-        if max_tokens is not None:
-            payload["max_tokens"] = max_tokens
+        if _is_reasoning_model(model_id):
+            # Reasoning models (gpt-5.x, o-series) reject `temperature` and
+            # `max_tokens` on Chat Completions; they take `max_completion_tokens`
+            # plus a `reasoning_effort` knob. `reasoning_effort` only accepts
+            # low/medium/high (plus "minimal" on gpt-5); "none" is NOT a valid
+            # value and 400s -- so default to "low" (valid on both families) and
+            # treat an explicit "none"/empty as "omit" (use the model's default).
+            if max_tokens is not None:
+                payload["max_completion_tokens"] = max_tokens
+            effort = get_env_value("HERMES_LLM_REASONING_EFFORT", default="low")
+            if effort and effort.lower() != "none":
+                payload["reasoning_effort"] = effort
+        else:
+            if temperature is not None:
+                payload["temperature"] = temperature
+            if max_tokens is not None:
+                payload["max_tokens"] = max_tokens
 
         url = f"{self.base_url}/chat/completions"
         headers = {

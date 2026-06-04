@@ -78,7 +78,7 @@ class OpenAICombinedExtractor:
             "```json\n"
             "{\n"
             '  "entities": [\n'
-            '    {"name": "...", "type": "...", "start": 0, "end": 5}\n'
+            '    {"name": "...", "type": "...", "start": 0, "end": 5, "value": null, "unit": null}\n'
             "  ],\n"
             '  "relations": [\n'
             "    {\n"
@@ -97,6 +97,17 @@ class OpenAICombinedExtractor:
             "- Entity names must match the text exactly\n"
             "- start/end are character offsets into the input text\n"
             "- Entity type must be one of the types listed above\n"
+            "- Prefer specific, contentful noun phrases; do NOT extract bare "
+            "adjectives, pronouns, sentence fragments, or generic standalone nouns "
+            "(e.g. 'structure', 'system', 'thing', 'result'); use the canonical "
+            "noun-phrase surface form\n"
+            "- Temporal entities (type 'state': dates/times): set \"value\" to a "
+            "normalized form, ISO-8601 where possible ('1943'->'1943', "
+            "'March 1898'->'1898-03', 'the 1950s'->'195X'); \"unit\" is null\n"
+            "- Quantitative entities (type 'data': measurements/quantities): set "
+            "\"value\" to the numeric magnitude and \"unit\" to the unit "
+            "('10 km'->10/'km'; '5 mg'->5/'mg'); plain counts: \"unit\" is null\n"
+            "- All other entities: \"value\" and \"unit\" are null\n"
             "- Relation source_name and target_name must exactly match an "
             "extracted entity name\n"
             "- Use specific UPPER_SNAKE_CASE relation labels (e.g. LOCATED_IN, "

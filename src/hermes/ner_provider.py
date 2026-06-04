@@ -229,6 +229,9 @@ class OpenAINERProvider:
                     "type": ent_type,
                     "start": start,
                     "end": end,
+                    # normalized structured value for dates/quantities (else None)
+                    "value": ent.get("value"),
+                    "unit": ent.get("unit"),
                 }
             )
         return entities

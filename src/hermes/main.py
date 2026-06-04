@@ -1343,6 +1343,100 @@ async def name_type(request: NameTypeRequest) -> NameTypeResponse:
     return NameTypeResponse(type_name=data["type_name"])
 
 
+class NameClusterMember(BaseModel):
+    name: str
+    type: Optional[str] = None
+    hermes_type_hint: Optional[str] = None
+    neighbors: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class NameClusterRequest(BaseModel):
+    members: List[NameClusterMember] = Field(
+        ..., min_length=1, description="Cluster members to name (must be non-empty)"
+    )
+    candidates: List[str] = Field(default_factory=list)
+
+
+class NameClusterResponse(BaseModel):
+    label: str
+    description: str = ""
+    confidence: float = 0.5
+
+
+@app.post("/name-cluster", response_model=NameClusterResponse)
+async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
+    """Name the single category that binds a cluster of nodes (Sophia emergence #505).
+
+    Sophia knows *that* the members belong together; Hermes says *what* they are.
+    """
+    member_lines = []
+    for mem in request.members:
+        line = f"- {mem.name}"
+        if mem.hermes_type_hint:
+            line += f" (hint: {mem.hermes_type_hint})"
+        if mem.neighbors:
+            rels = ", ".join(
+                f"{n.get('relation', '?')}->{n.get('neighbor_name', '?')}"
+                for n in mem.neighbors
+            )
+            line += f"; relations: {rels}"
+        member_lines.append(line)
+    members_block = "\n".join(member_lines)
+    candidates = ", ".join(request.candidates) if request.candidates else "(none)"
+
+    system_msg = (
+        "You name the single category that binds a cluster of entities together. "
+        "Find the common thread; never refuse. Reuse one of the existing categories "
+        "ONLY if this cluster is the same kind of thing as that category. If it "
+        "differs from every existing category, coin a NEW, specific lowercase noun "
+        "that distinguishes it from them -- do NOT reuse a broad existing label for "
+        "a distinct group (e.g. do not name three different groups all 'ecosystem'; "
+        "use 'forest ecosystem', 'coral reef', etc.). Return ONLY a JSON object: "
+        '{"label": "<noun>", "description": "<short>", "confidence": <0.0-1.0>}.'
+    )
+    user_msg = (
+        f"Existing categories: {candidates}\n\n"
+        "These entities were grouped together (semantically and structurally "
+        f"similar):\n{members_block}\n\nWhat single category binds them?"
+    )
+
+    result = await generate_completion(
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ],
+        temperature=0.0,
+        max_tokens=128,
+    )
+    choices = result.get("choices", [])
+    if not choices:
+        raise HTTPException(status_code=502, detail="LLM returned no choices")
+    # The LLM response shape is untrusted: a missing key, non-dict JSON, or
+    # unparseable content must surface as a 502 (bad upstream response), not an
+    # unhandled 500. Confidence is clamped to the documented [0.0, 1.0] range.
+    try:
+        data = _extract_json(choices[0]["message"]["content"])
+        if not isinstance(data, dict):
+            raise ValueError("LLM response is not a JSON object")
+        label = data.get("label")
+        if not label:
+            raise KeyError("label")
+        try:
+            confidence = float(data.get("confidence", 0.5))
+        except (TypeError, ValueError):
+            confidence = 0.5
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to parse LLM cluster-name response: {e}",
+        )
+    return NameClusterResponse(
+        label=str(label).strip().lower(),
+        description=str(data.get("description", "")),
+        confidence=min(1.0, max(0.0, confidence)),
+    )
+
+
 class NameRelationshipRequest(BaseModel):
     source_name: str = Field(..., description="Source node name")
     target_name: str = Field(..., description="Target node name")

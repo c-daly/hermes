@@ -47,3 +47,43 @@ def test_name_cluster_names_the_bind(monkeypatch):
     body = resp.json()
     assert body["label"] == "concept"  # normalized to lowercase
     assert 0.0 <= body["confidence"] <= 1.0
+
+
+def test_name_cluster_rejects_empty_members():
+    """An empty cluster is a 422 (validation), not a fabricated label (greptile P1)."""
+    client = TestClient(m.app)
+    resp = client.post(
+        "/name-cluster",
+        json={"members": [], "candidates": ["object", "concept"]},
+    )
+    assert resp.status_code == 422, resp.text
+
+
+def test_name_cluster_clamps_out_of_range_confidence(monkeypatch):
+    """A model confidence outside [0,1] is clamped, not passed through (greptile P2)."""
+
+    async def fake_completion(messages, temperature=0.0, max_tokens=128):
+        return {
+            "choices": [
+                {"message": {"content": '{"label": "thing", "confidence": 1.7}'}}
+            ]
+        }
+
+    monkeypatch.setattr(m, "generate_completion", fake_completion)
+    client = TestClient(m.app)
+    resp = client.post("/name-cluster", json={"members": [{"name": "x"}]})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["confidence"] == 1.0
+
+
+def test_name_cluster_malformed_llm_response_is_502(monkeypatch):
+    """Unparseable / label-less LLM output surfaces as 502, not an unhandled 500
+    (gemini high / greptile P2)."""
+
+    async def no_label(messages, temperature=0.0, max_tokens=128):
+        return {"choices": [{"message": {"content": '{"name": "oops"}'}}]}
+
+    monkeypatch.setattr(m, "generate_completion", no_label)
+    client = TestClient(m.app)
+    resp = client.post("/name-cluster", json={"members": [{"name": "x"}]})
+    assert resp.status_code == 502, resp.text

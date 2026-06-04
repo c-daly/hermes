@@ -1386,7 +1386,9 @@ class NameClusterMember(BaseModel):
 
 
 class NameClusterRequest(BaseModel):
-    members: List[NameClusterMember]
+    members: List[NameClusterMember] = Field(
+        ..., min_length=1, description="Cluster members to name (must be non-empty)"
+    )
     candidates: List[str] = Field(default_factory=list)
 
 
@@ -1444,11 +1446,29 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
     choices = result.get("choices", [])
     if not choices:
         raise HTTPException(status_code=502, detail="LLM returned no choices")
-    data = _extract_json(choices[0]["message"]["content"])
+    # The LLM response shape is untrusted: a missing key, non-dict JSON, or
+    # unparseable content must surface as a 502 (bad upstream response), not an
+    # unhandled 500. Confidence is clamped to the documented [0.0, 1.0] range.
+    try:
+        data = _extract_json(choices[0]["message"]["content"])
+        if not isinstance(data, dict):
+            raise ValueError("LLM response is not a JSON object")
+        label = data.get("label")
+        if not label:
+            raise KeyError("label")
+        try:
+            confidence = float(data.get("confidence", 0.5))
+        except (TypeError, ValueError):
+            confidence = 0.5
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to parse LLM cluster-name response: {e}",
+        )
     return NameClusterResponse(
-        label=str(data["label"]).strip().lower(),
+        label=str(label).strip().lower(),
         description=str(data.get("description", "")),
-        confidence=float(data.get("confidence", 0.5)),
+        confidence=min(1.0, max(0.0, confidence)),
     )
 
 

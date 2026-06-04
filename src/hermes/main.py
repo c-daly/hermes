@@ -1345,6 +1345,7 @@ async def name_type(request: NameTypeRequest) -> NameTypeResponse:
 
 class NameClusterMember(BaseModel):
     name: str
+    id: Optional[str] = None
     type: Optional[str] = None
     hermes_type_hint: Optional[str] = None
     neighbors: List[Dict[str, Any]] = Field(default_factory=list)
@@ -1361,6 +1362,10 @@ class NameClusterResponse(BaseModel):
     label: str
     description: str = ""
     confidence: float = 0.5
+    removed: List[str] = Field(
+        default_factory=list,
+        description="Member ids that do not fit the named category (outliers).",
+    )
 
 
 @app.post("/name-cluster", response_model=NameClusterResponse)
@@ -1391,8 +1396,16 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
         "differs from every existing category, coin a NEW, specific lowercase noun "
         "that distinguishes it from them -- do NOT reuse a broad existing label for "
         "a distinct group (e.g. do not name three different groups all 'ecosystem'; "
-        "use 'forest ecosystem', 'coral reef', etc.). Return ONLY a JSON object: "
-        '{"label": "<noun>", "description": "<short>", "confidence": <0.0-1.0>}.'
+        "use 'forest ecosystem', 'coral reef', etc.). "
+        "Most members share one obvious category, but a few may NOT belong -- a "
+        "PART of another member, or a different kind of thing -- and would force a "
+        "looser, more general name. List any such members by their EXACT name in "
+        "'removed', then name the category of the REMAINING coherent majority. "
+        "Leave 'removed' empty when every member fits one specific category "
+        "(same-kind nesting, e.g. a component within a component, is NOT a removal). "
+        "Return ONLY a JSON object: "
+        '{"label": "<noun>", "description": "<short>", "confidence": <0.0-1.0>, '
+        '"removed": ["<member name>", ...]}.'
     )
     user_msg = (
         f"Existing categories: {candidates}\n\n"
@@ -1406,7 +1419,10 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
             {"role": "user", "content": user_msg},
         ],
         temperature=0.0,
-        max_tokens=128,
+        # Label + description are short, but the response now also carries a
+        # `removed` array of member names; 128 tokens could truncate it mid-array
+        # into unparseable JSON (a 502). Give the outlier list room to complete.
+        max_tokens=512,
     )
     choices = result.get("choices", [])
     if not choices:
@@ -1430,10 +1446,27 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
             status_code=502,
             detail=f"Failed to parse LLM cluster-name response: {e}",
         )
+    # Hermes flags outliers by name; map them back to the caller's member ids so
+    # Sophia can exclude them from the minted type without re-matching names.
+    # `removed` is optional and secondary: a malformed value (non-list, null, or
+    # a truncated array) must not 500 or discard an otherwise-valid name -- degrade
+    # to "no outliers", mirroring how confidence is defaulted above.
+    removed_raw = data.get("removed", [])
+    if not isinstance(removed_raw, list):
+        removed_raw = []
+    removed_names = {
+        str(n).strip().lower() for n in removed_raw if isinstance(n, (str, int, float))
+    }
+    removed_ids = [
+        mem.id
+        for mem in request.members
+        if mem.id and mem.name.strip().lower() in removed_names
+    ]
     return NameClusterResponse(
         label=str(label).strip().lower(),
         description=str(data.get("description", "")),
         confidence=min(1.0, max(0.0, confidence)),
+        removed=removed_ids,
     )
 
 

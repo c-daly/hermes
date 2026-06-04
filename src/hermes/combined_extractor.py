@@ -105,9 +105,9 @@ class OpenAICombinedExtractor:
             "normalized form, ISO-8601 where possible ('1943'->'1943', "
             "'March 1898'->'1898-03', 'the 1950s'->'195X'); \"unit\" is null\n"
             "- Quantitative entities (type 'data': measurements/quantities): set "
-            "\"value\" to the numeric magnitude and \"unit\" to the unit "
+            '"value" to the numeric magnitude and "unit" to the unit '
             "('10 km'->10/'km'; '5 mg'->5/'mg'); plain counts: \"unit\" is null\n"
-            "- All other entities: \"value\" and \"unit\" are null\n"
+            '- All other entities: "value" and "unit" are null\n'
             "- Relation source_name and target_name must exactly match an "
             "extracted entity name\n"
             "- Use specific UPPER_SNAKE_CASE relation labels (e.g. LOCATED_IN, "

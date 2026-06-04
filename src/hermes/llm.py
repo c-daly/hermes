@@ -133,12 +133,14 @@ class OpenAIProvider(BaseLLMProvider):
         if _is_reasoning_model(model_id):
             # Reasoning models (gpt-5.x, o-series) reject `temperature` and
             # `max_tokens` on Chat Completions; they take `max_completion_tokens`
-            # plus a `reasoning_effort` knob. Default effort "none" keeps latency
-            # flat (reasoning_tokens=0) for extraction/naming.
+            # plus a `reasoning_effort` knob. `reasoning_effort` only accepts
+            # low/medium/high (plus "minimal" on gpt-5); "none" is NOT a valid
+            # value and 400s -- so default to "low" (valid on both families) and
+            # treat an explicit "none"/empty as "omit" (use the model's default).
             if max_tokens is not None:
                 payload["max_completion_tokens"] = max_tokens
-            effort = get_env_value("HERMES_LLM_REASONING_EFFORT", default="none")
-            if effort:
+            effort = get_env_value("HERMES_LLM_REASONING_EFFORT", default="low")
+            if effort and effort.lower() != "none":
                 payload["reasoning_effort"] = effort
         else:
             if temperature is not None:

@@ -1366,6 +1366,14 @@ class NameClusterResponse(BaseModel):
         default_factory=list,
         description="Member ids that do not fit the named category (outliers).",
     )
+    parent: Optional[str] = Field(
+        default=None,
+        description=(
+            "When `label` is a newly coined type (not one of the supplied "
+            "candidates), the existing candidate to graft it under; None when "
+            "reusing a candidate or no listed category is a sensible parent."
+        ),
+    )
 
 
 @app.post("/name-cluster", response_model=NameClusterResponse)
@@ -1397,6 +1405,10 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
         "that distinguishes it from them -- do NOT reuse a broad existing label for "
         "a distinct group (e.g. do not name three different groups all 'ecosystem'; "
         "use 'forest ecosystem', 'coral reef', etc.). "
+        "When you coin a NEW category, also set 'parent' to the single existing "
+        "category above that best generalizes it (its closest broader supertype) "
+        "so it can be grafted into the hierarchy; use null for 'parent' when you "
+        "reuse an existing category or none is a sensible parent. "
         "Most members share one obvious category, but a few may NOT belong -- a "
         "PART of another member, or a different kind of thing -- and would force a "
         "looser, more general name. List any such members by their EXACT name in "
@@ -1405,7 +1417,7 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
         "(same-kind nesting, e.g. a component within a component, is NOT a removal). "
         "Return ONLY a JSON object: "
         '{"label": "<noun>", "description": "<short>", "confidence": <0.0-1.0>, '
-        '"removed": ["<member name>", ...]}.'
+        '"removed": ["<member name>", ...], "parent": "<existing category or null>"}.'
     )
     user_msg = (
         f"Existing categories: {candidates}\n\n"
@@ -1462,11 +1474,25 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
         for mem in request.members
         if mem.id and mem.name.strip().lower() in removed_names
     ]
+    # Graft parent: when Hermes coins a NEW label it may name an existing
+    # candidate to attach the new type under. Validate against the supplied
+    # candidates (case-insensitive); a hallucinated or self-referential parent
+    # degrades to None so Sophia falls back to its default parent rather than
+    # grafting onto a dangling target (closed-world, mirrors `removed`).
+    label_norm = str(label).strip().lower()
+    parent_raw = data.get("parent")
+    graft_parent: Optional[str] = None
+    if isinstance(parent_raw, str):
+        cand_by_lower = {c.strip().lower(): c.strip() for c in request.candidates}
+        matched = cand_by_lower.get(parent_raw.strip().lower())
+        if matched and matched.lower() != label_norm:
+            graft_parent = matched
     return NameClusterResponse(
-        label=str(label).strip().lower(),
+        label=label_norm,
         description=str(data.get("description", "")),
         confidence=min(1.0, max(0.0, confidence)),
         removed=removed_ids,
+        parent=graft_parent,
     )
 
 

@@ -172,3 +172,58 @@ def test_name_cluster_malformed_removed_degrades_not_500(monkeypatch):
     body = resp.json()
     assert body["label"] == "tree"
     assert body["removed"] == []
+
+
+def test_name_cluster_suggests_graft_parent(monkeypatch):
+    """On a coined-new label, Hermes returns a `parent` drawn from the
+    candidates so Sophia can graft the new type under it (concept/process
+    population)."""
+
+    async def fake_completion(messages, temperature=0.0, max_tokens=512):
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"label": "calculus", "confidence": 0.9, '
+                        '"parent": "concept"}'
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(m, "generate_completion", fake_completion)
+    client = TestClient(m.app)
+    resp = client.post(
+        "/name-cluster",
+        json={
+            "members": [{"name": "derivative", "id": "n1"}],
+            "candidates": ["object", "concept"],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["parent"] == "concept"
+
+
+def test_name_cluster_rejects_unknown_parent(monkeypatch):
+    """A `parent` not among the supplied candidates degrades to None
+    (closed-world), so Sophia never grafts onto a dangling target."""
+
+    async def fake_completion(messages, temperature=0.0, max_tokens=512):
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"label": "calculus", "parent": "mathematics"}'
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(m, "generate_completion", fake_completion)
+    client = TestClient(m.app)
+    resp = client.post(
+        "/name-cluster",
+        json={"members": [{"name": "x", "id": "n1"}], "candidates": ["concept"]},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["parent"] is None

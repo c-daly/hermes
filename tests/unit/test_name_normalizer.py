@@ -164,9 +164,11 @@ class TestWordNetLemmatization:
         assert result[0]["name"] == "mouse"
 
     def test_irregular_people(self):
+        # Shared inflect core (hermes.canonical) singularizes the irregular:
+        # people -> person (the old WordNet path kept "people" verbatim).
         entities = [{"name": "People", "type": "entity", "start": 0, "end": 6}]
         result = normalize_entities(entities, "People")
-        assert result[0]["name"] == "people"
+        assert result[0]["name"] == "person"
 
     def test_irregular_wolves(self):
         entities = [{"name": "wolves", "type": "entity", "start": 0, "end": 6}]

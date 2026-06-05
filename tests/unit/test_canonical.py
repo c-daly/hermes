@@ -59,6 +59,9 @@ GOLDEN: list[tuple[str, str]] = [
     ("movies", "movie"),
     ("ponies", "pony"),
     ("cities", "city"),
+    # Latin -ix/-ices: pinned defnoun (inflect default gives "matrice")
+    ("matrix", "matrix"),
+    ("matrices", "matrix"),
     # case / whitespace / unicode normalization
     ("  Vehicle  ", "vehicle"),
     ("VEHICLES", "vehicle"),

@@ -33,6 +33,9 @@ _IE_IRREGULARS = ("selfie", "smoothie", "hoodie", "foodie", "rottie", "hippie")
 for _ie in _IE_IRREGULARS:
     _INFLECT.defnoun(_ie, _ie + "s")
 
+# Latin -ix/-ices: inflect mis-singularizes (matrices -> matrice); pinned.
+_INFLECT.defnoun("matrix", "matrices")
+
 # Leading articles dropped before head-noun singularization.
 _LEADING_ARTICLES = {"a", "an", "the"}
 

@@ -77,6 +77,13 @@ GOLDEN: list[tuple[str, str]] = [
     ("vehicles types", "vehicle"),
     ("mammal category", "mammal"),
     ("process group", "process"),
+    ("mammal kind", "mammal"),
+    ("vehicle class", "vehicle"),
+    ("dog entity", "dog"),
+    # stacked trailing fillers strip in a single pass (idempotence)
+    ("vehicle type group", "vehicle"),
+    ("vehicle types kinds", "vehicle"),
+    ("type group", "type"),
     # whole-string filler is NOT stripped (would empty the name)
     ("type", "type"),
     ("category", "category"),

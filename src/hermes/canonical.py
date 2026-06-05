@@ -32,6 +32,7 @@ _INFLECT = inflect.engine()
 _IE_IRREGULARS = ("selfie", "smoothie", "hoodie", "foodie", "rottie", "hippie")
 for _ie in _IE_IRREGULARS:
     _INFLECT.defnoun(_ie, _ie + "s")
+del _ie
 
 # Latin -ix/-ices: inflect mis-singularizes (matrices -> matrice); pinned.
 _INFLECT.defnoun("matrix", "matrices")
@@ -97,10 +98,12 @@ def canonicalize(name: str) -> str:
     # Singularize the HEAD NOUN ONLY (the last token). Modifiers are untouched.
     tokens[-1] = singularize_word(tokens[-1])
 
-    # Strip a single trailing curated filler, but never empty the name.
-    if len(tokens) > 1 and tokens[-1] in _TRAILING_FILLERS:
+    # Strip trailing curated fillers -- looped, so stacked fillers
+    # ("vehicle type group") canonicalize in one pass -- but never empty the
+    # name: "type group" stops at "type".
+    while len(tokens) > 1 and tokens[-1] in _TRAILING_FILLERS:
         tokens = tokens[:-1]
-        # The stripped filler exposed a new head noun -- singularize it too,
+        # Each stripped filler exposes a new head noun -- singularize it too,
         # or "vehicles type" -> "vehicles" breaks canonicality + idempotence.
         tokens[-1] = singularize_word(tokens[-1])
 

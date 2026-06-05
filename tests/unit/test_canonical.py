@@ -73,6 +73,8 @@ GOLDEN: list[tuple[str, str]] = [
     # trailing filler stripping (only when not the whole string)
     ("vehicle type", "vehicle"),
     ("vehicle types", "vehicle"),
+    ("vehicles type", "vehicle"),
+    ("vehicles types", "vehicle"),
     ("mammal category", "mammal"),
     ("process group", "process"),
     # whole-string filler is NOT stripped (would empty the name)

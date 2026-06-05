@@ -100,5 +100,8 @@ def canonicalize(name: str) -> str:
     # Strip a single trailing curated filler, but never empty the name.
     if len(tokens) > 1 and tokens[-1] in _TRAILING_FILLERS:
         tokens = tokens[:-1]
+        # The stripped filler exposed a new head noun -- singularize it too,
+        # or "vehicles type" -> "vehicles" breaks canonicality + idempotence.
+        tokens[-1] = singularize_word(tokens[-1])
 
     return " ".join(tokens)

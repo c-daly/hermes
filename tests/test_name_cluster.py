@@ -227,3 +227,36 @@ def test_name_cluster_rejects_unknown_parent(monkeypatch):
     )
     assert resp.status_code == 200, resp.text
     assert resp.json()["parent"] is None
+
+
+def test_name_cluster_reuse_nulls_parent(monkeypatch):
+    """When `label` reuses an existing candidate, `parent` MUST be None even if
+    the LLM also returns one -- otherwise Sophia would try to graft an existing
+    type under a new parent. Only a NEWLY coined label carries a graft parent
+    (review #118: "null on reuse")."""
+
+    async def fake_completion(messages, temperature=0.0, max_tokens=512):
+        return {
+            "choices": [
+                {
+                    "message": {
+                        # label == existing candidate "concept" (reuse), yet the
+                        # LLM still volunteers a parent; the contract must drop it.
+                        "content": '{"label": "concept", "parent": "object"}'
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr(m, "generate_completion", fake_completion)
+    client = TestClient(m.app)
+    resp = client.post(
+        "/name-cluster",
+        json={
+            "members": [{"name": "idea", "id": "n1"}],
+            "candidates": ["object", "concept"],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["label"] == "concept"
+    assert resp.json()["parent"] is None

@@ -1484,9 +1484,14 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
     graft_parent: Optional[str] = None
     if isinstance(parent_raw, str):
         cand_by_lower = {c.strip().lower(): c.strip() for c in request.candidates}
-        matched = cand_by_lower.get(parent_raw.strip().lower())
-        if matched and matched.lower() != label_norm:
-            graft_parent = matched
+        # `parent` applies only to a NEWLY coined label. If the label is itself an
+        # existing candidate (reuse), the contract requires `parent=None` --
+        # otherwise Sophia would try to graft an existing type under a new parent
+        # (review: "null on reuse").
+        if label_norm not in cand_by_lower:
+            matched = cand_by_lower.get(parent_raw.strip().lower())
+            if matched and matched.lower() != label_norm:
+                graft_parent = matched
     return NameClusterResponse(
         label=label_norm,
         description=str(data.get("description", "")),

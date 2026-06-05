@@ -208,6 +208,34 @@ def test_type_cluster_chain_root_appended_when_missing(monkeypatch):
     assert chain[-1] in {"entity", "concept", "process"}
 
 
+def test_type_cluster_chain_sliced_from_existing_name_occurrence(monkeypatch):
+    """A canon name already mid-chain slices the chain from that occurrence.
+
+    Naive prepend would mint a non-consecutive duplicate
+    (vehicle > car > vehicle > ...); slicing drops the more-specific
+    prefix and keeps the general tail intact.
+    """
+    content = json.dumps(
+        {
+            "groups": [
+                {
+                    "assign_to": "NEW",
+                    "name": "vehicle",
+                    "chain": ["car", "vehicle", "machine", "entity"],
+                    "member_ids": ["i1"],
+                }
+            ],
+            "residual_ids": [],
+        }
+    )
+    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
+    client = TestClient(m.app)
+    resp = client.post("/type-cluster", json={"members": [{"id": "i1", "name": "car"}]})
+    assert resp.status_code == 200, resp.text
+    chain = resp.json()["groups"][0]["chain"]
+    assert chain == ["vehicle", "machine", "entity"]
+
+
 def test_type_cluster_over_specified_flag(monkeypatch):
     """A conjunction / too-many-words RAW name sets over_specified on the group."""
     content = json.dumps(
@@ -263,12 +291,12 @@ def test_type_cluster_assign_to_unresolvable_coerced_new(monkeypatch):
     assert resp.json()["groups"][0]["assign_to"] == "NEW"
 
 
-def test_canonicalize_name_wrapper_lowercases_and_singularizes():
-    """_canonicalize_name is idempotent and collapses vehicle/vehicles."""
-    assert m._canonicalize_name("Vehicles") == "vehicle"
-    assert m._canonicalize_name("vehicle") == "vehicle"
-    assert m._canonicalize_name(m._canonicalize_name("Vehicles")) == "vehicle"
-    assert m._canonicalize_name("process") == "process"
+def test_canonicalize_name_lowercases_and_singularizes():
+    """The shared canonicalize impl is idempotent and collapses vehicle/vehicles."""
+    assert m.canonicalize("Vehicles") == "vehicle"
+    assert m.canonicalize("vehicle") == "vehicle"
+    assert m.canonicalize(m.canonicalize("Vehicles")) == "vehicle"
+    assert m.canonicalize("process") == "process"
 
 
 def test_type_cluster_duplicate_member_ids_is_422():

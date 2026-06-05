@@ -124,6 +124,7 @@ from starlette.middleware.base import (
 from starlette.responses import Response as StarletteResponse
 
 from hermes import __version__, milvus_client
+from hermes.canonical import canonicalize
 from hermes.context_cache import ContextCache
 from hermes.llm import (
     LLMProviderError,
@@ -1533,51 +1534,6 @@ _OVER_SPEC_TOKENS: set[str] = {
 }
 
 
-def _canonicalize_name(name: str) -> str:
-    """Canonicalize a type name to lowercase-singular form.
-
-    Prefers the shared implementation (``hermes.canonical.canonicalize``,
-    landed by T1 in this same package); falls back to an inline normalizer
-    with the same contract so this task stays testable before T1 merges.
-    The fallback is intentionally conservative (NFKC -> strip -> collapse
-    whitespace -> lowercase -> drop leading article -> naive head-noun
-    singularize with an irregular keep-list) and is idempotent.
-    """
-    try:
-        from hermes.canonical import canonicalize as _canon
-
-        return _canon(name)
-    except Exception:  # shared impl not on this branch yet; local fallback
-        import re
-        import unicodedata
-
-        text = unicodedata.normalize("NFKC", name or "").strip()
-        text = re.sub(r"\s+", " ", text).lower()
-        # drop a single leading article
-        text = re.sub(r"^(?:a|an|the)\s+", "", text)
-        if not text:
-            return text
-        words = text.split(" ")
-        head = words[-1]
-        keep = _TYPE_ROOTS | {
-            "node",
-            "species",
-            "analysis",
-            "class",
-            "bus",
-            "process",
-        }
-        if head not in keep and not head.endswith(("ss", "is", "us")):
-            if head.endswith("ies") and len(head) > 3:
-                head = head[:-3] + "y"
-            elif head.endswith("ses") and len(head) > 3:
-                head = head[:-2]
-            elif head.endswith("s") and len(head) > 1:
-                head = head[:-1]
-        words[-1] = head
-        return " ".join(words)
-
-
 def _is_over_specified(raw_name: str) -> bool:
     """Ceiling check on the RAW name: >MAX_WORDS words OR a conjunction."""
     lowered = (raw_name or "").strip().lower()
@@ -1650,9 +1606,10 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
         if isinstance(chain, list) and chain:
             line += "  chain: " + " > ".join(str(c) for c in chain)
         lines.append(line)
+    roots_csv = ", ".join(sorted(_TYPE_ROOTS))
     lines.append(
         "GRAFT-ONLY ROOTS (valid as a parent in a chain, NEVER as "
-        "assign_to): entity, concept, process"
+        f"assign_to): {roots_csv}"
     )
     return "\n".join(lines), alias_to_uuid, published_uuids, root_uuids
 
@@ -1773,6 +1730,9 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         published_uuids,
         root_uuids,
     ) = _build_catalog_context()
+    # Part of the catalog snapshot: capture once here instead of
+    # re-reading the live _type_registry global per group below.
+    has_catalog = _type_registry is not None
 
     system_msg = (
         "You are an ontology typing assistant. Partition the cluster members "
@@ -1889,7 +1849,7 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
 
         # over_specified is computed on the RAW name, pre-canonicalize.
         over_specified = _is_over_specified(raw_name)
-        canon_name = _canonicalize_name(raw_name)
+        canon_name = canonicalize(raw_name)
 
         # chain validation: canonicalize each link; de-dup consecutive
         # repeats; append a deterministic root if missing; force
@@ -1902,7 +1862,7 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         for link in raw_chain:
             if not isinstance(link, str) or not link.strip():
                 continue
-            canon_link = _canonicalize_name(link)
+            canon_link = canonicalize(link)
             if not chain or chain[-1] != canon_link:
                 chain.append(canon_link)
         if not chain or chain[-1] not in _TYPE_ROOTS:
@@ -1912,7 +1872,14 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
                 canon_name,
             )
         if chain[0] != canon_name:
-            chain = [canon_name] + chain
+            if canon_name in chain:
+                # canon_name already appears deeper in the chain: slice
+                # from its first occurrence (dropping the more-specific
+                # prefix) so the SPEC 5.2 graft walk never sees a
+                # non-consecutive duplicate of the name.
+                chain = chain[chain.index(canon_name) :]
+            else:
+                chain = [canon_name] + chain
         if len(chain) > _MAX_CHAIN:
             chain = chain[: _MAX_CHAIN - 1] + [chain[-1]]
 
@@ -1921,7 +1888,7 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
             alias_to_uuid,
             published_uuids,
             root_uuids,
-            has_catalog=_type_registry is not None,
+            has_catalog=has_catalog,
         )
 
         try:
@@ -1982,8 +1949,10 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         )
     out_groups = [merged[k] for k in merged_order]
 
-    # residual = (input - claimed) | (returned residual within input - claimed)
-    residual_ids = sorted((input_id_set - claimed) | (raw_residual_in - claimed))
+    # residual = input ids never claimed by a kept group. Set-equivalent
+    # to the SPEC 3.4 union (input - claimed) | (raw_residual_in - claimed)
+    # because raw_residual_in is filtered to input_id_set above.
+    residual_ids = sorted(input_id_set - claimed)
 
     # Final safety assert: groups disjoint-union residual == input ids
     # (failure here is a server bug => 500).

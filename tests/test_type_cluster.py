@@ -19,7 +19,7 @@ client = TestClient(m.app)
 
 
 def _make_completion(content: str):
-    async def fake_completion(messages, temperature=0.0, max_tokens=512):
+    async def fake_completion(messages, temperature=0.0, max_tokens=512, **kwargs):
         # The pin must reach the wire, and the prompt must carry member NAMES.
         assert temperature == 0.0
         fake_completion.last_messages = messages  # type: ignore[attr-defined]
@@ -187,7 +187,7 @@ def test_blank_name_is_502(monkeypatch):
 
 
 def test_no_choices_is_502(monkeypatch):
-    async def empty(messages, temperature=0.0, max_tokens=512):
+    async def empty(messages, temperature=0.0, max_tokens=512, **kwargs):
         return {"choices": []}
 
     monkeypatch.setattr(m, "generate_completion", empty)

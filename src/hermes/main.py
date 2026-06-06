@@ -1757,6 +1757,7 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         ],
         temperature=0.0,
         max_tokens=512,
+        metadata={"request_id": request.request_id},
     )
     choices = result.get("choices", [])
     if not choices:

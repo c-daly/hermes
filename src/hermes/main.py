@@ -1756,9 +1756,12 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         f"{members_block}\n\nType them."
     )
 
-    # max_tokens scales with member count so large clusters do not get the
-    # member_ids array clipped (truncation is a hard failure below).
-    max_tokens = min(4096, 512 + 24 * len(request.members))
+    # Budget for what the response actually costs, not just member count
+    # (#126): member_ids are full UUIDs (~12 tokens each) and EVERY group
+    # carries name + assign_to + an IS_A chain (up to ~5 hops), so a small
+    # cluster that splits into many groups can blow a member-count-only
+    # budget and truncate into unparseable JSON (a hard 502 below).
+    max_tokens = min(6144, 1024 + 128 * len(request.members))
     result = await generate_completion(
         messages=[
             {"role": "system", "content": system_msg},

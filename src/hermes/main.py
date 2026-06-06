@@ -1685,296 +1685,125 @@ class TypeClusterRequest(BaseModel):
         return value
 
 
-class TypeGroup(BaseModel):
-    assign_to: str = Field(..., description="A published type uuid OR the literal NEW.")
-    name: str = Field(..., description="Canonical lowercase-singular hypernym.")
-    chain: List[str] = Field(
-        ...,
-        description=(
-            "IS_A chain SPECIFIC->GENERAL; chain[0]==name, " "chain[-1] a realm root."
-        ),
-    )
-    member_ids: List[str] = Field(default_factory=list)
-    confidence: float = 0.5
-    description: str = ""
-    over_specified: bool = False
-
-
 class TypeClusterResponse(BaseModel):
+    """As-designed contract (#127): Hermes NAMES the cluster and flags the
+    OUTLIERS. Placement (IS_A chain, reuse/mint, root) is the cascade's job,
+    not Hermes' -- the model only names and rejects."""
+
     request_id: Optional[str] = None
-    groups: List[TypeGroup] = Field(default_factory=list)
-    residual_ids: List[str] = Field(default_factory=list)
-    raw_partition_ok: bool = True
+    name: str = ""  # canonical hypernym for the whole cluster
+    over_specified: bool = False
+    residual_ids: List[str] = Field(default_factory=list)  # members that don't fit
+    raw_partition_ok: bool = True  # every returned outlier name resolved to a member
 
 
 @app.post("/type-cluster", response_model=TypeClusterResponse)
 async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
-    """Type the categories that bind a cluster (naming-driven typing v2).
+    """Name the category that binds a cluster; return the members that don't fit.
 
-    Sophia points (coarse cluster); Hermes asserts (per-subgroup hypernym +
-    IS_A chain to a realm root + reuse/mint decision). This handler owns the
-    contract and fail-closed server-side validation; the placement cascade
-    is simulated by the offline harness.
+    Naming-driven typing v2, as designed (#127): Sophia points (the coarse
+    cluster); Hermes NAMES it (one canonical hypernym) and flags the OUTLIERS
+    (members that don't belong under that name). Hermes does NOT partition into
+    subgroups, propose an IS_A chain, or decide reuse/mint -- the placement
+    cascade (the offline harness) asserts all of that FROM the name. The model
+    reasons over member NAMES and returns outlier NAMES; Hermes maps those back
+    to input ids over the known member set (the model never handles an id --
+    verbatim id echo was the source of the truncation/no-usable-groups
+    failures).
     """
     member_lines = []
     for mem in request.members:
-        line = f"- {mem.name} (id: {mem.id})"
+        line = f"- {mem.name}"
         if mem.hermes_type_hint:
             line += f" (hint: {mem.hermes_type_hint})"
         member_lines.append(line)
     members_block = "\n".join(member_lines)
 
-    (
-        catalog_block,
-        alias_to_uuid,
-        published_uuids,
-        root_uuids,
-    ) = _build_catalog_context()
-    # Part of the catalog snapshot: capture once here instead of
-    # re-reading the live _type_registry global per group below.
-    has_catalog = _type_registry is not None
-
     system_msg = (
-        "You are an ontology typing assistant. Partition the cluster members "
-        "into one or more semantic subgroups. For each subgroup return a "
-        "canonical hypernym `name` (lowercase singular noun), an IS_A `chain` "
-        "from specific to general ending in exactly one realm root "
-        "(entity, concept, or process), `member_ids` (the EXACT input ids in "
-        "that subgroup), and `assign_to` (the bracketed id of an existing "
-        'published type to reuse, or the literal "NEW" to mint). Cover '
-        "EVERY input id exactly once across the subgroups; ids that fit "
-        "nothing go in top-level `residual_ids`. Return ONLY a JSON object: "
-        '{"groups": [{"assign_to": "<id-or-NEW>", "name": "<noun>", '
-        '"chain": ["<specific>", ..., "<root>"], '
-        '"member_ids": ["<id>", ...], "confidence": <0.0-1.0>, '
-        '"description": "<short>"}], "residual_ids": ["<id>", ...]}.'
+        "You name the single category that binds a cluster of entities "
+        "together. Return a canonical hypernym `name` (a lowercase singular "
+        "noun) for the WHOLE cluster, and `outliers`: the EXACT names of any "
+        "listed members that do NOT belong under that category. Most clusters "
+        "have no outliers. Do not split the cluster or invent ids. Return ONLY "
+        'a JSON object: {"name": "<noun>", "outliers": ["<member name>", ...]}.'
     )
-    if catalog_block:
-        system_msg += "\n\n" + catalog_block
     user_msg = (
         "These entities were grouped together (embedding-coarse cluster):\n"
-        f"{members_block}\n\nType them."
+        f"{members_block}\n\nName the category that binds them, and list any "
+        "that do not fit."
     )
 
-    # Budget for what the response actually costs, not just member count
-    # (#126): member_ids are full UUIDs (~12 tokens each) and EVERY group
-    # carries name + assign_to + an IS_A chain (up to ~5 hops), so a small
-    # cluster that splits into many groups can blow a member-count-only
-    # budget and truncate into unparseable JSON (a hard 502 below).
-    max_tokens = min(6144, 1024 + 128 * len(request.members))
+    # Bounded response: one name + a short outlier list. The member-count
+    # token scaling that the partition contract needed (#126) is moot here.
     result = await generate_completion(
         messages=[
             {"role": "system", "content": system_msg},
             {"role": "user", "content": user_msg},
         ],
         temperature=0.0,
-        max_tokens=max_tokens,
+        max_tokens=512,
     )
     choices = result.get("choices", [])
     if not choices:
         raise HTTPException(status_code=502, detail="LLM returned no choices")
-
     content = choices[0]["message"]["content"]
-    # Truncation detection: a clipped member_ids tail makes the JSON
-    # unparseable. Surface it as a 502 (raw partition fidelity is gone)
-    # rather than letting a truncated tail masquerade as healthy residual
-    # backlog.
+
     try:
         data = _extract_json(content)
     except Exception:
-        logger.warning("type_cluster: truncated_response (unparseable JSON)")
+        logger.warning("type_cluster: unparseable JSON")
         raise HTTPException(
-            status_code=502,
-            detail="LLM typing response was truncated/unparseable",
+            status_code=502, detail="LLM typing response was unparseable"
         )
     if not isinstance(data, dict):
         raise HTTPException(
             status_code=502, detail="LLM typing response is not a JSON object"
         )
 
-    input_id_set = {mem.id for mem in request.members}
+    raw_name = data.get("name")
+    if not isinstance(raw_name, str) or not raw_name.strip():
+        raise HTTPException(
+            status_code=502, detail="LLM typing response had no usable name"
+        )
+    over_specified = _is_over_specified(raw_name)
+    name = canonicalize(raw_name)
 
-    raw_groups = data.get("groups")
-    if not isinstance(raw_groups, list):
-        raw_groups = []
-    raw_residual = data.get("residual_ids")
-    if not isinstance(raw_residual, list):
-        raw_residual = []
+    # Map outlier NAMES back to input ids over the known member set: exact,
+    # then case/space-normalized. Names the model invented (no member match)
+    # are dropped -- they cannot designate a real node. Names, not ids,
+    # because the model reproduces the medium it reasoned over far more
+    # reliably than a 36-char uuid, and the candidate set is small + known
+    # (#127).
+    raw_outliers = data.get("outliers")
+    if not isinstance(raw_outliers, list):
+        raw_outliers = []
 
-    # --- raw-fidelity bookkeeping (on the LLM output BEFORE reconcile) ---
-    raw_claimed: list[str] = []
-    raw_partition_ok = True
-    for g in raw_groups:
-        if not isinstance(g, dict):
-            raw_partition_ok = False
-            continue
-        gids = g.get("member_ids")
-        if not isinstance(gids, list):
-            raw_partition_ok = False
-            continue
-        raw_claimed.extend([gid for gid in gids if isinstance(gid, str)])
-    # subset: every raw-claimed id is a real input id
-    if any(gid not in input_id_set for gid in raw_claimed):
-        raw_partition_ok = False
-    # disjoint: no id claimed by two groups
-    if len(raw_claimed) != len(set(raw_claimed)):
-        raw_partition_ok = False
-    # total: raw group ids + returned residual cover every input id
-    raw_residual_in = {
-        r for r in raw_residual if isinstance(r, str) and r in input_id_set
-    }
-    if set(raw_claimed) | raw_residual_in != input_id_set:
-        raw_partition_ok = False
+    def _norm(value: str) -> str:
+        return " ".join(str(value).strip().lower().split())
 
-    # --- reconciliation: first-claim wins, dedup, drop hallucinated ids ---
+    by_norm: dict[str, list[str]] = {}
+    for mem in request.members:
+        by_norm.setdefault(_norm(mem.name), []).append(mem.id)
+
     claimed: set[str] = set()
-    out_groups: list[TypeGroup] = []
-    for g in raw_groups:
-        if not isinstance(g, dict):
-            continue
-        raw_name = g.get("name")
-        if not isinstance(raw_name, str) or not raw_name.strip():
-            logger.warning("type_cluster: dropping group with missing name")
-            continue
-        gids_raw = g.get("member_ids")
-        if not isinstance(gids_raw, list):
-            gids_raw = []
-        kept_ids: list[str] = []
-        for gid in gids_raw:
-            if isinstance(gid, str) and gid in input_id_set and gid not in claimed:
-                claimed.add(gid)
-                kept_ids.append(gid)
-        if not kept_ids:
-            logger.warning(
-                "type_cluster: dropping group %s with no valid ids", raw_name
-            )
-            continue
+    residual_ids: list[str] = []
+    named_outliers = [o for o in raw_outliers if isinstance(o, str)]
+    for outlier in named_outliers:
+        for mid in by_norm.get(_norm(outlier), []):
+            if mid not in claimed:
+                claimed.add(mid)
+                residual_ids.append(mid)
+                break
 
-        # over_specified is computed on the RAW name, pre-canonicalize.
-        over_specified = _is_over_specified(raw_name)
-        canon_name = canonicalize(raw_name)
-
-        # chain validation: canonicalize each link; de-dup consecutive
-        # repeats; append a deterministic root if missing; force
-        # chain[0] == name; cap length keeping the root. Never reject a
-        # group on a bad chain.
-        raw_chain = g.get("chain")
-        if not isinstance(raw_chain, list):
-            raw_chain = []
-        chain: list[str] = []
-        for link in raw_chain:
-            if not isinstance(link, str) or not link.strip():
-                continue
-            canon_link = canonicalize(link)
-            if not chain or chain[-1] != canon_link:
-                chain.append(canon_link)
-        if not chain or chain[-1] not in _TYPE_ROOTS:
-            chain.append("entity")  # deterministic default realm root
-            logger.warning(
-                "type_cluster: bad_root -- appended default root for %s",
-                canon_name,
-            )
-        if chain[0] != canon_name:
-            if canon_name in chain:
-                # canon_name already appears deeper in the chain: slice
-                # from its first occurrence (dropping the more-specific
-                # prefix) so the SPEC 5.2 graft walk never sees a
-                # non-consecutive duplicate of the name.
-                chain = chain[chain.index(canon_name) :]
-            else:
-                chain = [canon_name] + chain
-        if len(chain) > _MAX_CHAIN:
-            chain = chain[: _MAX_CHAIN - 1] + [chain[-1]]
-
-        assign_to = _resolve_assign_to(
-            g.get("assign_to"),
-            alias_to_uuid,
-            published_uuids,
-            root_uuids,
-            has_catalog=has_catalog,
-        )
-
-        try:
-            confidence = float(g.get("confidence", 0.5))
-        except (TypeError, ValueError):
-            confidence = 0.5
-        confidence = max(0.0, min(1.0, confidence))
-
-        description = g.get("description", "")
-        if not isinstance(description, str):
-            description = ""
-
-        out_groups.append(
-            TypeGroup(
-                assign_to=assign_to,
-                name=canon_name,
-                chain=chain,
-                member_ids=kept_ids,
-                confidence=confidence,
-                description=description,
-                over_specified=over_specified,
-            )
-        )
-
-    if not out_groups:
-        raise HTTPException(
-            status_code=502,
-            detail="LLM typing response contained no usable groups",
-        )
-
-    # Intra-response canonical-name merge: groups are merged ONLY when the
-    # canonical name AND the proposed chain[-1] root both collide (union
-    # member_ids, keep the higher-confidence chain); different roots stay
-    # split (homonym guard).
-    merged: dict[tuple[str, str], TypeGroup] = {}
-    merged_order: list[tuple[str, str]] = []
-    for grp in out_groups:
-        key = (grp.name, grp.chain[-1])
-        existing = merged.get(key)
-        if existing is None:
-            merged[key] = grp
-            merged_order.append(key)
-            continue
-        winner = grp if grp.confidence > existing.confidence else existing
-        merged[key] = TypeGroup(
-            assign_to=winner.assign_to,
-            name=winner.name,
-            chain=list(winner.chain),
-            member_ids=existing.member_ids + grp.member_ids,
-            confidence=winner.confidence,
-            description=winner.description,
-            over_specified=existing.over_specified or grp.over_specified,
-        )
-        logger.info(
-            "type_cluster: merged duplicate canonical group %s (root %s)",
-            key[0],
-            key[1],
-        )
-    out_groups = [merged[k] for k in merged_order]
-
-    # residual = input ids never claimed by a kept group. Set-equivalent
-    # to the SPEC 3.4 union (input - claimed) | (raw_residual_in - claimed)
-    # because raw_residual_in is filtered to input_id_set above.
-    residual_ids = sorted(input_id_set - claimed)
-
-    # Final safety assert: groups disjoint-union residual == input ids
-    # (failure here is a server bug => 500).
-    final_union: set[str] = set()
-    for grp in out_groups:
-        final_union |= set(grp.member_ids)
-    if (
-        final_union & set(residual_ids)
-        or (final_union | set(residual_ids)) != input_id_set
-    ):
-        logger.error("type_cluster: post-reconcile partition broken")
-        raise HTTPException(
-            status_code=500, detail="typing partition invariant violated"
-        )
+    # raw fidelity: every outlier name the model returned resolved to a real
+    # member (no hallucinated outlier names).
+    raw_partition_ok = len(claimed) == len(named_outliers)
 
     return TypeClusterResponse(
         request_id=request.request_id,
-        groups=out_groups,
-        residual_ids=residual_ids,
+        name=name,
+        over_specified=over_specified,
+        residual_ids=sorted(residual_ids),
         raw_partition_ok=raw_partition_ok,
     )
 

@@ -197,3 +197,39 @@ def test_no_choices_is_502(monkeypatch):
 def test_empty_members_rejected_by_contract():
     # min_length=1 on the request model: an empty cluster is a 422, not a call.
     assert client.post("/type-cluster", json={"members": []}).status_code == 422
+
+
+# --------------------------------------------------------------------------
+# parent: null => reuse `name`; a string => mint `name` under that existing
+# type. Passed through canonicalized; placement validity is the cascade's job.
+# --------------------------------------------------------------------------
+
+
+def test_parent_null_passes_through_as_reuse(monkeypatch):
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "vehicle", "parent": None})),
+    )
+    body = _post(_members(("i1", "boat"), ("i2", "car"))).json()
+    assert body["name"] == "vehicle"
+    assert body["parent"] is None  # reuse: no new parent edge target
+
+
+def test_parent_string_passes_through_canonicalized(monkeypatch):
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "sedan", "parent": "Vehicles"})),
+    )
+    body = _post(_members(("i1", "a sedan"),)).json()
+    assert body["name"] == "sedan"
+    assert body["parent"] == "vehicle"  # canonicalized existing-parent name
+
+
+def test_missing_parent_key_is_reuse(monkeypatch):
+    monkeypatch.setattr(
+        m, "generate_completion", _make_completion(json.dumps({"name": "star"}))
+    )
+    body = _post(_members(("i1", "vega"),)).json()
+    assert body["parent"] is None

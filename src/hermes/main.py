@@ -1686,12 +1686,18 @@ class TypeClusterRequest(BaseModel):
 
 
 class TypeClusterResponse(BaseModel):
-    """As-designed contract (#127): Hermes NAMES the cluster and flags the
-    OUTLIERS. Placement (IS_A chain, reuse/mint, root) is the cascade's job,
-    not Hermes' -- the model only names and rejects."""
+    """As-designed contract (#127): Hermes NAMES the cluster, picks an existing
+    PARENT when minting, and flags the OUTLIERS. The cascade asserts placement
+    (reuse / graft / root + the full IS_A chain) from the name + parent.
+
+    parent semantics: null  => `name` is an existing type to REUSE.
+                       set   => mint NEW `name` under this existing parent
+                                (which may be a domain root).
+    The model works in NAMES only -- never a chain, never an id."""
 
     request_id: Optional[str] = None
-    name: str = ""  # canonical hypernym for the whole cluster
+    name: str = ""  # canonical type name for the whole cluster
+    parent: Optional[str] = None  # existing parent to graft under; null => reuse
     over_specified: bool = False
     residual_ids: List[str] = Field(default_factory=list)  # members that don't fit
     raw_partition_ok: bool = True  # every returned outlier name resolved to a member
@@ -1699,42 +1705,51 @@ class TypeClusterResponse(BaseModel):
 
 @app.post("/type-cluster", response_model=TypeClusterResponse)
 async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
-    """Name the category that binds a cluster; return the members that don't fit.
+    """Name the category that binds a cluster; pick an existing parent or reuse.
 
     Naming-driven typing v2, as designed (#127): Sophia points (the coarse
-    cluster); Hermes NAMES it (one canonical hypernym) and flags the OUTLIERS
-    (members that don't belong under that name). Hermes does NOT partition into
-    subgroups, propose an IS_A chain, or decide reuse/mint -- the placement
-    cascade (the offline harness) asserts all of that FROM the name. The model
-    reasons over member NAMES and returns outlier NAMES; Hermes maps those back
-    to input ids over the known member set (the model never handles an id --
-    verbatim id echo was the source of the truncation/no-usable-groups
-    failures).
+    cluster); Hermes NAMES it and -- choosing FROM WHAT EXISTS -- either reuses
+    the most specific existing type that fits (parent=null) or mints a new
+    `name` under the most specific existing `parent` (which may be a domain
+    root; minting under a root is always legal). It also flags OUTLIERS:
+    members that don't belong. Hermes does NOT emit an IS_A chain, sub-partition
+    the cluster, or echo ids -- the placement cascade asserts the full chain
+    from the name + parent. The model reasons over member NAMES and existing
+    type NAMES, and returns NAMES; ids never reach it (verbatim id echo was the
+    source of the truncation / no-usable-groups failures).
     """
-    member_lines = []
-    for mem in request.members:
-        line = f"- {mem.name}"
-        if mem.hermes_type_hint:
-            line += f" (hint: {mem.hermes_type_hint})"
-        member_lines.append(line)
+    member_lines = [
+        f"- {mem.name}" + (f" (hint: {mem.hermes_type_hint})" if mem.hermes_type_hint else "")
+        for mem in request.members
+    ]
     members_block = "\n".join(member_lines)
 
+    catalog_block, _alias_unused, _pub_unused, _root_unused = _build_catalog_context()
+
     system_msg = (
-        "You name the single category that binds a cluster of entities "
-        "together. Return a canonical hypernym `name` (a lowercase singular "
-        "noun) for the WHOLE cluster, and `outliers`: the EXACT names of any "
-        "listed members that do NOT belong under that category. Most clusters "
-        "have no outliers. Do not split the cluster or invent ids. Return ONLY "
-        'a JSON object: {"name": "<noun>", "outliers": ["<member name>", ...]}.'
+        "You type a cluster of entities. You are given the cluster's members "
+        "and the existing type catalog. Choose FROM WHAT EXISTS: return the "
+        "most specific existing type that fits the WHOLE cluster as `name` "
+        "with `parent`: null (reuse it). If no existing type fits, mint a new "
+        "type: return the new `name` (a lowercase singular noun) and `parent` "
+        "= the most specific existing type to place it under (a domain root -- "
+        "entity, concept, or process -- is a valid parent). Also return "
+        "`outliers`: the EXACT names of any listed members that do not belong "
+        "under `name`. Do not invent ids or chains. Return ONLY a JSON object: "
+        '{"name": "<noun>", "parent": "<existing type>" or null, '
+        '"outliers": ["<member name>", ...]}.'
     )
+    if catalog_block:
+        system_msg += "\n\n" + catalog_block
     user_msg = (
         "These entities were grouped together (embedding-coarse cluster):\n"
-        f"{members_block}\n\nName the category that binds them, and list any "
-        "that do not fit."
+        f"{members_block}\n\nType them: name the category that binds them "
+        "(reuse an existing type if one fits, else mint under the most "
+        "specific existing parent), and list any members that do not fit."
     )
 
-    # Bounded response: one name + a short outlier list. The member-count
-    # token scaling that the partition contract needed (#126) is moot here.
+    # Bounded response: one name + one parent + a short outlier list. The
+    # per-member token scaling the partition contract needed (#126) is moot.
     result = await generate_completion(
         messages=[
             {"role": "system", "content": system_msg},
@@ -1768,12 +1783,18 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
     over_specified = _is_over_specified(raw_name)
     name = canonicalize(raw_name)
 
+    # parent: null => reuse `name`; else the existing type to graft under.
+    # Canonicalize for the cascade's by_norm lookup; placement validity (does
+    # the parent actually exist?) is the cascade's call, not Hermes'.
+    raw_parent = data.get("parent")
+    parent: Optional[str] = None
+    if isinstance(raw_parent, str) and raw_parent.strip():
+        parent = canonicalize(raw_parent)
+
     # Map outlier NAMES back to input ids over the known member set: exact,
     # then case/space-normalized. Names the model invented (no member match)
-    # are dropped -- they cannot designate a real node. Names, not ids,
-    # because the model reproduces the medium it reasoned over far more
-    # reliably than a 36-char uuid, and the candidate set is small + known
-    # (#127).
+    # are dropped. Names, not ids -- the model reproduces the medium it
+    # reasoned over far more reliably than a 36-char uuid (#127).
     raw_outliers = data.get("outliers")
     if not isinstance(raw_outliers, list):
         raw_outliers = []
@@ -1795,13 +1816,12 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
                 residual_ids.append(mid)
                 break
 
-    # raw fidelity: every outlier name the model returned resolved to a real
-    # member (no hallucinated outlier names).
     raw_partition_ok = len(claimed) == len(named_outliers)
 
     return TypeClusterResponse(
         request_id=request.request_id,
         name=name,
+        parent=parent,
         over_specified=over_specified,
         residual_ids=sorted(residual_ids),
         raw_partition_ok=raw_partition_ok,

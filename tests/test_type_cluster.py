@@ -246,14 +246,14 @@ def test_missing_parent_key_is_reuse(monkeypatch):
 
 
 _CATALOG_TYPES = {
-    "entity": {"uuid": "u-entity", "root": "entity", "chain": []},
-    "concept": {"uuid": "u-concept", "root": "concept", "chain": []},
-    "process": {"uuid": "u-process", "root": "process", "chain": []},
-    "vehicle": {"uuid": "u-vehicle", "root": "entity", "chain": ["entity"]},
+    "entity": {"uuid": "u-entity", "root": "entity"},
+    "concept": {"uuid": "u-concept", "root": "concept"},
+    "process": {"uuid": "u-process", "root": "process"},
+    "vehicle": {"uuid": "u-vehicle", "root": "entity"},
     # Structural / unminted: must never reach the catalog.
-    "node": {"uuid": "u-node", "root": "", "chain": []},
-    "root": {"uuid": "u-root", "root": "", "chain": []},
-    "cognition": {"uuid": "u-cognition", "root": "", "chain": []},
+    "node": {"uuid": "u-node", "root": ""},
+    "root": {"uuid": "u-root", "root": ""},
+    "cognition": {"uuid": "u-cognition", "root": ""},
 }
 
 

@@ -1506,9 +1506,12 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
 # v2 typing pass: POST /type-cluster (naming-driven typing experiment T4)
 #
 # Parallel to /name-cluster but catalog-aware: one LLM pass per cluster
-# emits a hypernym + IS_A chain to a realm root + reuse/mint decision per
-# subgroup. This module owns the contract + fail-closed server-side
-# validation only; the placement cascade lives in the offline harness.
+# emits {name, parent, outliers} -- it NAMES the cluster at the closest
+# covering hypernym, picks `parent` from the existing catalog (null =
+# reuse `name`), and lists outliers. No chain, no ids, no sub-partitioning
+# from the LLM: the placement cascade (sophia) PLACES the type and derives
+# any chain by walking the graph. This module owns the contract +
+# fail-closed server-side validation only.
 # The catalog is read from the module-level Redis-synced ``_type_registry``
 # (duck-typed: get_type_names() / get_type(name)); tests monkeypatch an
 # in-process stub (experiment path A).
@@ -1520,9 +1523,6 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
 # minted in the current design, so it is excluded from the catalog as well.
 _STRUCTURAL_ROOTS: set[str] = {"node", "root"}
 _CATALOG_EXCLUDED: set[str] = _STRUCTURAL_ROOTS | {"cognition"}
-
-# Hard ceiling on chain length (the root link is always kept).
-_MAX_CHAIN: int = 8
 
 # Over-specification ceiling (computed on the RAW name, pre-canonicalize).
 MAX_WORDS: int = 3
@@ -1592,7 +1592,6 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
                 "name": name,
                 "uuid": type_uuid,
                 "root": str(info.get("root") or ""),
-                "chain": info.get("chain"),
             }
         )
     entries.sort(key=lambda e: (e["root"], e["name"]))
@@ -1609,9 +1608,6 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
         entry_name = entry["name"]
         entry_root = entry["root"] or "?"
         line = f"  [{alias}] {entry_name} (root: {entry_root})"
-        chain = entry["chain"]
-        if isinstance(chain, list) and chain:
-            line += "  chain: " + " > ".join(str(c) for c in chain)
         lines.append(line)
     return "\n".join(lines), alias_to_uuid, published_uuids, catalog_names
 

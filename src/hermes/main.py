@@ -1514,8 +1514,12 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
 # in-process stub (experiment path A).
 # ---------------------------------------------------------------------
 
-# The three realm roots every IS_A chain must terminate in.
-_TYPE_ROOTS: set[str] = {"entity", "concept", "process"}
+# Structural scaffolding above the domain roots: never published in the
+# catalog and never a valid `parent`. The domain roots themselves
+# (entity/concept/process) are ordinary catalog citizens. `cognition` is not
+# minted in the current design, so it is excluded from the catalog as well.
+_STRUCTURAL_ROOTS: set[str] = {"node", "root"}
+_CATALOG_EXCLUDED: set[str] = _STRUCTURAL_ROOTS | {"cognition"}
 
 # Hard ceiling on chain length (the root link is always kept).
 _MAX_CHAIN: int = 8
@@ -1556,12 +1560,14 @@ def _is_over_specified(raw_name: str) -> bool:
 def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
     """Build the catalog system-prompt block + closed-world resolution maps.
 
-    Returns ``(catalog_block, alias_to_uuid, published_uuids, root_uuids)``.
+    Returns ``(catalog_block, alias_to_uuid, published_uuids, catalog_names)``.
     Entries are sorted by (root, name) so the block is stable across requests
-    (prompt-cache friendly). Non-root types get bracketed short aliases
-    ``[t_xxxx]`` (the ``assign_to`` token, mapped back to a uuid server-side);
-    realm roots are listed GRAFT-ONLY and never receive an assignable alias.
-    With no registry installed everything is empty (catalog-agnostic mode).
+    (prompt-cache friendly). Every published type -- the domain roots
+    (entity/concept/process) included -- is an ordinary entry with a bracketed
+    short alias ``[t_xxxx]``, valid both as a `parent` choice and as an honest
+    `name` reuse. Only the structural scaffolding above the roots (``node``,
+    ``root``) and the unminted ``cognition`` are excluded. With no registry
+    installed everything is empty (catalog-agnostic mode).
     """
     registry = _type_registry
     if registry is None:
@@ -1573,6 +1579,8 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
         return "", {}, set(), set()
     entries: list[dict[str, Any]] = []
     for name in names:
+        if name.strip().lower() in _CATALOG_EXCLUDED:
+            continue
         info = registry.get_type(name)
         if not isinstance(info, dict):
             continue
@@ -1585,18 +1593,17 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
                 "uuid": type_uuid,
                 "root": str(info.get("root") or ""),
                 "chain": info.get("chain"),
-                "is_root": bool(info.get("is_root")) or name in _TYPE_ROOTS,
             }
         )
     entries.sort(key=lambda e: (e["root"], e["name"]))
     published_uuids = {e["uuid"] for e in entries}
-    root_uuids = {e["uuid"] for e in entries if e["is_root"]}
+    catalog_names = {canonicalize(str(e["name"])) for e in entries}
     alias_to_uuid: dict[str, str] = {}
     lines = [
-        "PUBLISHED TYPE CATALOG (you may ONLY assign_to or graft onto an id below):"
+        "PUBLISHED TYPE CATALOG (the existing types: reuse one as `name`, "
+        "or pick one as the `parent` of a new type):"
     ]
-    assignable = [e for e in entries if not e["is_root"]]
-    for idx, entry in enumerate(assignable):
+    for idx, entry in enumerate(entries):
         alias = f"t_{idx:04d}"
         alias_to_uuid[alias] = entry["uuid"]
         entry_name = entry["name"]
@@ -1606,57 +1613,36 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
         if isinstance(chain, list) and chain:
             line += "  chain: " + " > ".join(str(c) for c in chain)
         lines.append(line)
-    roots_csv = ", ".join(sorted(_TYPE_ROOTS))
-    lines.append(
-        "GRAFT-ONLY ROOTS (valid as a parent in a chain, NEVER as "
-        f"assign_to): {roots_csv}"
-    )
-    return "\n".join(lines), alias_to_uuid, published_uuids, root_uuids
+    return "\n".join(lines), alias_to_uuid, published_uuids, catalog_names
 
 
-def _resolve_assign_to(
-    raw_assign: Any,
-    alias_to_uuid: dict[str, str],
-    published_uuids: set[str],
-    root_uuids: set[str],
+def _resolve_parent(
+    raw_parent: Any,
+    catalog_names: set[str],
     has_catalog: bool,
-) -> str:
-    """Closed-world ``assign_to`` resolution (fail-closed; roots graft-only).
+) -> Optional[str]:
+    """Closed-world ``parent`` resolution (fail-closed; structural roots barred).
 
-    Bracketed ``[t_xxxx]`` aliases resolve through the injected catalog;
-    bare tokens must be published uuids when a catalog is present. Anything
-    unresolvable -- and anything resolving to a protected realm root -- is
-    coerced to the literal ``NEW``. Without a catalog the contract rule
-    applies: bracketed aliases are unresolvable (coerce), bare tokens are
-    accepted as already-resolved uuids.
+    ``node`` / ``root`` -- the structural scaffolding above the domain roots --
+    are never valid parents, catalog or not: they coerce to None (the cascade
+    decides placement) with a logged warning. With a catalog present any other
+    parent must resolve (canonicalized) to a published name; unresolvable
+    parents likewise coerce to None (closed-world). Without a catalog
+    non-structural names pass through canonicalized -- placement validity is
+    then left to the cascade.
     """
-    if not isinstance(raw_assign, str):
-        return "NEW"
-    token = raw_assign.strip()
-    if not token or token == "NEW":
-        return "NEW"
-    if token.startswith("[") or token.endswith("]"):
-        alias = token.strip("[]").strip()
-        resolved = alias_to_uuid.get(alias)
-        if resolved is None:
-            logger.info(
-                "type_cluster: closed_world_coerce on unresolved alias %s",
-                token,
-            )
-            return "NEW"
-        if resolved in root_uuids:
-            logger.info("type_cluster: protected_root_coerce on assign_to %s", token)
-            return "NEW"
-        return resolved
-    if has_catalog:
-        if token not in published_uuids:
-            logger.info("type_cluster: closed_world_coerce on unknown uuid %s", token)
-            return "NEW"
-        if token in root_uuids:
-            logger.info("type_cluster: protected_root_coerce on assign_to %s", token)
-            return "NEW"
-        return token
-    return token
+    if not isinstance(raw_parent, str) or not raw_parent.strip():
+        return None
+    parent = canonicalize(raw_parent)
+    if not parent:
+        return None
+    if parent in _STRUCTURAL_ROOTS:
+        logger.warning("type_cluster: bad_root_coerce on parent %s", parent)
+        return None
+    if has_catalog and parent not in catalog_names:
+        logger.info("type_cluster: closed_world_coerce on parent %s", parent)
+        return None
+    return parent
 
 
 class TypeClusterMember(BaseModel):
@@ -1724,7 +1710,9 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
     ]
     members_block = "\n".join(member_lines)
 
-    catalog_block, _alias_unused, _pub_unused, _root_unused = _build_catalog_context()
+    catalog_block, _alias_unused, _pub_unused, catalog_names = (
+        _build_catalog_context()
+    )
 
     system_msg = (
         "You type a cluster of entities. You are given the cluster's members "
@@ -1785,12 +1773,10 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
     name = canonicalize(raw_name)
 
     # parent: null => reuse `name`; else the existing type to graft under.
-    # Canonicalize for the cascade's by_norm lookup; placement validity (does
-    # the parent actually exist?) is the cascade's call, not Hermes'.
-    raw_parent = data.get("parent")
-    parent: Optional[str] = None
-    if isinstance(raw_parent, str) and raw_parent.strip():
-        parent = canonicalize(raw_parent)
+    # Canonicalized, then resolved closed-world: `node`/`root` and (with a
+    # catalog) unpublished names coerce to None; remaining placement validity
+    # is left to the cascade.
+    parent = _resolve_parent(data.get("parent"), catalog_names, bool(catalog_block))
 
     # Map outlier NAMES back to input ids over the known member set: exact,
     # then case/space-normalized. Names the model invented (no member match)

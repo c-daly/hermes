@@ -201,7 +201,9 @@ def test_empty_members_rejected_by_contract():
 
 # --------------------------------------------------------------------------
 # parent: null => reuse `name`; a string => mint `name` under that existing
-# type. Passed through canonicalized; placement validity is the cascade's job.
+# type. Canonicalized, then resolved closed-world: structural roots
+# (`node`/`root`) and -- with a catalog -- unpublished names coerce to None;
+# remaining placement validity is left to the cascade.
 # --------------------------------------------------------------------------
 
 
@@ -232,4 +234,135 @@ def test_missing_parent_key_is_reuse(monkeypatch):
         m, "generate_completion", _make_completion(json.dumps({"name": "star"}))
     )
     body = _post(_members(("i1", "vega"),)).json()
+    assert body["parent"] is None
+
+
+# --------------------------------------------------------------------------
+# Catalog construction: domain roots (entity/concept/process) are ordinary
+# catalog citizens -- aliased like every published type, valid both as a
+# `parent` and as an honest `name` reuse. Only the structural scaffolding
+# above them (`node`, `root`) and the unminted `cognition` are excluded.
+# --------------------------------------------------------------------------
+
+
+_CATALOG_TYPES = {
+    "entity": {"uuid": "u-entity", "root": "entity", "chain": []},
+    "concept": {"uuid": "u-concept", "root": "concept", "chain": []},
+    "process": {"uuid": "u-process", "root": "process", "chain": []},
+    "vehicle": {"uuid": "u-vehicle", "root": "entity", "chain": ["entity"]},
+    # Structural / unminted: must never reach the catalog.
+    "node": {"uuid": "u-node", "root": "", "chain": []},
+    "root": {"uuid": "u-root", "root": "", "chain": []},
+    "cognition": {"uuid": "u-cognition", "root": "", "chain": []},
+}
+
+
+class _FakeRegistry:
+    def get_type_names(self):
+        return list(_CATALOG_TYPES)
+
+    def get_type(self, name):
+        return dict(_CATALOG_TYPES[name])
+
+
+def test_domain_roots_are_ordinary_catalog_entries(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    block, alias_to_uuid, _published, catalog_names = m._build_catalog_context()
+    entry_lines = [ln for ln in block.splitlines() if ln.lstrip().startswith("[t_")]
+    for root in ("entity", "concept", "process"):
+        assert any(f"] {root} (" in ln for ln in entry_lines)  # aliased entry
+        assert root in catalog_names
+    assert {"u-entity", "u-concept", "u-process"} <= set(alias_to_uuid.values())
+    assert "GRAFT-ONLY" not in block  # no special-casing block anywhere
+
+
+def test_catalog_never_lists_node_root_or_cognition(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    _block, alias_to_uuid, published, catalog_names = m._build_catalog_context()
+    assert {"node", "root", "cognition"}.isdisjoint(catalog_names)
+    assert {"u-node", "u-root", "u-cognition"}.isdisjoint(published)
+    assert {"u-node", "u-root", "u-cognition"}.isdisjoint(set(alias_to_uuid.values()))
+
+
+def test_prompt_lists_roots_without_graft_only_block(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    fake = _make_completion(json.dumps({"name": "vehicle"}))
+    monkeypatch.setattr(m, "generate_completion", fake)
+    _post(_members(("i1", "boat")))
+    system_prompt = fake.last_messages[0]["content"]
+    assert "GRAFT-ONLY" not in system_prompt
+    assert "] entity (" in system_prompt  # roots listed as ordinary entries
+
+
+# --------------------------------------------------------------------------
+# parent resolution is fail-closed: `node`/`root` (structural, never in the
+# catalog) coerce to None with a logged warning; with a catalog present, a
+# parent that does not resolve to a published name coerces too (closed-world).
+# --------------------------------------------------------------------------
+
+
+def _spy_warnings(monkeypatch):
+    logged: list[str] = []
+    monkeypatch.setattr(
+        m.logger, "warning", lambda msg, *args, **kw: logged.append(msg % args)
+    )
+    return logged
+
+
+def test_parent_node_is_coerced_and_logged(monkeypatch):
+    logged = _spy_warnings(monkeypatch)
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "sensor", "parent": "node"})),
+    )
+    body = _post(_members(("i1", "lidar"))).json()
+    assert body["parent"] is None  # structural root never passes through
+    assert any("bad_root_coerce" in entry for entry in logged)
+
+
+def test_parent_root_is_coerced_and_logged(monkeypatch):
+    logged = _spy_warnings(monkeypatch)
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "sensor", "parent": "Root"})),
+    )
+    body = _post(_members(("i1", "lidar"))).json()
+    assert body["parent"] is None
+    assert any("bad_root_coerce" in entry for entry in logged)
+
+
+def test_unresolvable_parent_is_coerced_when_catalog_present(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "sedan", "parent": "starship"})),
+    )
+    body = _post(_members(("i1", "a sedan"))).json()
+    assert body["name"] == "sedan"
+    assert body["parent"] is None  # closed-world: not a published name
+
+
+def test_domain_root_is_a_valid_parent(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "sedan", "parent": "Entity"})),
+    )
+    body = _post(_members(("i1", "a sedan"))).json()
+    assert body["parent"] == "entity"  # ordinary catalog citizen
+
+
+def test_domain_root_is_a_valid_name_reuse(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "process", "parent": None})),
+    )
+    body = _post(_members(("i1", "fermentation"))).json()
+    assert body["name"] == "process"
     assert body["parent"] is None

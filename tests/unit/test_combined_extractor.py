@@ -8,17 +8,10 @@ from unittest.mock import AsyncMock, patch
 
 def _patch_ontology_client():
     """Patch ontology client to return None (fallback to hardcoded types)."""
-    return (
-        patch(
-            "hermes.combined_extractor.fetch_type_list",
-            new_callable=AsyncMock,
-            return_value=None,
-        ),
-        patch(
-            "hermes.combined_extractor.fetch_edge_type_list",
-            new_callable=AsyncMock,
-            return_value=None,
-        ),
+    return patch(
+        "hermes.combined_extractor.fetch_type_list",
+        new_callable=AsyncMock,
+        return_value=None,
     )
 
 
@@ -67,10 +60,9 @@ class TestCombinedExtraction:
             ]
         }
 
-        p1, p2 = _patch_ontology_client()
+        p1 = _patch_ontology_client()
         with (
             p1,
-            p2,
             patch(
                 "hermes.llm.generate_completion",
                 new_callable=AsyncMock,
@@ -117,10 +109,9 @@ class TestCombinedExtraction:
         }
 
         text = "Alice works at Google"
-        p1, p2 = _patch_ontology_client()
+        p1 = _patch_ontology_client()
         with (
             p1,
-            p2,
             patch(
                 "hermes.llm.generate_completion",
                 new_callable=AsyncMock,
@@ -171,10 +162,9 @@ class TestCombinedExtraction:
             ]
         }
 
-        p1, p2 = _patch_ontology_client()
+        p1 = _patch_ontology_client()
         with (
             p1,
-            p2,
             patch(
                 "hermes.llm.generate_completion",
                 new_callable=AsyncMock,
@@ -196,10 +186,9 @@ class TestCombinedExtraction:
 
         llm_response = {"choices": [{"message": {"content": "not valid json at all"}}]}
 
-        p1, p2 = _patch_ontology_client()
+        p1 = _patch_ontology_client()
         with (
             p1,
-            p2,
             patch(
                 "hermes.llm.generate_completion",
                 new_callable=AsyncMock,
@@ -219,10 +208,9 @@ class TestCombinedExtraction:
 
         extractor = OpenAICombinedExtractor()
 
-        p1, p2 = _patch_ontology_client()
+        p1 = _patch_ontology_client()
         with (
             p1,
-            p2,
             patch(
                 "hermes.llm.generate_completion",
                 new_callable=AsyncMock,
@@ -257,10 +245,9 @@ class TestCombinedExtraction:
 
         llm_response = {"choices": [{"message": {"content": raw}}]}
 
-        p1, p2 = _patch_ontology_client()
+        p1 = _patch_ontology_client()
         with (
             p1,
-            p2,
             patch(
                 "hermes.llm.generate_completion",
                 new_callable=AsyncMock,
@@ -300,11 +287,6 @@ class TestDynamicTypePrompt:
                 return_value=fetched_types,
             ),
             patch(
-                "hermes.combined_extractor.fetch_edge_type_list",
-                new_callable=AsyncMock,
-                return_value=None,
-            ),
-            patch(
                 "hermes.llm.generate_completion",
                 new_callable=AsyncMock,
                 return_value=llm_response,
@@ -329,10 +311,9 @@ class TestDynamicTypePrompt:
             ]
         }
 
-        p1, p2 = _patch_ontology_client()
+        p1 = _patch_ontology_client()
         with (
             p1,
-            p2,
             patch(
                 "hermes.llm.generate_completion",
                 new_callable=AsyncMock,
@@ -344,47 +325,6 @@ class TestDynamicTypePrompt:
         system_msg = mock_llm.call_args[1]["messages"][0]["content"]
         for type_name, desc in ONTOLOGY_TYPES.items():
             assert f"- {type_name}: {desc}" in system_msg
-
-    async def test_edge_types_included_when_available(self):
-        from hermes.combined_extractor import OpenAICombinedExtractor
-
-        extractor = OpenAICombinedExtractor()
-
-        fetched_edge_types = [
-            {"name": "LOCATED_IN", "description": "spatial containment"},
-            {"name": "PART_OF", "description": "part-whole relation"},
-        ]
-
-        llm_response = {
-            "choices": [
-                {"message": {"content": json.dumps({"entities": [], "relations": []})}}
-            ]
-        }
-
-        with (
-            patch(
-                "hermes.combined_extractor.fetch_type_list",
-                new_callable=AsyncMock,
-                return_value=None,
-            ),
-            patch(
-                "hermes.combined_extractor.fetch_edge_type_list",
-                new_callable=AsyncMock,
-                return_value=fetched_edge_types,
-            ),
-            patch(
-                "hermes.llm.generate_completion",
-                new_callable=AsyncMock,
-                return_value=llm_response,
-            ) as mock_llm,
-        ):
-            await extractor.extract_entities_and_relations("test")
-
-        system_msg = mock_llm.call_args[1]["messages"][0]["content"]
-        assert "## Known Relation Types" in system_msg
-        assert "- LOCATED_IN: spatial containment" in system_msg
-        assert "- PART_OF: part-whole relation" in system_msg
-        assert "You may also use other UPPER_SNAKE_CASE labels" in system_msg
 
 
 @pytest.mark.asyncio
@@ -418,10 +358,9 @@ class TestProtocolCompat:
             ]
         }
 
-        p1, p2 = _patch_ontology_client()
+        p1 = _patch_ontology_client()
         with (
             p1,
-            p2,
             patch(
                 "hermes.llm.generate_completion",
                 new_callable=AsyncMock,
@@ -474,10 +413,9 @@ class TestProtocolCompat:
             ]
         }
 
-        p1, p2 = _patch_ontology_client()
+        p1 = _patch_ontology_client()
         with (
             p1,
-            p2,
             patch(
                 "hermes.llm.generate_completion",
                 new_callable=AsyncMock,

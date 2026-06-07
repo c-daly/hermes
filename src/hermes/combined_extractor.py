@@ -9,7 +9,6 @@ The active provider is selected via env vars:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import re
@@ -17,7 +16,7 @@ from typing import Any
 
 
 from hermes.ner_provider import ONTOLOGY_TYPES, OpenAINERProvider
-from hermes.ontology_client import fetch_edge_type_list, fetch_type_list, get_sophia_url
+from hermes.ontology_client import fetch_type_list, get_sophia_url
 from hermes.relation_extractor import OpenAIRelationExtractor
 
 logger = logging.getLogger(__name__)
@@ -39,7 +38,6 @@ class OpenAICombinedExtractor:
     def _build_system_prompt(
         self,
         type_list: list[dict] | None = None,
-        edge_type_list: list[dict] | None = None,
     ) -> str:
         """Build the system prompt, optionally using dynamic type lists."""
         if type_list is not None:
@@ -60,17 +58,6 @@ class OpenAICombinedExtractor:
             "## Entity Types\n"
             f"{entity_types_section}\n\n"
         )
-
-        if edge_type_list is not None:
-            edge_section = "\n".join(
-                f"- {t['name']}: {t.get('description', '')}" for t in edge_type_list
-            )
-            prompt += (
-                "## Known Relation Types\n"
-                "Use these relation labels where appropriate:\n"
-                f"{edge_section}\n"
-                "You may also use other UPPER_SNAKE_CASE labels if none of these fit.\n\n"
-            )
 
         prompt += (
             "## Output Format\n"
@@ -131,11 +118,8 @@ class OpenAICombinedExtractor:
         from hermes.llm import generate_completion
 
         sophia_url = get_sophia_url()
-        type_list, edge_type_list = await asyncio.gather(
-            fetch_type_list(sophia_url),
-            fetch_edge_type_list(sophia_url),
-        )
-        system_prompt = self._build_system_prompt(type_list, edge_type_list)
+        type_list = await fetch_type_list(sophia_url)
+        system_prompt = self._build_system_prompt(type_list)
 
         messages = [
             {"role": "system", "content": system_prompt},

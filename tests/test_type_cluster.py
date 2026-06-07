@@ -194,6 +194,32 @@ def test_no_choices_is_502(monkeypatch):
     assert _post(_members(("i1", "x"))).status_code == 502
 
 
+def test_empty_canonical_name_is_502(monkeypatch):
+    # A name that survives .strip() truthiness but canonicalizes to empty must
+    # not slip through as a silent 200 with name="" (review #128).
+    monkeypatch.setattr(
+        m, "generate_completion", _make_completion(json.dumps({"name": "the"}))
+    )
+    monkeypatch.setattr(m, "canonicalize", lambda value: "")
+    assert _post(_members(("i1", "x"))).status_code == 502
+
+
+def test_provider_not_configured_is_503(monkeypatch):
+    async def boom(messages, temperature=0.0, max_tokens=512, **kwargs):
+        raise m.LLMProviderNotConfiguredError("no provider")
+
+    monkeypatch.setattr(m, "generate_completion", boom)
+    assert _post(_members(("i1", "x"))).status_code == 503
+
+
+def test_provider_error_is_502(monkeypatch):
+    async def boom(messages, temperature=0.0, max_tokens=512, **kwargs):
+        raise m.LLMProviderError("upstream down")
+
+    monkeypatch.setattr(m, "generate_completion", boom)
+    assert _post(_members(("i1", "x"))).status_code == 502
+
+
 def test_empty_members_rejected_by_contract():
     # min_length=1 on the request model: an empty cluster is a 422, not a call.
     assert client.post("/type-cluster", json={"members": []}).status_code == 422
@@ -239,8 +265,8 @@ def test_missing_parent_key_is_reuse(monkeypatch):
 
 # --------------------------------------------------------------------------
 # Catalog construction: domain roots (entity/concept/process) are ordinary
-# catalog citizens -- aliased like every published type, valid both as a
-# `parent` and as an honest `name` reuse. Only the structural scaffolding
+# catalog citizens -- plain name entries like every published type, valid both
+# as a `parent` and as an honest `name` reuse. Only the structural scaffolding
 # above them (`node`, `root`) and the unminted `cognition` are excluded.
 # --------------------------------------------------------------------------
 
@@ -267,21 +293,20 @@ class _FakeRegistry:
 
 def test_domain_roots_are_ordinary_catalog_entries(monkeypatch):
     monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
-    block, alias_to_uuid, _published, catalog_names = m._build_catalog_context()
-    entry_lines = [ln for ln in block.splitlines() if ln.lstrip().startswith("[t_")]
+    block, _alias, published, catalog_names = m._build_catalog_context()
+    entry_lines = [ln for ln in block.splitlines() if ln.lstrip().startswith("- ")]
     for root in ("entity", "concept", "process"):
-        assert any(f"] {root} (" in ln for ln in entry_lines)  # aliased entry
+        assert any(f"  - {root} (" in ln for ln in entry_lines)  # plain entry
         assert root in catalog_names
-    assert {"u-entity", "u-concept", "u-process"} <= set(alias_to_uuid.values())
+    assert {"u-entity", "u-concept", "u-process"} <= published
     assert "GRAFT-ONLY" not in block  # no special-casing block anywhere
 
 
 def test_catalog_never_lists_node_root_or_cognition(monkeypatch):
     monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
-    _block, alias_to_uuid, published, catalog_names = m._build_catalog_context()
+    _block, _alias, published, catalog_names = m._build_catalog_context()
     assert {"node", "root", "cognition"}.isdisjoint(catalog_names)
     assert {"u-node", "u-root", "u-cognition"}.isdisjoint(published)
-    assert {"u-node", "u-root", "u-cognition"}.isdisjoint(set(alias_to_uuid.values()))
 
 
 def test_prompt_lists_roots_without_graft_only_block(monkeypatch):
@@ -291,7 +316,7 @@ def test_prompt_lists_roots_without_graft_only_block(monkeypatch):
     _post(_members(("i1", "boat")))
     system_prompt = fake.last_messages[0]["content"]
     assert "GRAFT-ONLY" not in system_prompt
-    assert "] entity (" in system_prompt  # roots listed as ordinary entries
+    assert "  - entity (" in system_prompt  # roots listed as ordinary entries
 
 
 # --------------------------------------------------------------------------

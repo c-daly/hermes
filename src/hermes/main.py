@@ -1560,14 +1560,16 @@ def _is_over_specified(raw_name: str) -> bool:
 def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
     """Build the catalog system-prompt block + closed-world resolution maps.
 
-    Returns ``(catalog_block, alias_to_uuid, published_uuids, catalog_names)``.
-    Entries are sorted by (root, name) so the block is stable across requests
+    Returns ``(catalog_block, {}, published_uuids, catalog_names)`` -- the
+    second slot is a vestigial empty dict, kept only for return-arity
+    stability (resolution is names-only; there are no aliases). Entries are
+    sorted by (root, name) so the block is stable across requests
     (prompt-cache friendly). Every published type -- the domain roots
-    (entity/concept/process) included -- is an ordinary entry with a bracketed
-    short alias ``[t_xxxx]``, valid both as a `parent` choice and as an honest
-    `name` reuse. Only the structural scaffolding above the roots (``node``,
-    ``root``) and the unminted ``cognition`` are excluded. With no registry
-    installed everything is empty (catalog-agnostic mode).
+    (entity/concept/process) included -- is an ordinary entry, valid both as a
+    `parent` choice and as an honest `name` reuse. Only the structural
+    scaffolding above the roots (``node``, ``root``) and the unminted
+    ``cognition`` are excluded. With no registry installed everything is empty
+    (catalog-agnostic mode).
     """
     registry = _type_registry
     if registry is None:
@@ -1597,19 +1599,16 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
     entries.sort(key=lambda e: (e["root"], e["name"]))
     published_uuids = {e["uuid"] for e in entries}
     catalog_names = {canonicalize(str(e["name"])) for e in entries}
-    alias_to_uuid: dict[str, str] = {}
     lines = [
         "PUBLISHED TYPE CATALOG (the existing types: reuse one as `name`, "
         "or pick one as the `parent` of a new type):"
     ]
-    for idx, entry in enumerate(entries):
-        alias = f"t_{idx:04d}"
-        alias_to_uuid[alias] = entry["uuid"]
+    for entry in entries:
         entry_name = entry["name"]
         entry_root = entry["root"] or "?"
-        line = f"  [{alias}] {entry_name} (root: {entry_root})"
+        line = f"  - {entry_name} (root: {entry_root})"
         lines.append(line)
-    return "\n".join(lines), alias_to_uuid, published_uuids, catalog_names
+    return "\n".join(lines), {}, published_uuids, catalog_names
 
 
 def _resolve_parent(
@@ -1734,15 +1733,24 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
 
     # Bounded response: one name + one parent + a short outlier list. The
     # per-member token scaling the partition contract needed (#126) is moot.
-    result = await generate_completion(
-        messages=[
-            {"role": "system", "content": system_msg},
-            {"role": "user", "content": user_msg},
-        ],
-        temperature=0.0,
-        max_tokens=512,
-        metadata={"request_id": request.request_id},
-    )
+    try:
+        result = await generate_completion(
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg},
+            ],
+            temperature=0.0,
+            max_tokens=512,
+            metadata={"request_id": request.request_id},
+        )
+    except LLMProviderNotConfiguredError as exc:
+        logger.error("type_cluster: LLM provider not configured: %s", exc)
+        raise HTTPException(
+            status_code=503, detail="LLM provider not configured"
+        ) from exc
+    except LLMProviderError as exc:
+        logger.error("type_cluster: LLM provider error: %s", exc)
+        raise HTTPException(status_code=502, detail="LLM provider error") from exc
     choices = result.get("choices", [])
     if not choices:
         raise HTTPException(status_code=502, detail="LLM returned no choices")
@@ -1767,6 +1775,11 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         )
     over_specified = _is_over_specified(raw_name)
     name = canonicalize(raw_name)
+    if not name:
+        raise HTTPException(
+            status_code=502,
+            detail="LLM returned an empty/uncanonicalizable cluster name",
+        )
 
     # parent: null => reuse `name`; else the existing type to graft under.
     # Canonicalized, then resolved closed-world: `node`/`root` and (with a

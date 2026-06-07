@@ -5,7 +5,7 @@ import asyncio
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from hermes.ontology_client import fetch_type_list, fetch_edge_type_list, _TypeCache
+from hermes.ontology_client import fetch_type_list, _TypeCache
 
 
 class TestFetchTypeList:
@@ -65,53 +65,6 @@ class TestFetchTypeList:
             "hermes.ontology_client.httpx.AsyncClient", return_value=mock_client
         ):
             result = await fetch_type_list("http://localhost:8080", _cache=_TypeCache())
-
-        assert result is None
-
-
-class TestFetchEdgeTypeList:
-    @pytest.mark.asyncio
-    async def test_successful_fetch_returns_parsed_edge_types(self):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "types": [
-                {"name": "LOCATED_IN", "description": "spatial containment"},
-                {"name": "PART_OF", "description": "part-whole relation"},
-            ]
-        }
-
-        mock_client = AsyncMock()
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client.get = AsyncMock(return_value=mock_response)
-
-        with patch(
-            "hermes.ontology_client.httpx.AsyncClient", return_value=mock_client
-        ):
-            result = await fetch_edge_type_list(
-                "http://localhost:8080", _cache=_TypeCache()
-            )
-
-        assert result is not None
-        assert len(result) == 2
-        assert result[0]["name"] == "LOCATED_IN"
-
-    @pytest.mark.asyncio
-    async def test_fetch_failure_returns_none(self):
-        import httpx
-
-        mock_client = AsyncMock()
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client.get = AsyncMock(side_effect=httpx.ConnectError("refused"))
-
-        with patch(
-            "hermes.ontology_client.httpx.AsyncClient", return_value=mock_client
-        ):
-            result = await fetch_edge_type_list(
-                "http://localhost:8080", _cache=_TypeCache()
-            )
 
         assert result is None
 

@@ -1506,19 +1506,23 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
 # v2 typing pass: POST /type-cluster (naming-driven typing experiment T4)
 #
 # Parallel to /name-cluster but catalog-aware: one LLM pass per cluster
-# emits a hypernym + IS_A chain to a realm root + reuse/mint decision per
-# subgroup. This module owns the contract + fail-closed server-side
-# validation only; the placement cascade lives in the offline harness.
+# emits {name, parent, outliers} -- it NAMES the cluster at the closest
+# covering hypernym, picks `parent` from the existing catalog (null =
+# reuse `name`), and lists outliers. No chain, no ids, no sub-partitioning
+# from the LLM: the placement cascade (sophia) PLACES the type and derives
+# any chain by walking the graph. This module owns the contract +
+# fail-closed server-side validation only.
 # The catalog is read from the module-level Redis-synced ``_type_registry``
 # (duck-typed: get_type_names() / get_type(name)); tests monkeypatch an
 # in-process stub (experiment path A).
 # ---------------------------------------------------------------------
 
-# The three realm roots every IS_A chain must terminate in.
-_TYPE_ROOTS: set[str] = {"entity", "concept", "process"}
-
-# Hard ceiling on chain length (the root link is always kept).
-_MAX_CHAIN: int = 8
+# Structural scaffolding above the domain roots: never published in the
+# catalog and never a valid `parent`. The domain roots themselves
+# (entity/concept/process) are ordinary catalog citizens. `cognition` is not
+# minted in the current design, so it is excluded from the catalog as well.
+_STRUCTURAL_ROOTS: set[str] = {"node", "root"}
+_CATALOG_EXCLUDED: set[str] = _STRUCTURAL_ROOTS | {"cognition"}
 
 # Over-specification ceiling (computed on the RAW name, pre-canonicalize).
 MAX_WORDS: int = 3
@@ -1556,12 +1560,16 @@ def _is_over_specified(raw_name: str) -> bool:
 def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
     """Build the catalog system-prompt block + closed-world resolution maps.
 
-    Returns ``(catalog_block, alias_to_uuid, published_uuids, root_uuids)``.
-    Entries are sorted by (root, name) so the block is stable across requests
-    (prompt-cache friendly). Non-root types get bracketed short aliases
-    ``[t_xxxx]`` (the ``assign_to`` token, mapped back to a uuid server-side);
-    realm roots are listed GRAFT-ONLY and never receive an assignable alias.
-    With no registry installed everything is empty (catalog-agnostic mode).
+    Returns ``(catalog_block, {}, published_uuids, catalog_names)`` -- the
+    second slot is a vestigial empty dict, kept only for return-arity
+    stability (resolution is names-only; there are no aliases). Entries are
+    sorted by (root, name) so the block is stable across requests
+    (prompt-cache friendly). Every published type -- the domain roots
+    (entity/concept/process) included -- is an ordinary entry, valid both as a
+    `parent` choice and as an honest `name` reuse. Only the structural
+    scaffolding above the roots (``node``, ``root``) and the unminted
+    ``cognition`` are excluded. With no registry installed everything is empty
+    (catalog-agnostic mode).
     """
     registry = _type_registry
     if registry is None:
@@ -1573,6 +1581,8 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
         return "", {}, set(), set()
     entries: list[dict[str, Any]] = []
     for name in names:
+        if name.strip().lower() in _CATALOG_EXCLUDED:
+            continue
         info = registry.get_type(name)
         if not isinstance(info, dict):
             continue
@@ -1584,79 +1594,50 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
                 "name": name,
                 "uuid": type_uuid,
                 "root": str(info.get("root") or ""),
-                "chain": info.get("chain"),
-                "is_root": bool(info.get("is_root")) or name in _TYPE_ROOTS,
             }
         )
     entries.sort(key=lambda e: (e["root"], e["name"]))
     published_uuids = {e["uuid"] for e in entries}
-    root_uuids = {e["uuid"] for e in entries if e["is_root"]}
-    alias_to_uuid: dict[str, str] = {}
+    catalog_names = {canonicalize(str(e["name"])) for e in entries}
     lines = [
-        "PUBLISHED TYPE CATALOG (you may ONLY assign_to or graft onto an id below):"
+        "PUBLISHED TYPE CATALOG (the existing types: reuse one as `name`, "
+        "or pick one as the `parent` of a new type):"
     ]
-    assignable = [e for e in entries if not e["is_root"]]
-    for idx, entry in enumerate(assignable):
-        alias = f"t_{idx:04d}"
-        alias_to_uuid[alias] = entry["uuid"]
+    for entry in entries:
         entry_name = entry["name"]
         entry_root = entry["root"] or "?"
-        line = f"  [{alias}] {entry_name} (root: {entry_root})"
-        chain = entry["chain"]
-        if isinstance(chain, list) and chain:
-            line += "  chain: " + " > ".join(str(c) for c in chain)
+        line = f"  - {entry_name} (root: {entry_root})"
         lines.append(line)
-    roots_csv = ", ".join(sorted(_TYPE_ROOTS))
-    lines.append(
-        "GRAFT-ONLY ROOTS (valid as a parent in a chain, NEVER as "
-        f"assign_to): {roots_csv}"
-    )
-    return "\n".join(lines), alias_to_uuid, published_uuids, root_uuids
+    return "\n".join(lines), {}, published_uuids, catalog_names
 
 
-def _resolve_assign_to(
-    raw_assign: Any,
-    alias_to_uuid: dict[str, str],
-    published_uuids: set[str],
-    root_uuids: set[str],
+def _resolve_parent(
+    raw_parent: Any,
+    catalog_names: set[str],
     has_catalog: bool,
-) -> str:
-    """Closed-world ``assign_to`` resolution (fail-closed; roots graft-only).
+) -> Optional[str]:
+    """Closed-world ``parent`` resolution (fail-closed; structural roots barred).
 
-    Bracketed ``[t_xxxx]`` aliases resolve through the injected catalog;
-    bare tokens must be published uuids when a catalog is present. Anything
-    unresolvable -- and anything resolving to a protected realm root -- is
-    coerced to the literal ``NEW``. Without a catalog the contract rule
-    applies: bracketed aliases are unresolvable (coerce), bare tokens are
-    accepted as already-resolved uuids.
+    ``node`` / ``root`` -- the structural scaffolding above the domain roots --
+    are never valid parents, catalog or not: they coerce to None (the cascade
+    decides placement) with a logged warning. With a catalog present any other
+    parent must resolve (canonicalized) to a published name; unresolvable
+    parents likewise coerce to None (closed-world). Without a catalog
+    non-structural names pass through canonicalized -- placement validity is
+    then left to the cascade.
     """
-    if not isinstance(raw_assign, str):
-        return "NEW"
-    token = raw_assign.strip()
-    if not token or token == "NEW":
-        return "NEW"
-    if token.startswith("[") or token.endswith("]"):
-        alias = token.strip("[]").strip()
-        resolved = alias_to_uuid.get(alias)
-        if resolved is None:
-            logger.info(
-                "type_cluster: closed_world_coerce on unresolved alias %s",
-                token,
-            )
-            return "NEW"
-        if resolved in root_uuids:
-            logger.info("type_cluster: protected_root_coerce on assign_to %s", token)
-            return "NEW"
-        return resolved
-    if has_catalog:
-        if token not in published_uuids:
-            logger.info("type_cluster: closed_world_coerce on unknown uuid %s", token)
-            return "NEW"
-        if token in root_uuids:
-            logger.info("type_cluster: protected_root_coerce on assign_to %s", token)
-            return "NEW"
-        return token
-    return token
+    if not isinstance(raw_parent, str) or not raw_parent.strip():
+        return None
+    parent = canonicalize(raw_parent)
+    if not parent:
+        return None
+    if parent in _STRUCTURAL_ROOTS:
+        logger.warning("type_cluster: bad_root_coerce on parent %s", parent)
+        return None
+    if has_catalog and parent not in catalog_names:
+        logger.info("type_cluster: closed_world_coerce on parent %s", parent)
+        return None
+    return parent
 
 
 class TypeClusterMember(BaseModel):
@@ -1685,293 +1666,159 @@ class TypeClusterRequest(BaseModel):
         return value
 
 
-class TypeGroup(BaseModel):
-    assign_to: str = Field(..., description="A published type uuid OR the literal NEW.")
-    name: str = Field(..., description="Canonical lowercase-singular hypernym.")
-    chain: List[str] = Field(
-        ...,
-        description=(
-            "IS_A chain SPECIFIC->GENERAL; chain[0]==name, " "chain[-1] a realm root."
-        ),
-    )
-    member_ids: List[str] = Field(default_factory=list)
-    confidence: float = 0.5
-    description: str = ""
-    over_specified: bool = False
-
-
 class TypeClusterResponse(BaseModel):
+    """As-designed contract (#127): Hermes NAMES the cluster, picks an existing
+    PARENT when minting, and flags the OUTLIERS. The cascade asserts placement
+    (reuse / graft / root + the full IS_A chain) from the name + parent.
+
+    parent semantics: null  => `name` is an existing type to REUSE.
+                       set   => mint NEW `name` under this existing parent
+                                (which may be a domain root).
+    The model works in NAMES only -- never a chain, never an id."""
+
     request_id: Optional[str] = None
-    groups: List[TypeGroup] = Field(default_factory=list)
-    residual_ids: List[str] = Field(default_factory=list)
-    raw_partition_ok: bool = True
+    name: str = ""  # canonical type name for the whole cluster
+    parent: Optional[str] = None  # existing parent to graft under; null => reuse
+    over_specified: bool = False
+    residual_ids: List[str] = Field(default_factory=list)  # members that don't fit
+    raw_partition_ok: bool = True  # every returned outlier name resolved to a member
 
 
 @app.post("/type-cluster", response_model=TypeClusterResponse)
 async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
-    """Type the categories that bind a cluster (naming-driven typing v2).
+    """Name the category that binds a cluster; pick an existing parent or reuse.
 
-    Sophia points (coarse cluster); Hermes asserts (per-subgroup hypernym +
-    IS_A chain to a realm root + reuse/mint decision). This handler owns the
-    contract and fail-closed server-side validation; the placement cascade
-    is simulated by the offline harness.
+    Naming-driven typing v2, as designed (#127): Sophia points (the coarse
+    cluster); Hermes NAMES it and -- choosing FROM WHAT EXISTS -- either reuses
+    the most specific existing type that fits (parent=null) or mints a new
+    `name` under the most specific existing `parent` (which may be a domain
+    root; minting under a root is always legal). It also flags OUTLIERS:
+    members that don't belong. Hermes does NOT emit an IS_A chain, sub-partition
+    the cluster, or echo ids -- the placement cascade asserts the full chain
+    from the name + parent. The model reasons over member NAMES and existing
+    type NAMES, and returns NAMES; ids never reach it (verbatim id echo was the
+    source of the truncation / no-usable-groups failures).
     """
-    member_lines = []
-    for mem in request.members:
-        line = f"- {mem.name} (id: {mem.id})"
-        if mem.hermes_type_hint:
-            line += f" (hint: {mem.hermes_type_hint})"
-        member_lines.append(line)
+    member_lines = [
+        f"- {mem.name}"
+        + (f" (hint: {mem.hermes_type_hint})" if mem.hermes_type_hint else "")
+        for mem in request.members
+    ]
     members_block = "\n".join(member_lines)
 
-    (
-        catalog_block,
-        alias_to_uuid,
-        published_uuids,
-        root_uuids,
-    ) = _build_catalog_context()
-    # Part of the catalog snapshot: capture once here instead of
-    # re-reading the live _type_registry global per group below.
-    has_catalog = _type_registry is not None
+    catalog_block, _alias_unused, _pub_unused, catalog_names = _build_catalog_context()
 
     system_msg = (
-        "You are an ontology typing assistant. Partition the cluster members "
-        "into one or more semantic subgroups. For each subgroup return a "
-        "canonical hypernym `name` (lowercase singular noun), an IS_A `chain` "
-        "from specific to general ending in exactly one realm root "
-        "(entity, concept, or process), `member_ids` (the EXACT input ids in "
-        "that subgroup), and `assign_to` (the bracketed id of an existing "
-        'published type to reuse, or the literal "NEW" to mint). Cover '
-        "EVERY input id exactly once across the subgroups; ids that fit "
-        "nothing go in top-level `residual_ids`. Return ONLY a JSON object: "
-        '{"groups": [{"assign_to": "<id-or-NEW>", "name": "<noun>", '
-        '"chain": ["<specific>", ..., "<root>"], '
-        '"member_ids": ["<id>", ...], "confidence": <0.0-1.0>, '
-        '"description": "<short>"}], "residual_ids": ["<id>", ...]}.'
+        "You type a cluster of entities. You are given the cluster's members "
+        "and the existing type catalog. Choose FROM WHAT EXISTS: return the "
+        "most specific existing type that fits the WHOLE cluster as `name` "
+        "with `parent`: null (reuse it). If no existing type fits, mint a new "
+        "type: return the new `name` (a lowercase singular noun) and `parent` "
+        "= the most specific existing type to place it under (a domain root -- "
+        "entity, concept, or process -- is a valid parent). Also return "
+        "`outliers`: the EXACT names of any listed members that do not belong "
+        "under `name`. Do not invent ids or chains. Return ONLY a JSON object: "
+        '{"name": "<noun>", "parent": "<existing type>" or null, '
+        '"outliers": ["<member name>", ...]}.'
     )
     if catalog_block:
         system_msg += "\n\n" + catalog_block
     user_msg = (
         "These entities were grouped together (embedding-coarse cluster):\n"
-        f"{members_block}\n\nType them."
+        f"{members_block}\n\nType them: name the category that binds them "
+        "(reuse an existing type if one fits, else mint under the most "
+        "specific existing parent), and list any members that do not fit."
     )
 
-    # max_tokens scales with member count so large clusters do not get the
-    # member_ids array clipped (truncation is a hard failure below).
-    max_tokens = min(4096, 512 + 24 * len(request.members))
-    result = await generate_completion(
-        messages=[
-            {"role": "system", "content": system_msg},
-            {"role": "user", "content": user_msg},
-        ],
-        temperature=0.0,
-        max_tokens=max_tokens,
-    )
+    # Bounded response: one name + one parent + a short outlier list. The
+    # per-member token scaling the partition contract needed (#126) is moot.
+    try:
+        result = await generate_completion(
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg},
+            ],
+            temperature=0.0,
+            max_tokens=512,
+            metadata={"request_id": request.request_id},
+        )
+    except LLMProviderNotConfiguredError as exc:
+        logger.error("type_cluster: LLM provider not configured: %s", exc)
+        raise HTTPException(
+            status_code=503, detail="LLM provider not configured"
+        ) from exc
+    except LLMProviderError as exc:
+        logger.error("type_cluster: LLM provider error: %s", exc)
+        raise HTTPException(status_code=502, detail="LLM provider error") from exc
     choices = result.get("choices", [])
     if not choices:
         raise HTTPException(status_code=502, detail="LLM returned no choices")
-
     content = choices[0]["message"]["content"]
-    # Truncation detection: a clipped member_ids tail makes the JSON
-    # unparseable. Surface it as a 502 (raw partition fidelity is gone)
-    # rather than letting a truncated tail masquerade as healthy residual
-    # backlog.
+
     try:
         data = _extract_json(content)
     except Exception:
-        logger.warning("type_cluster: truncated_response (unparseable JSON)")
+        logger.warning("type_cluster: unparseable JSON")
         raise HTTPException(
-            status_code=502,
-            detail="LLM typing response was truncated/unparseable",
+            status_code=502, detail="LLM typing response was unparseable"
         )
     if not isinstance(data, dict):
         raise HTTPException(
             status_code=502, detail="LLM typing response is not a JSON object"
         )
 
-    input_id_set = {mem.id for mem in request.members}
-
-    raw_groups = data.get("groups")
-    if not isinstance(raw_groups, list):
-        raw_groups = []
-    raw_residual = data.get("residual_ids")
-    if not isinstance(raw_residual, list):
-        raw_residual = []
-
-    # --- raw-fidelity bookkeeping (on the LLM output BEFORE reconcile) ---
-    raw_claimed: list[str] = []
-    raw_partition_ok = True
-    for g in raw_groups:
-        if not isinstance(g, dict):
-            raw_partition_ok = False
-            continue
-        gids = g.get("member_ids")
-        if not isinstance(gids, list):
-            raw_partition_ok = False
-            continue
-        raw_claimed.extend([gid for gid in gids if isinstance(gid, str)])
-    # subset: every raw-claimed id is a real input id
-    if any(gid not in input_id_set for gid in raw_claimed):
-        raw_partition_ok = False
-    # disjoint: no id claimed by two groups
-    if len(raw_claimed) != len(set(raw_claimed)):
-        raw_partition_ok = False
-    # total: raw group ids + returned residual cover every input id
-    raw_residual_in = {
-        r for r in raw_residual if isinstance(r, str) and r in input_id_set
-    }
-    if set(raw_claimed) | raw_residual_in != input_id_set:
-        raw_partition_ok = False
-
-    # --- reconciliation: first-claim wins, dedup, drop hallucinated ids ---
-    claimed: set[str] = set()
-    out_groups: list[TypeGroup] = []
-    for g in raw_groups:
-        if not isinstance(g, dict):
-            continue
-        raw_name = g.get("name")
-        if not isinstance(raw_name, str) or not raw_name.strip():
-            logger.warning("type_cluster: dropping group with missing name")
-            continue
-        gids_raw = g.get("member_ids")
-        if not isinstance(gids_raw, list):
-            gids_raw = []
-        kept_ids: list[str] = []
-        for gid in gids_raw:
-            if isinstance(gid, str) and gid in input_id_set and gid not in claimed:
-                claimed.add(gid)
-                kept_ids.append(gid)
-        if not kept_ids:
-            logger.warning(
-                "type_cluster: dropping group %s with no valid ids", raw_name
-            )
-            continue
-
-        # over_specified is computed on the RAW name, pre-canonicalize.
-        over_specified = _is_over_specified(raw_name)
-        canon_name = canonicalize(raw_name)
-
-        # chain validation: canonicalize each link; de-dup consecutive
-        # repeats; append a deterministic root if missing; force
-        # chain[0] == name; cap length keeping the root. Never reject a
-        # group on a bad chain.
-        raw_chain = g.get("chain")
-        if not isinstance(raw_chain, list):
-            raw_chain = []
-        chain: list[str] = []
-        for link in raw_chain:
-            if not isinstance(link, str) or not link.strip():
-                continue
-            canon_link = canonicalize(link)
-            if not chain or chain[-1] != canon_link:
-                chain.append(canon_link)
-        if not chain or chain[-1] not in _TYPE_ROOTS:
-            chain.append("entity")  # deterministic default realm root
-            logger.warning(
-                "type_cluster: bad_root -- appended default root for %s",
-                canon_name,
-            )
-        if chain[0] != canon_name:
-            if canon_name in chain:
-                # canon_name already appears deeper in the chain: slice
-                # from its first occurrence (dropping the more-specific
-                # prefix) so the SPEC 5.2 graft walk never sees a
-                # non-consecutive duplicate of the name.
-                chain = chain[chain.index(canon_name) :]
-            else:
-                chain = [canon_name] + chain
-        if len(chain) > _MAX_CHAIN:
-            chain = chain[: _MAX_CHAIN - 1] + [chain[-1]]
-
-        assign_to = _resolve_assign_to(
-            g.get("assign_to"),
-            alias_to_uuid,
-            published_uuids,
-            root_uuids,
-            has_catalog=has_catalog,
+    raw_name = data.get("name")
+    if not isinstance(raw_name, str) or not raw_name.strip():
+        raise HTTPException(
+            status_code=502, detail="LLM typing response had no usable name"
         )
-
-        try:
-            confidence = float(g.get("confidence", 0.5))
-        except (TypeError, ValueError):
-            confidence = 0.5
-        confidence = max(0.0, min(1.0, confidence))
-
-        description = g.get("description", "")
-        if not isinstance(description, str):
-            description = ""
-
-        out_groups.append(
-            TypeGroup(
-                assign_to=assign_to,
-                name=canon_name,
-                chain=chain,
-                member_ids=kept_ids,
-                confidence=confidence,
-                description=description,
-                over_specified=over_specified,
-            )
-        )
-
-    if not out_groups:
+    over_specified = _is_over_specified(raw_name)
+    name = canonicalize(raw_name)
+    if not name:
         raise HTTPException(
             status_code=502,
-            detail="LLM typing response contained no usable groups",
+            detail="LLM returned an empty/uncanonicalizable cluster name",
         )
 
-    # Intra-response canonical-name merge: groups are merged ONLY when the
-    # canonical name AND the proposed chain[-1] root both collide (union
-    # member_ids, keep the higher-confidence chain); different roots stay
-    # split (homonym guard).
-    merged: dict[tuple[str, str], TypeGroup] = {}
-    merged_order: list[tuple[str, str]] = []
-    for grp in out_groups:
-        key = (grp.name, grp.chain[-1])
-        existing = merged.get(key)
-        if existing is None:
-            merged[key] = grp
-            merged_order.append(key)
-            continue
-        winner = grp if grp.confidence > existing.confidence else existing
-        merged[key] = TypeGroup(
-            assign_to=winner.assign_to,
-            name=winner.name,
-            chain=list(winner.chain),
-            member_ids=existing.member_ids + grp.member_ids,
-            confidence=winner.confidence,
-            description=winner.description,
-            over_specified=existing.over_specified or grp.over_specified,
-        )
-        logger.info(
-            "type_cluster: merged duplicate canonical group %s (root %s)",
-            key[0],
-            key[1],
-        )
-    out_groups = [merged[k] for k in merged_order]
+    # parent: null => reuse `name`; else the existing type to graft under.
+    # Canonicalized, then resolved closed-world: `node`/`root` and (with a
+    # catalog) unpublished names coerce to None; remaining placement validity
+    # is left to the cascade.
+    parent = _resolve_parent(data.get("parent"), catalog_names, bool(catalog_block))
 
-    # residual = input ids never claimed by a kept group. Set-equivalent
-    # to the SPEC 3.4 union (input - claimed) | (raw_residual_in - claimed)
-    # because raw_residual_in is filtered to input_id_set above.
-    residual_ids = sorted(input_id_set - claimed)
+    # Map outlier NAMES back to input ids over the known member set: exact,
+    # then case/space-normalized. Names the model invented (no member match)
+    # are dropped. Names, not ids -- the model reproduces the medium it
+    # reasoned over far more reliably than a 36-char uuid (#127).
+    raw_outliers = data.get("outliers")
+    if not isinstance(raw_outliers, list):
+        raw_outliers = []
 
-    # Final safety assert: groups disjoint-union residual == input ids
-    # (failure here is a server bug => 500).
-    final_union: set[str] = set()
-    for grp in out_groups:
-        final_union |= set(grp.member_ids)
-    if (
-        final_union & set(residual_ids)
-        or (final_union | set(residual_ids)) != input_id_set
-    ):
-        logger.error("type_cluster: post-reconcile partition broken")
-        raise HTTPException(
-            status_code=500, detail="typing partition invariant violated"
-        )
+    def _norm(value: str) -> str:
+        return " ".join(str(value).strip().lower().split())
+
+    by_norm: dict[str, list[str]] = {}
+    for mem in request.members:
+        by_norm.setdefault(_norm(mem.name), []).append(mem.id)
+
+    claimed: set[str] = set()
+    residual_ids: list[str] = []
+    named_outliers = [o for o in raw_outliers if isinstance(o, str)]
+    for outlier in named_outliers:
+        for mid in by_norm.get(_norm(outlier), []):
+            if mid not in claimed:
+                claimed.add(mid)
+                residual_ids.append(mid)
+                break
+
+    raw_partition_ok = len(claimed) == len(named_outliers)
 
     return TypeClusterResponse(
         request_id=request.request_id,
-        groups=out_groups,
-        residual_ids=residual_ids,
+        name=name,
+        parent=parent,
+        over_specified=over_specified,
+        residual_ids=sorted(residual_ids),
         raw_partition_ok=raw_partition_ok,
     )
 

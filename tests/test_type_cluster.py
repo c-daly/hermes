@@ -1,491 +1,401 @@
-"""Tests for the v2 /type-cluster endpoint (naming-driven typing experiment T4).
+"""Tests for the v2 /type-cluster endpoint -- as-designed contract (#127).
 
-Every test monkeypatches generate_completion -- no live LLM calls. The endpoint
-contract and server-side validation are exercised in isolation; where a test
-needs a catalog it injects an in-process stub TypeRegistry (experiment path A).
-The placement cascade lives in later tasks.
+Hermes NAMES the cluster and flags the OUTLIERS; it does NOT partition into
+subgroups, propose an IS_A chain, or decide reuse/mint (the placement cascade
+does all of that from the name). The model reasons over member NAMES and
+returns outlier NAMES; Hermes maps those back to input ids over the known
+member set -- the model never handles an id. Every test monkeypatches
+generate_completion; no live LLM calls.
 """
 
 from __future__ import annotations
 
 import json
-from typing import Any
 
 import hermes.main as m
 from fastapi.testclient import TestClient
 
+client = TestClient(m.app)
+
 
 def _make_completion(content: str):
-    """Build a fake generate_completion returning *content* as the LLM message."""
-
-    async def fake_completion(messages, temperature=0.0, max_tokens=512):
+    async def fake_completion(messages, temperature=0.0, max_tokens=512, **kwargs):
+        # The pin must reach the wire, and the prompt must carry member NAMES.
+        assert temperature == 0.0
+        fake_completion.last_messages = messages  # type: ignore[attr-defined]
         return {"choices": [{"message": {"content": content}}]}
 
     return fake_completion
 
 
-class _StubTypeRegistry:
-    """Minimal in-process TypeRegistry stub (experiment path A)."""
-
-    def __init__(self, types: dict[str, dict[str, Any]]) -> None:
-        self._types = types
-
-    def get_type_names(self) -> list[str]:
-        return sorted(self._types)
-
-    def get_type(self, name: str) -> dict[str, Any] | None:
-        info = self._types.get(name)
-        return dict(info) if info is not None else None
+def _members(*pairs):
+    return [{"id": i, "name": n} for i, n in pairs]
 
 
-def test_type_cluster_happy_path_partitions_ids(monkeypatch):
-    """A well-formed two-group response round-trips, partitions all ids, and is clean."""
-    content = json.dumps(
-        {
-            "groups": [
-                {
-                    "assign_to": "NEW",
-                    "name": "Vehicles",
-                    "chain": ["Vehicle", "Entity"],
-                    "member_ids": ["i1", "i2"],
-                    "confidence": 0.9,
-                    "description": "wheeled",
-                },
-                {
-                    "assign_to": "NEW",
-                    "name": "Mammal",
-                    "chain": ["mammal", "animal", "entity"],
-                    "member_ids": ["i3"],
-                },
-            ],
-            "residual_ids": [],
-        }
+def _post(members, request_id="t::0"):
+    return client.post(
+        "/type-cluster", json={"members": members, "request_id": request_id}
     )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post(
-        "/type-cluster",
-        json={
-            "members": [
-                {"id": "i1", "name": "car"},
-                {"id": "i2", "name": "truck"},
-                {"id": "i3", "name": "dog"},
-            ],
-            "request_id": "req-1",
-        },
-    )
-    assert resp.status_code == 200, resp.text
-    body = resp.json()
-    assert body["request_id"] == "req-1"
-    assert body["raw_partition_ok"] is True
-    assert body["residual_ids"] == []
-    groups = body["groups"]
-    assert len(groups) == 2
-    # name + chain entries are canonicalized (lowercase singular); chain[0]==name.
-    g0 = groups[0]
-    assert g0["name"] == "vehicle"
-    assert g0["chain"][0] == "vehicle"
-    assert g0["chain"][-1] == "entity"
-    assert g0["member_ids"] == ["i1", "i2"]
-    assert g0["over_specified"] is False
-    # total partition: every input id is claimed exactly once across groups+residual.
-    claimed = [mid for g in groups for mid in g["member_ids"]] + body["residual_ids"]
-    assert sorted(claimed) == ["i1", "i2", "i3"]
 
 
-def test_type_cluster_empty_members_is_422():
-    """An empty cluster is a request-validation 422, not a fabricated typing."""
-    client = TestClient(m.app)
-    resp = client.post("/type-cluster", json={"members": []})
-    assert resp.status_code == 422, resp.text
+# --------------------------------------------------------------------------
+# Naming
+# --------------------------------------------------------------------------
 
 
-def test_type_cluster_non_dict_llm_is_502(monkeypatch):
-    """A non-object JSON payload from the LLM surfaces as a 502 (bad upstream shape)."""
+def test_names_the_cluster_and_canonicalizes(monkeypatch):
     monkeypatch.setattr(
-        m, "generate_completion", _make_completion(json.dumps(["not", "a", "dict"]))
+        m, "generate_completion", _make_completion(json.dumps({"name": "Vehicles"}))
     )
-    client = TestClient(m.app)
-    resp = client.post("/type-cluster", json={"members": [{"id": "i1", "name": "x"}]})
-    assert resp.status_code == 502, resp.text
-
-
-def test_type_cluster_truncated_member_ids_is_502(monkeypatch):
-    """A clipped member_ids array (truncated tail) => raw_partition_ok False => 502."""
-    # Clip the closing brackets so the first-{/last-} fallback of _extract_json
-    # also fails (no closing brace remains anywhere in the payload).
-    full = json.dumps({"groups": [{"name": "vehicle", "member_ids": ["i1", "i2"]}]})
-    truncated = full[:-4]
-    monkeypatch.setattr(m, "generate_completion", _make_completion(truncated))
-    client = TestClient(m.app)
-    resp = client.post("/type-cluster", json={"members": [{"id": "i1", "name": "x"}]})
-    assert resp.status_code == 502, resp.text
-
-
-def test_type_cluster_unclaimed_ids_become_residual_and_flag_raw(monkeypatch):
-    """Ids the LLM omits land in residual_ids; raw_partition_ok is False (not total)."""
-    content = json.dumps(
-        {
-            "groups": [
-                {
-                    "assign_to": "NEW",
-                    "name": "vehicle",
-                    "chain": ["vehicle", "entity"],
-                    "member_ids": ["i1"],
-                }
-            ],
-            "residual_ids": [],
-        }
-    )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post(
-        "/type-cluster",
-        json={"members": [{"id": "i1", "name": "car"}, {"id": "i2", "name": "truck"}]},
-    )
-    assert resp.status_code == 200, resp.text
+    resp = _post(_members(("i1", "boat"), ("i2", "car")))
+    assert resp.status_code == 200
     body = resp.json()
-    assert body["residual_ids"] == ["i2"]
-    assert body["raw_partition_ok"] is False
+    assert body["name"] == "vehicle"  # canonicalized lowercase singular
+    assert body["residual_ids"] == []
+    assert body["raw_partition_ok"] is True
+    assert body["request_id"] == "t::0"
 
 
-def test_type_cluster_hallucinated_and_duplicate_ids_dropped(monkeypatch):
-    """Unknown ids are dropped; a re-claimed id goes to its first group (first-claim wins)."""
-    content = json.dumps(
-        {
-            "groups": [
-                {
-                    "assign_to": "NEW",
-                    "name": "vehicle",
-                    "chain": ["vehicle", "entity"],
-                    "member_ids": ["i1", "i1", "ghost"],
-                },
-                {
-                    "assign_to": "NEW",
-                    "name": "animal",
-                    "chain": ["animal", "entity"],
-                    "member_ids": ["i1", "i2"],
-                },
-            ],
-            "residual_ids": [],
-        }
+def test_no_outliers_key_means_no_residuals(monkeypatch):
+    monkeypatch.setattr(
+        m, "generate_completion", _make_completion(json.dumps({"name": "mammal"}))
     )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post(
-        "/type-cluster",
-        json={"members": [{"id": "i1", "name": "car"}, {"id": "i2", "name": "dog"}]},
-    )
-    assert resp.status_code == 200, resp.text
-    body = resp.json()
-    groups = body["groups"]
-    assert groups[0]["member_ids"] == ["i1"]  # dedup + first-claim, ghost dropped
-    assert groups[1]["member_ids"] == ["i2"]  # i1 already claimed by group 0
-    assert body["raw_partition_ok"] is False  # raw output was not disjoint
-
-
-def test_type_cluster_chain_root_appended_when_missing(monkeypatch):
-    """A chain not terminating in a realm root gets a deterministic root appended."""
-    content = json.dumps(
-        {
-            "groups": [
-                {
-                    "assign_to": "NEW",
-                    "name": "sedan",
-                    "chain": ["sedan", "vehicle"],
-                    "member_ids": ["i1"],
-                }
-            ],
-            "residual_ids": [],
-        }
-    )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post("/type-cluster", json={"members": [{"id": "i1", "name": "car"}]})
-    assert resp.status_code == 200, resp.text
-    chain = resp.json()["groups"][0]["chain"]
-    assert chain[0] == "sedan"
-    assert chain[-1] in {"entity", "concept", "process"}
-
-
-def test_type_cluster_chain_sliced_from_existing_name_occurrence(monkeypatch):
-    """A canon name already mid-chain slices the chain from that occurrence.
-
-    Naive prepend would mint a non-consecutive duplicate
-    (vehicle > car > vehicle > ...); slicing drops the more-specific
-    prefix and keeps the general tail intact.
-    """
-    content = json.dumps(
-        {
-            "groups": [
-                {
-                    "assign_to": "NEW",
-                    "name": "vehicle",
-                    "chain": ["car", "vehicle", "machine", "entity"],
-                    "member_ids": ["i1"],
-                }
-            ],
-            "residual_ids": [],
-        }
-    )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post("/type-cluster", json={"members": [{"id": "i1", "name": "car"}]})
-    assert resp.status_code == 200, resp.text
-    chain = resp.json()["groups"][0]["chain"]
-    assert chain == ["vehicle", "machine", "entity"]
-
-
-def test_type_cluster_over_specified_flag(monkeypatch):
-    """A conjunction / too-many-words RAW name sets over_specified on the group."""
-    content = json.dumps(
-        {
-            "groups": [
-                {
-                    "assign_to": "NEW",
-                    "name": "cars and trucks",
-                    "chain": ["vehicle", "entity"],
-                    "member_ids": ["i1"],
-                }
-            ],
-            "residual_ids": [],
-        }
-    )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post("/type-cluster", json={"members": [{"id": "i1", "name": "car"}]})
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["groups"][0]["over_specified"] is True
-
-
-def test_type_cluster_all_groups_invalid_is_502(monkeypatch):
-    """Every group missing name/member_ids => nothing usable => 502."""
-    content = json.dumps(
-        {"groups": [{"name": "", "member_ids": []}], "residual_ids": []}
-    )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post("/type-cluster", json={"members": [{"id": "i1", "name": "x"}]})
-    assert resp.status_code == 502, resp.text
-
-
-def test_type_cluster_assign_to_unresolvable_coerced_new(monkeypatch):
-    """A bracketed alias that does not resolve against the catalog coerces to NEW."""
-    content = json.dumps(
-        {
-            "groups": [
-                {
-                    "assign_to": "[nope-uuid]",
-                    "name": "vehicle",
-                    "chain": ["vehicle", "entity"],
-                    "member_ids": ["i1"],
-                }
-            ],
-            "residual_ids": [],
-        }
-    )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post("/type-cluster", json={"members": [{"id": "i1", "name": "car"}]})
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["groups"][0]["assign_to"] == "NEW"
-
-
-def test_canonicalize_name_lowercases_and_singularizes():
-    """The shared canonicalize impl is idempotent and collapses vehicle/vehicles."""
-    assert m.canonicalize("Vehicles") == "vehicle"
-    assert m.canonicalize("vehicle") == "vehicle"
-    assert m.canonicalize(m.canonicalize("Vehicles")) == "vehicle"
-    assert m.canonicalize("process") == "process"
-
-
-def test_type_cluster_duplicate_member_ids_is_422():
-    """Duplicate member ids break the total-partition contract => 422."""
-    client = TestClient(m.app)
-    resp = client.post(
-        "/type-cluster",
-        json={
-            "members": [
-                {"id": "i1", "name": "car"},
-                {"id": "i1", "name": "truck"},
-            ]
-        },
-    )
-    assert resp.status_code == 422, resp.text
-
-
-def test_type_cluster_alias_assign_resolves_against_stub_catalog(monkeypatch):
-    """A bracketed [t_xxxx] alias resolves to the published uuid it aliases."""
-    stub = _StubTypeRegistry(
-        {
-            "vehicle": {
-                "uuid": "type_vehicle_aaaa1111",
-                "root": "entity",
-                "chain": ["vehicle", "entity"],
-            }
-        }
-    )
-    monkeypatch.setattr(m, "_type_registry", stub)
-    content = json.dumps(
-        {
-            "groups": [
-                {
-                    "assign_to": "[t_0000]",
-                    "name": "vehicle",
-                    "chain": ["vehicle", "entity"],
-                    "member_ids": ["i1"],
-                }
-            ],
-            "residual_ids": [],
-        }
-    )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post("/type-cluster", json={"members": [{"id": "i1", "name": "car"}]})
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["groups"][0]["assign_to"] == "type_vehicle_aaaa1111"
-
-
-def test_type_cluster_protected_root_assign_coerced_new(monkeypatch):
-    """assign_to resolving to a realm root uuid coerces to NEW (graft-only roots)."""
-    stub = _StubTypeRegistry(
-        {
-            "entity": {"uuid": "type_entity_root0001", "is_root": True},
-            "vehicle": {"uuid": "type_vehicle_aaaa1111", "root": "entity"},
-        }
-    )
-    monkeypatch.setattr(m, "_type_registry", stub)
-    content = json.dumps(
-        {
-            "groups": [
-                {
-                    "assign_to": "type_entity_root0001",
-                    "name": "vehicle",
-                    "chain": ["vehicle", "entity"],
-                    "member_ids": ["i1"],
-                }
-            ],
-            "residual_ids": [],
-        }
-    )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post("/type-cluster", json={"members": [{"id": "i1", "name": "car"}]})
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["groups"][0]["assign_to"] == "NEW"
-
-
-def test_type_cluster_homonym_groups_not_merged(monkeypatch):
-    """Same canonical name under DIFFERENT proposed roots stays two groups."""
-    content = json.dumps(
-        {
-            "groups": [
-                {
-                    "assign_to": "NEW",
-                    "name": "bank",
-                    "chain": ["bank", "entity"],
-                    "member_ids": ["i1"],
-                },
-                {
-                    "assign_to": "NEW",
-                    "name": "bank",
-                    "chain": ["bank", "concept"],
-                    "member_ids": ["i2"],
-                },
-            ],
-            "residual_ids": [],
-        }
-    )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post(
-        "/type-cluster",
-        json={
-            "members": [
-                {"id": "i1", "name": "river bank"},
-                {"id": "i2", "name": "trust"},
-            ]
-        },
-    )
-    assert resp.status_code == 200, resp.text
-    groups = resp.json()["groups"]
-    assert len(groups) == 2
-    assert {g["chain"][-1] for g in groups} == {"entity", "concept"}
-
-
-def test_type_cluster_same_name_same_root_groups_merged(monkeypatch):
-    """Same canonical name AND same proposed root merge: union ids, best chain."""
-    content = json.dumps(
-        {
-            "groups": [
-                {
-                    "assign_to": "NEW",
-                    "name": "vehicle",
-                    "chain": ["vehicle", "entity"],
-                    "member_ids": ["i1"],
-                    "confidence": 0.6,
-                },
-                {
-                    "assign_to": "NEW",
-                    "name": "Vehicles",
-                    "chain": ["vehicle", "conveyance", "entity"],
-                    "member_ids": ["i2"],
-                    "confidence": 0.9,
-                },
-            ],
-            "residual_ids": [],
-        }
-    )
-    monkeypatch.setattr(m, "generate_completion", _make_completion(content))
-    client = TestClient(m.app)
-    resp = client.post(
-        "/type-cluster",
-        json={"members": [{"id": "i1", "name": "car"}, {"id": "i2", "name": "truck"}]},
-    )
-    assert resp.status_code == 200, resp.text
-    body = resp.json()
-    groups = body["groups"]
-    assert len(groups) == 1
-    assert groups[0]["member_ids"] == ["i1", "i2"]
-    assert groups[0]["confidence"] == 0.9
-    assert groups[0]["chain"] == ["vehicle", "conveyance", "entity"]
+    body = _post(_members(("i1", "cat"), ("i2", "dog"))).json()
     assert body["residual_ids"] == []
     assert body["raw_partition_ok"] is True
 
 
-def test_type_cluster_catalog_block_in_system_prompt(monkeypatch):
-    """The catalog block (aliases + GRAFT-ONLY roots) lands in the SYSTEM prompt."""
-    stub = _StubTypeRegistry(
-        {"vehicle": {"uuid": "type_vehicle_aaaa1111", "root": "entity"}}
+# --------------------------------------------------------------------------
+# Outlier name -> id mapping (the model never echoes ids, #127)
+# --------------------------------------------------------------------------
+
+
+def test_outlier_name_maps_to_member_id(monkeypatch):
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "carbon", "outliers": ["diamond ring"]})),
     )
-    monkeypatch.setattr(m, "_type_registry", stub)
-    captured: dict[str, Any] = {}
+    body = _post(
+        _members(("u-graphite", "graphite"), ("u-ring", "diamond ring"))
+    ).json()
+    assert body["residual_ids"] == ["u-ring"]
+    assert body["raw_partition_ok"] is True
 
-    async def fake_completion(messages, temperature=0.0, max_tokens=512):
-        captured["messages"] = messages
-        captured["temperature"] = temperature
-        content = json.dumps(
-            {
-                "groups": [
-                    {
-                        "assign_to": "NEW",
-                        "name": "vehicle",
-                        "chain": ["vehicle", "entity"],
-                        "member_ids": ["i1"],
-                    }
-                ],
-                "residual_ids": [],
-            }
+
+def test_outlier_match_is_case_and_space_normalized(monkeypatch):
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "star", "outliers": ["  THE   Sun "]})),
+    )
+    body = _post(_members(("u-vega", "vega"), ("u-sun", "the sun"))).json()
+    assert body["residual_ids"] == ["u-sun"]
+    assert body["raw_partition_ok"] is True
+
+
+def test_hallucinated_outlier_name_is_dropped_and_flags_raw_partition(monkeypatch):
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(
+            json.dumps({"name": "star", "outliers": ["a name not in the cluster"]})
+        ),
+    )
+    body = _post(_members(("u-vega", "vega"), ("u-sun", "the sun"))).json()
+    assert body["residual_ids"] == []  # unmatched outlier dropped
+    assert body["raw_partition_ok"] is False  # but the miss is surfaced
+
+
+def test_duplicate_member_name_claims_one_unclaimed_id(monkeypatch):
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "metal", "outliers": ["mercury"]})),
+    )
+    body = _post(
+        _members(("u-m1", "mercury"), ("u-m2", "mercury"), ("u-iron", "iron"))
+    ).json()
+    assert len(body["residual_ids"]) == 1
+    assert body["residual_ids"][0] in {"u-m1", "u-m2"}
+
+
+# --------------------------------------------------------------------------
+# over_specified ceiling signal (computed on the raw name)
+# --------------------------------------------------------------------------
+
+
+def test_over_specified_name_is_flagged(monkeypatch):
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "carbon and its allotropes"})),
+    )
+    body = _post(_members(("i1", "graphite"))).json()
+    assert body["over_specified"] is True
+
+
+def test_clean_name_not_over_specified(monkeypatch):
+    monkeypatch.setattr(
+        m, "generate_completion", _make_completion(json.dumps({"name": "carbon"}))
+    )
+    body = _post(_members(("i1", "graphite"))).json()
+    assert body["over_specified"] is False
+
+
+# --------------------------------------------------------------------------
+# The model is never asked to handle ids (the #127 contract guarantee)
+# --------------------------------------------------------------------------
+
+
+def test_prompt_carries_names_not_ids(monkeypatch):
+    fake = _make_completion(json.dumps({"name": "vehicle"}))
+    monkeypatch.setattr(m, "generate_completion", fake)
+    _post(_members(("uuid-aaaaaaaa", "boat"), ("uuid-bbbbbbbb", "car")))
+    prompt = " ".join(msg["content"] for msg in fake.last_messages)
+    assert "boat" in prompt and "car" in prompt
+    assert "uuid-aaaaaaaa" not in prompt and "uuid-bbbbbbbb" not in prompt
+
+
+# --------------------------------------------------------------------------
+# Fail-closed paths -> 502
+# --------------------------------------------------------------------------
+
+
+def test_unparseable_json_is_502(monkeypatch):
+    monkeypatch.setattr(m, "generate_completion", _make_completion("not json {{"))
+    assert _post(_members(("i1", "x"))).status_code == 502
+
+
+def test_non_object_json_is_502(monkeypatch):
+    monkeypatch.setattr(m, "generate_completion", _make_completion(json.dumps([1, 2])))
+    assert _post(_members(("i1", "x"))).status_code == 502
+
+
+def test_missing_name_is_502(monkeypatch):
+    monkeypatch.setattr(
+        m, "generate_completion", _make_completion(json.dumps({"outliers": []}))
+    )
+    assert _post(_members(("i1", "x"))).status_code == 502
+
+
+def test_blank_name_is_502(monkeypatch):
+    monkeypatch.setattr(
+        m, "generate_completion", _make_completion(json.dumps({"name": "   "}))
+    )
+    assert _post(_members(("i1", "x"))).status_code == 502
+
+
+def test_no_choices_is_502(monkeypatch):
+    async def empty(messages, temperature=0.0, max_tokens=512, **kwargs):
+        return {"choices": []}
+
+    monkeypatch.setattr(m, "generate_completion", empty)
+    assert _post(_members(("i1", "x"))).status_code == 502
+
+
+def test_empty_canonical_name_is_502(monkeypatch):
+    # A name that survives .strip() truthiness but canonicalizes to empty must
+    # not slip through as a silent 200 with name="" (review #128).
+    monkeypatch.setattr(
+        m, "generate_completion", _make_completion(json.dumps({"name": "the"}))
+    )
+    monkeypatch.setattr(m, "canonicalize", lambda value: "")
+    assert _post(_members(("i1", "x"))).status_code == 502
+
+
+def test_provider_not_configured_is_503(monkeypatch):
+    async def boom(messages, temperature=0.0, max_tokens=512, **kwargs):
+        raise m.LLMProviderNotConfiguredError("no provider")
+
+    monkeypatch.setattr(m, "generate_completion", boom)
+    assert _post(_members(("i1", "x"))).status_code == 503
+
+
+def test_provider_error_is_502(monkeypatch):
+    async def boom(messages, temperature=0.0, max_tokens=512, **kwargs):
+        raise m.LLMProviderError("upstream down")
+
+    monkeypatch.setattr(m, "generate_completion", boom)
+    assert _post(_members(("i1", "x"))).status_code == 502
+
+
+def test_empty_members_rejected_by_contract():
+    # min_length=1 on the request model: an empty cluster is a 422, not a call.
+    assert client.post("/type-cluster", json={"members": []}).status_code == 422
+
+
+# --------------------------------------------------------------------------
+# parent: null => reuse `name`; a string => mint `name` under that existing
+# type. Canonicalized, then resolved closed-world: structural roots
+# (`node`/`root`) and -- with a catalog -- unpublished names coerce to None;
+# remaining placement validity is left to the cascade.
+# --------------------------------------------------------------------------
+
+
+def test_parent_null_passes_through_as_reuse(monkeypatch):
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "vehicle", "parent": None})),
+    )
+    body = _post(_members(("i1", "boat"), ("i2", "car"))).json()
+    assert body["name"] == "vehicle"
+    assert body["parent"] is None  # reuse: no new parent edge target
+
+
+def test_parent_string_passes_through_canonicalized(monkeypatch):
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "sedan", "parent": "Vehicles"})),
+    )
+    body = _post(
+        _members(
+            ("i1", "a sedan"),
         )
-        return {"choices": [{"message": {"content": content}}]}
+    ).json()
+    assert body["name"] == "sedan"
+    assert body["parent"] == "vehicle"  # canonicalized existing-parent name
 
-    monkeypatch.setattr(m, "generate_completion", fake_completion)
-    client = TestClient(m.app)
-    resp = client.post("/type-cluster", json={"members": [{"id": "i1", "name": "car"}]})
-    assert resp.status_code == 200, resp.text
-    system = captured["messages"][0]
-    assert system["role"] == "system"
-    assert "PUBLISHED TYPE CATALOG" in system["content"]
-    assert "[t_0000] vehicle" in system["content"]
-    assert "GRAFT-ONLY ROOTS" in system["content"]
-    assert captured["temperature"] == 0.0
+
+def test_missing_parent_key_is_reuse(monkeypatch):
+    monkeypatch.setattr(
+        m, "generate_completion", _make_completion(json.dumps({"name": "star"}))
+    )
+    body = _post(
+        _members(
+            ("i1", "vega"),
+        )
+    ).json()
+    assert body["parent"] is None
+
+
+# --------------------------------------------------------------------------
+# Catalog construction: domain roots (entity/concept/process) are ordinary
+# catalog citizens -- plain name entries like every published type, valid both
+# as a `parent` and as an honest `name` reuse. Only the structural scaffolding
+# above them (`node`, `root`) and the unminted `cognition` are excluded.
+# --------------------------------------------------------------------------
+
+
+_CATALOG_TYPES = {
+    "entity": {"uuid": "u-entity", "root": "entity"},
+    "concept": {"uuid": "u-concept", "root": "concept"},
+    "process": {"uuid": "u-process", "root": "process"},
+    "vehicle": {"uuid": "u-vehicle", "root": "entity"},
+    # Structural / unminted: must never reach the catalog.
+    "node": {"uuid": "u-node", "root": ""},
+    "root": {"uuid": "u-root", "root": ""},
+    "cognition": {"uuid": "u-cognition", "root": ""},
+}
+
+
+class _FakeRegistry:
+    def get_type_names(self):
+        return list(_CATALOG_TYPES)
+
+    def get_type(self, name):
+        return dict(_CATALOG_TYPES[name])
+
+
+def test_domain_roots_are_ordinary_catalog_entries(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    block, _alias, published, catalog_names = m._build_catalog_context()
+    entry_lines = [ln for ln in block.splitlines() if ln.lstrip().startswith("- ")]
+    for root in ("entity", "concept", "process"):
+        assert any(f"  - {root} (" in ln for ln in entry_lines)  # plain entry
+        assert root in catalog_names
+    assert {"u-entity", "u-concept", "u-process"} <= published
+    assert "GRAFT-ONLY" not in block  # no special-casing block anywhere
+
+
+def test_catalog_never_lists_node_root_or_cognition(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    _block, _alias, published, catalog_names = m._build_catalog_context()
+    assert {"node", "root", "cognition"}.isdisjoint(catalog_names)
+    assert {"u-node", "u-root", "u-cognition"}.isdisjoint(published)
+
+
+def test_prompt_lists_roots_without_graft_only_block(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    fake = _make_completion(json.dumps({"name": "vehicle"}))
+    monkeypatch.setattr(m, "generate_completion", fake)
+    _post(_members(("i1", "boat")))
+    system_prompt = fake.last_messages[0]["content"]
+    assert "GRAFT-ONLY" not in system_prompt
+    assert "  - entity (" in system_prompt  # roots listed as ordinary entries
+
+
+# --------------------------------------------------------------------------
+# parent resolution is fail-closed: `node`/`root` (structural, never in the
+# catalog) coerce to None with a logged warning; with a catalog present, a
+# parent that does not resolve to a published name coerces too (closed-world).
+# --------------------------------------------------------------------------
+
+
+def _spy_warnings(monkeypatch):
+    logged: list[str] = []
+    monkeypatch.setattr(
+        m.logger, "warning", lambda msg, *args, **kw: logged.append(msg % args)
+    )
+    return logged
+
+
+def test_parent_node_is_coerced_and_logged(monkeypatch):
+    logged = _spy_warnings(monkeypatch)
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "sensor", "parent": "node"})),
+    )
+    body = _post(_members(("i1", "lidar"))).json()
+    assert body["parent"] is None  # structural root never passes through
+    assert any("bad_root_coerce" in entry for entry in logged)
+
+
+def test_parent_root_is_coerced_and_logged(monkeypatch):
+    logged = _spy_warnings(monkeypatch)
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "sensor", "parent": "Root"})),
+    )
+    body = _post(_members(("i1", "lidar"))).json()
+    assert body["parent"] is None
+    assert any("bad_root_coerce" in entry for entry in logged)
+
+
+def test_unresolvable_parent_is_coerced_when_catalog_present(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "sedan", "parent": "starship"})),
+    )
+    body = _post(_members(("i1", "a sedan"))).json()
+    assert body["name"] == "sedan"
+    assert body["parent"] is None  # closed-world: not a published name
+
+
+def test_domain_root_is_a_valid_parent(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "sedan", "parent": "Entity"})),
+    )
+    body = _post(_members(("i1", "a sedan"))).json()
+    assert body["parent"] == "entity"  # ordinary catalog citizen
+
+
+def test_domain_root_is_a_valid_name_reuse(monkeypatch):
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "process", "parent": None})),
+    )
+    body = _post(_members(("i1", "fermentation"))).json()
+    assert body["name"] == "process"
+    assert body["parent"] is None

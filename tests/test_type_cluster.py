@@ -250,7 +250,11 @@ def test_parent_string_passes_through_canonicalized(monkeypatch):
         "generate_completion",
         _make_completion(json.dumps({"name": "sedan", "parent": "Vehicles"})),
     )
-    body = _post(_members(("i1", "a sedan"),)).json()
+    body = _post(
+        _members(
+            ("i1", "a sedan"),
+        )
+    ).json()
     assert body["name"] == "sedan"
     assert body["parent"] == "vehicle"  # canonicalized existing-parent name
 
@@ -259,7 +263,11 @@ def test_missing_parent_key_is_reuse(monkeypatch):
     monkeypatch.setattr(
         m, "generate_completion", _make_completion(json.dumps({"name": "star"}))
     )
-    body = _post(_members(("i1", "vega"),)).json()
+    body = _post(
+        _members(
+            ("i1", "vega"),
+        )
+    ).json()
     assert body["parent"] is None
 
 

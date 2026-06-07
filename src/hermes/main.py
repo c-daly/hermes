@@ -1700,14 +1700,13 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
     source of the truncation / no-usable-groups failures).
     """
     member_lines = [
-        f"- {mem.name}" + (f" (hint: {mem.hermes_type_hint})" if mem.hermes_type_hint else "")
+        f"- {mem.name}"
+        + (f" (hint: {mem.hermes_type_hint})" if mem.hermes_type_hint else "")
         for mem in request.members
     ]
     members_block = "\n".join(member_lines)
 
-    catalog_block, _alias_unused, _pub_unused, catalog_names = (
-        _build_catalog_context()
-    )
+    catalog_block, _alias_unused, _pub_unused, catalog_names = _build_catalog_context()
 
     system_msg = (
         "You type a cluster of entities. You are given the cluster's members "

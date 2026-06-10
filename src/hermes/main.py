@@ -289,6 +289,7 @@ _type_registry_redis_client = None
 _relation_registry = None
 _relation_registry_event_bus = None
 _relation_registry_listener = None
+_relation_registry_redis_client = None
 
 
 @asynccontextmanager
@@ -346,29 +347,6 @@ async def lifespan(app: FastAPI):  # type: ignore
         )
         _type_registry_listener.start()
         logger.info("TypeRegistry subscribed to ontology changes")
-
-        # Seed the match-before-mint predicate vocabulary from the same
-        # Sophia sync (sophia#190 -> hermes#137). Own EventBus/listener
-        # because redis-py keeps one handler per channel; Redis pub/sub
-        # broadcasts the event to both.
-        from hermes.predicate_resolver import get_predicate_vocabulary
-        from hermes.relation_registry import RelationRegistry
-
-        _relation_registry = RelationRegistry(
-            _type_registry_redis_client, get_predicate_vocabulary()
-        )
-        _relation_registry_event_bus = EventBus(_redis_config)
-        _relation_registry_event_bus.subscribe(
-            "logos:sophia:proposal_processed",
-            _relation_registry.on_proposal_processed,
-        )
-        _relation_registry_listener = threading.Thread(
-            target=_relation_registry_event_bus.listen,
-            daemon=True,
-            name="relation-registry-listener",
-        )
-        _relation_registry_listener.start()
-        logger.info("RelationRegistry seeded and subscribed to ontology changes")
     except Exception:
         logger.warning(
             "TypeRegistry unavailable — ontology type sync disabled",
@@ -383,6 +361,56 @@ async def lifespan(app: FastAPI):  # type: ignore
         _type_registry = None
         _type_registry_event_bus = None
         _type_registry_listener = None
+
+    # Seed the match-before-mint predicate vocabulary from the same Sophia
+    # sync (sophia#190 -> hermes#137). INDEPENDENT fail-soft block: a failure
+    # here must not disable the already-running TypeRegistry (and vice versa),
+    # and its own thread is cleaned up on failure. Own redis client +
+    # EventBus/listener because redis-py keeps one handler per channel; Redis
+    # pub/sub broadcasts the event to both.
+    global _relation_registry_redis_client
+    try:
+        import redis as _redis_mod
+
+        from hermes.predicate_resolver import get_predicate_vocabulary
+        from hermes.relation_registry import RelationRegistry
+        from logos_events import EventBus  # type: ignore[import-not-found]
+
+        _relation_registry_redis_client = _redis_mod.from_url(RedisConfig().url)
+        _relation_registry = RelationRegistry(
+            _relation_registry_redis_client, get_predicate_vocabulary()
+        )
+        _relation_registry_event_bus = EventBus(RedisConfig())
+        _relation_registry_event_bus.subscribe(
+            "logos:sophia:proposal_processed",
+            _relation_registry.on_proposal_processed,
+        )
+        _relation_registry_listener = threading.Thread(
+            target=_relation_registry_event_bus.listen,
+            daemon=True,
+            name="relation-registry-listener",
+        )
+        _relation_registry_listener.start()
+        logger.info("RelationRegistry seeded and subscribed to ontology changes")
+    except Exception:
+        logger.warning(
+            "RelationRegistry unavailable — predicate vocabulary sync disabled",
+            exc_info=True,
+        )
+        if _relation_registry_event_bus is not None:
+            try:
+                _relation_registry_event_bus.stop()
+            except Exception:
+                pass
+        if _relation_registry_redis_client is not None:
+            try:
+                _relation_registry_redis_client.close()
+            except Exception:
+                pass
+            _relation_registry_redis_client = None
+        _relation_registry = None
+        _relation_registry_event_bus = None
+        _relation_registry_listener = None
     logger.info("Hermes API startup complete")
     yield
     # Shutdown
@@ -405,6 +433,11 @@ async def lifespan(app: FastAPI):  # type: ignore
             logger.warning("RelationRegistry listener thread did not stop within 5s")
         else:
             logger.info("RelationRegistry event listener stopped")
+    if _relation_registry_redis_client is not None:
+        try:
+            _relation_registry_redis_client.close()
+        except Exception:
+            pass
     if _type_registry_redis_client is not None:
         _type_registry_redis_client.close()
     milvus_client.disconnect_milvus()

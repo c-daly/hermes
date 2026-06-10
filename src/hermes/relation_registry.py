@@ -61,10 +61,15 @@ class RelationRegistry:
                 type(data).__name__,
             )
             return
-        # seed() filters reserved typing relations and dedups by canonical key
+        # seed() filters reserved typing relations and dedups by canonical
+        # key, so the number actually added is <= the raw snapshot size.
+        before = len(self._vocabulary.known())
         self._vocabulary.seed(data.keys())
+        added = len(self._vocabulary.known()) - before
         logger.info(
-            "RelationRegistry seeded %d relations from Redis", len(data)
+            "RelationRegistry: +%d relations from a %d-entry snapshot",
+            added,
+            len(data),
         )
 
     def on_proposal_processed(self, event: dict) -> None:

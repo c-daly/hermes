@@ -83,17 +83,23 @@ _PREDICATE_SEP_RE = re.compile(r"[\s\-_]+")
 def _fold_predicate_token(token: str) -> str:
     """Crude, deterministic, convergent stem for one UPPER-case token.
 
-    Strips one inflectional suffix (-ING / -IES / -ED / -S) then a trailing
-    stem -E, so base/3sg/past/gerund of a long-enough verb reach the SAME
-    key (ACQUIRE/ACQUIRES/ACQUIRED/ACQUIRING -> ACQUIR). Length guards keep
-    short tokens intact (RED, BED, IN); the -SS/-US/-IS/-AS/-OS guard keeps
-    non-plurals. The key is a stem, not necessarily prose -- convergence is
-    the contract (see test_canonical_predicate golden table).
+    Strips one inflectional suffix (-ING / -IES / -IED / -ED / -S) then a
+    trailing stem -E, so base/3sg/past/gerund of a long-enough verb reach
+    the SAME key (ACQUIRE/ACQUIRES/ACQUIRED/ACQUIRING -> ACQUIR). The -IED
+    past tense of -y verbs maps to -Y to match -IES (CARRY/CARRIES/CARRIED
+    -> CARRY), without which -y past tenses would diverge (review #134).
+    Length guards keep short tokens intact (RED, BED, IN); the
+    -SS/-US/-IS/-AS/-OS guard keeps non-plurals. The key is a stem, not
+    necessarily prose -- convergence is the contract (see golden table).
     """
     t = token
     if len(t) >= 6 and t.endswith("ING"):
         t = t[:-3]
     elif len(t) >= 5 and t.endswith("IES"):
+        t = t[:-3] + "Y"
+    elif len(t) >= 5 and t.endswith("IED"):
+        # past tense of a -y verb (carried/studied) -> the -y stem, so it
+        # converges with -IES/-Y rather than stranding a bare -I.
         t = t[:-3] + "Y"
     elif len(t) >= 5 and t.endswith("ED"):
         t = t[:-2]

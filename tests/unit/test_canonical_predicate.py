@@ -45,9 +45,13 @@ GOLDEN: list[tuple[str, str]] = [
     ("BINDS_TO", "BIND_TO"),
     ("CATALYZES", "CATALYZ"),
     ("CATALYZE", "CATALYZ"),
-    # -ies -> -y
+    # -ies / -ied / -y all converge (review #134: -ied past tense)
     ("CARRIES", "CARRY"),
     ("CARRY", "CARRY"),
+    ("CARRIED", "CARRY"),
+    ("STUDIES", "STUDY"),
+    ("STUDIED", "STUDY"),
+    ("STUDY", "STUDY"),
     # short-token and consonant-cluster guards: no over-strip
     ("IS", "IS"),
     ("HAS", "HAS"),  # -AS guard
@@ -89,6 +93,14 @@ class TestProperties:
         assert canonicalize_predicate("PRODUCES") == canonicalize_predicate(
             "PRODUCE"
         )
+
+    def test_y_verb_past_tense_converges(self):
+        # review #134: -IED past tense must not strand a bare -I
+        key = canonicalize_predicate("CARRY")
+        assert key == canonicalize_predicate("CARRIES") == canonicalize_predicate(
+            "CARRIED"
+        )
+        assert canonicalize_predicate("APPLIED") == canonicalize_predicate("APPLIES")
 
     def test_negation_folds_but_never_collides_with_positive(self):
         # negated predicates fold (so their own inflections converge) but the

@@ -21,7 +21,9 @@ def _redis_with(snapshot):
 
 def test_seeds_vocabulary_from_snapshot_on_boot():
     vocab = PredicateVocabulary()
-    redis = _redis_with({"LOCATED_IN": {"edge_count": 12}, "PRODUCES": {"edge_count": 5}})
+    redis = _redis_with(
+        {"LOCATED_IN": {"edge_count": 12}, "PRODUCES": {"edge_count": 5}}
+    )
     RelationRegistry(redis, vocab)
     assert vocab.known() == {"LOCATED_IN", "PRODUCES"}
     # reads the relation key, not the type key

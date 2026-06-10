@@ -7,8 +7,6 @@ per canonical class); minting is the exception. IS_A / INSTANCE_OF /
 SUBTYPE_OF bypass the path untouched. Every resolution carries provenance.
 """
 
-import pytest
-
 from hermes.predicate_resolver import (
     PredicateVocabulary,
     index_vocabulary,

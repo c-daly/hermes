@@ -41,7 +41,7 @@ def _reset_milvus_globals() -> Any:
     mc._milvus_collection = None
     mc._collection_name = "unit_embeddings"
     yield
-    (mc._milvus_connected, mc._milvus_collection, mc._collection_name) = saved
+    mc._milvus_connected, mc._milvus_collection, mc._collection_name = saved
 
 
 def test_fast_path_returns_fresh_server_reference(

@@ -80,6 +80,23 @@ _PREDICATE_NO_S_STRIP = ("SS", "US", "IS", "AS", "OS")
 _PREDICATE_SEP_RE = re.compile(r"[\s\-_]+")
 
 
+def normalize_predicate_surface(raw: str) -> str:
+    """Readable UPPER_SNAKE surface form of a relation, no morphological fold.
+
+    NFKC -> strip -> unify separators (space/hyphen/underscore) -> upper.
+    This is the form STORED as the relation label; canonicalize_predicate()
+    derives the match KEY from the same normalization. Non-string / empty in
+    -> "" (the single chokepoint, so every predicate caller -- the resolver
+    and synonym pass included -- is robust to a non-string LLM value).
+    """
+    if not isinstance(raw, str):
+        return ""
+    text = unicodedata.normalize("NFKC", raw).strip()
+    if not text:
+        return ""
+    return "_".join(t for t in _PREDICATE_SEP_RE.split(text.upper()) if t)
+
+
 def _fold_predicate_token(token: str) -> str:
     """Crude, deterministic, convergent stem for one UPPER-case token.
 
@@ -125,16 +142,11 @@ def canonicalize_predicate(raw: str) -> str:
     them is therefore both correct AND lets negated variants converge
     (NOT_PRODUCES / NOT_PRODUCED -> NOT_PRODUC).
     """
-    if not isinstance(raw, str):
+    joined = normalize_predicate_surface(raw)
+    if not joined:
         return ""
-    text = unicodedata.normalize("NFKC", raw).strip()
-    if not text:
-        return ""
-    tokens = [t for t in _PREDICATE_SEP_RE.split(text.upper()) if t]
-    if not tokens:
-        return ""
+    tokens = joined.split("_")
 
-    joined = "_".join(tokens)
     if joined in RESERVED_PREDICATES:
         return joined
 

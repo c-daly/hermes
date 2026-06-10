@@ -56,10 +56,11 @@ GOLDEN: list[tuple[str, str]] = [
     ("ASSESS", "ASSESS"),
     ("FOCUS", "FOCUS"),
     ("BASIS", "BASIS"),
-    # polarity markers: never fold to positive form
-    ("DOES_NOT_REFER_TO", "DOES_NOT_REFER_TO"),
+    # negation folds per-token (the NOT/NEVER token is preserved, so it can
+    # never collide with the positive form) -- review #134
+    ("DOES_NOT_REFER_TO", "DOE_NOT_REFER_TO"),
     ("NOT_PART_OF", "NOT_PART_OF"),
-    ("NEVER_OCCURS_WITH", "NEVER_OCCURS_WITH"),
+    ("NEVER_OCCURS_WITH", "NEVER_OCCUR_WITH"),
     # typing relations are fixed points (out of scope, but must not mangle)
     ("IS_A", "IS_A"),
     ("INSTANCE_OF", "INSTANCE_OF"),
@@ -89,12 +90,18 @@ class TestProperties:
             "PRODUCE"
         )
 
-    def test_polarity_marker_blocks_all_folding(self):
-        # the whole predicate is left in normalized-but-unfolded form so it
-        # can never equal its positive sibling
+    def test_negation_folds_but_never_collides_with_positive(self):
+        # negated predicates fold (so their own inflections converge) but the
+        # preserved polarity token keeps them distinct from the positive form
+        assert canonicalize_predicate("does not produces") == canonicalize_predicate(
+            "does not produced"
+        )
         assert canonicalize_predicate("does not produce") != canonicalize_predicate(
             "produces"
         )
+
+    def test_non_string_input_returns_empty(self):
+        assert canonicalize_predicate(None) == ""  # type: ignore[arg-type]
 
     def test_separators_unified(self):
         forms = ["LOCATED IN", "located-in", "Located_In", "  located   in  "]

@@ -67,16 +67,10 @@ _WHITESPACE_RE = re.compile(r"\s+")
 # The edge-axis analog of canonicalize(): folds morphological variants of a
 # descriptive relation onto one UPPER_SNAKE key so the open relation
 # vocabulary stops sprawling. Applied only to descriptive relations; the
-# reserved typing relations below are structural and never touched.
-_RESERVED_PREDICATES = frozenset({"IS_A", "INSTANCE_OF", "SUBTYPE_OF"})
-
-# Negation / modality markers: folding a negated predicate onto its positive
-# form flips meaning (DOES_NOT_REFER_TO -> REFERS_TO). If any token is a
-# marker, the predicate is normalized but NOT folded, so it can never collide
-# with its positive sibling.
-_POLARITY_MARKERS = frozenset(
-    {"NOT", "NO", "NEVER", "CANNOT", "CANT", "WITHOUT", "NON"}
-)
+# reserved typing relations below are structural and never touched. Public
+# (consumed by predicate_resolver / relation_synonyms) -- the boundary is
+# explicit, not a private import.
+RESERVED_PREDICATES = frozenset({"IS_A", "INSTANCE_OF", "SUBTYPE_OF"})
 
 # Tokens ending in these are not plurals/3sg -- never strip the trailing S
 # (ALIAS, BASIS, FOCUS, CHAOS, MASS). Same family as _SINGULAR_SUFFIX_GUARD,
@@ -113,13 +107,20 @@ def _fold_predicate_token(token: str) -> str:
 def canonicalize_predicate(raw: str) -> str:
     """Return the canonical UPPER_SNAKE key for a descriptive relation.
 
-    Idempotent. Empty / whitespace-only input returns "". Reserved typing
-    relations (IS_A / INSTANCE_OF / SUBTYPE_OF) are returned unchanged --
-    they are structural, never consolidated (callers also exclude them; this
-    is defense in depth). Predicates containing a polarity marker are
-    normalized (separators, case) but their content tokens are NOT folded,
-    so a negated relation can never collide with its positive form.
+    Idempotent. Non-string / empty / whitespace-only input returns "".
+    Reserved typing relations (IS_A / INSTANCE_OF / SUBTYPE_OF) are returned
+    unchanged -- structural, never consolidated (callers exclude them too;
+    defense in depth).
+
+    Negation is safe WITHOUT special-casing: folding is per-token and never
+    removes a polarity token (NOT/NEVER/...), so a negated predicate always
+    keeps that token and can never collide with its positive form
+    (DOES_NOT_REFER_TO -> DOE_NOT_REFER_TO vs REFERS_TO -> REFER_TO). Folding
+    them is therefore both correct AND lets negated variants converge
+    (NOT_PRODUCES / NOT_PRODUCED -> NOT_PRODUC).
     """
+    if not isinstance(raw, str):
+        return ""
     text = unicodedata.normalize("NFKC", raw).strip()
     if not text:
         return ""
@@ -128,9 +129,7 @@ def canonicalize_predicate(raw: str) -> str:
         return ""
 
     joined = "_".join(tokens)
-    if joined in _RESERVED_PREDICATES:
-        return joined
-    if any(t in _POLARITY_MARKERS for t in tokens):
+    if joined in RESERVED_PREDICATES:
         return joined
 
     return "_".join(_fold_predicate_token(t) for t in tokens)

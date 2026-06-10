@@ -17,6 +17,8 @@ from typing import Any, Protocol, runtime_checkable
 
 from logos_config import get_env_value
 
+from hermes.predicate_resolver import get_predicate_vocabulary
+
 logger = logging.getLogger(__name__)
 
 # Map common verb/prep patterns to canonical relation labels.
@@ -47,6 +49,12 @@ _SYMMETRIC_RELATIONS: frozenset[str] = frozenset(
         "COLLABORATES_WITH",
     }
 )
+
+# The curated relation labels above are already-canonical descriptive
+# relations; seed them into the match-before-mint vocabulary so #132 reuses
+# them rather than minting near-variants. This subsumes _VERB_TO_RELATION
+# into the resolver instead of running a parallel mechanism (#132).
+get_predicate_vocabulary().seed(set(_VERB_TO_RELATION.values()) | _SYMMETRIC_RELATIONS)
 
 
 @runtime_checkable
@@ -172,6 +180,14 @@ class SpacyRelationExtractor:
             raw_phrase = " ".join(tok.text for tok in doc[src_ent.start : tgt_ent.end])
             relation = preps[0].upper() if preps else "RELATED_TO"
 
+        # Catalog-aware prefer-existing predicate (#132): reuse a known
+        # relation by canonical key before minting; symmetry is read off the
+        # resolved label. Drop empties.
+        resolution = get_predicate_vocabulary().resolve(relation)
+        if resolution.status == "empty":
+            return None
+        relation = resolution.relation
+
         bidirectional = relation in _SYMMETRIC_RELATIONS
         # Simple heuristic confidence: verbs are more reliable than preps.
         confidence = 0.8 if verbs else 0.5
@@ -184,6 +200,11 @@ class SpacyRelationExtractor:
             "bidirectional": bidirectional,
             "properties": {
                 "raw_phrase": raw_phrase,
+                "predicate": {
+                    "status": resolution.status,
+                    "raw": resolution.raw,
+                    "canonical": resolution.canonical,
+                },
             },
         }
 
@@ -286,8 +307,13 @@ class OpenAIRelationExtractor:
             if src not in entity_names or tgt not in entity_names:
                 continue
 
-            # Normalize relation label
-            relation = relation.upper().replace(" ", "_")
+            # Catalog-aware prefer-existing predicate (#132): match a known
+            # relation by canonical key before minting a new one; the stored
+            # label is a readable surface form. Drop empties.
+            resolution = get_predicate_vocabulary().resolve(relation)
+            if resolution.status == "empty":
+                continue
+            relation = resolution.relation
 
             key = (src, tgt, relation)
             if key in seen:
@@ -306,7 +332,13 @@ class OpenAIRelationExtractor:
                     "relation": relation,
                     "confidence": confidence,
                     "bidirectional": bool(rel.get("bidirectional", False)),
-                    "properties": {},
+                    "properties": {
+                        "predicate": {
+                            "status": resolution.status,
+                            "raw": resolution.raw,
+                            "canonical": resolution.canonical,
+                        }
+                    },
                 }
             )
 

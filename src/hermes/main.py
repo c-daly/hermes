@@ -135,6 +135,7 @@ from hermes.embedding_provider import get_visual_embedding_providers
 from hermes.proposal_builder import ProposalBuilder
 from hermes.services import (
     generate_embedding,
+    generate_embeddings_batch,
     generate_llm_response,
     get_llm_health,
     process_nlp,
@@ -455,6 +456,20 @@ class EmbedTextResponse(BaseModel):
     dimension: int = Field(..., description="Embedding dimension")
     model: str = Field(..., description="Model used for embedding")
     embedding_id: str = Field(..., description="Unique identifier for this embedding")
+
+
+MAX_EMBED_BATCH = 1024
+
+
+class EmbedTextBatchRequest(BaseModel):
+    texts: List[str] = Field(..., description="Texts to embed in one batch call.")
+    model: str = Field(default="default", description="Optional embedding model id.")
+
+
+class EmbedTextBatchResponse(BaseModel):
+    embeddings: List[EmbedTextResponse] = Field(
+        ..., description="One embedding per input text, in input order."
+    )
 
 
 class LLMMessage(BaseModel):
@@ -790,6 +805,52 @@ async def embed_text(request: EmbedTextRequest) -> EmbedTextResponse:
             span.record_exception(e)
             span.set_status(StatusCode.ERROR, str(e))
             logger.error(f"Embedding error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.post("/embed_text_batch", response_model=EmbedTextBatchResponse)
+async def embed_text_batch(request: EmbedTextBatchRequest) -> EmbedTextBatchResponse:
+    """Embed many texts in ONE provider call (OpenAI batch) -- the rate-safe
+    path for bulk embedding (e.g. the relation-vocabulary rollup). Avoids N
+    single /embed_text round-trips. Empty/blank texts are rejected so the
+    response stays index-aligned with the request.
+    """
+    with tracer.start_as_current_span("hermes.embed_text_batch") as span:
+        span.set_attribute("embedding.batch_size", len(request.texts))
+        if not request.texts:
+            return EmbedTextBatchResponse(embeddings=[])
+        if len(request.texts) > MAX_EMBED_BATCH:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"texts exceeds the {MAX_EMBED_BATCH}-item batch cap; "
+                    "split into smaller batches (OpenAI per-request token limits "
+                    "and Milvus persist fan-out)"
+                ),
+            )
+        if any(not t or not t.strip() for t in request.texts):
+            raise HTTPException(
+                status_code=400, detail="texts must not contain empty/blank entries"
+            )
+        try:
+            results = await generate_embeddings_batch(request.texts, request.model)
+            return EmbedTextBatchResponse(
+                embeddings=[
+                    EmbedTextResponse(
+                        embedding=r["embedding"],
+                        dimension=r["dimension"],
+                        model=r["model"],
+                        embedding_id=r["embedding_id"],
+                    )
+                    for r in results
+                ]
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            span.record_exception(e)
+            span.set_status(StatusCode.ERROR, str(e))
+            logger.error(f"Batch embedding error: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal server error")
 
 

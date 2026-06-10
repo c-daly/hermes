@@ -423,7 +423,7 @@ async def lifespan(app: FastAPI):  # type: ignore
             logger.warning("TypeRegistry listener thread did not stop within 5s")
         else:
             logger.info("TypeRegistry event listener stopped")
-    # Stop RelationRegistry event listener (shares the redis client closed above)
+    # Stop RelationRegistry event listener (EventBus closes its own connection via .stop())
     if _relation_registry_event_bus is not None:
         _relation_registry_event_bus.stop()
     if _relation_registry_listener is not None:
@@ -1977,7 +1977,7 @@ async def relation_synonyms(
         request_id=request.request_id,
         groups=[
             RelationSynonymGroup(
-                canonical=g.canonical, members=g.members, confidence=g.confidence
+                canonical=g.canonical, members=list(g.members), confidence=g.confidence
             )
             for g in groups
         ],

@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from dataclasses import dataclass
 
 from hermes.canonical import (
@@ -38,7 +37,7 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class SynonymGroup:
     canonical: str
-    members: list[str]
+    members: tuple[str, ...]
     confidence: float
 
 
@@ -90,10 +89,12 @@ def _coerce_json(content: str) -> dict | None:
         parsed = json.loads(content)
         return parsed if isinstance(parsed, dict) else None
     except json.JSONDecodeError:
-        match = re.search(r"```(?:json)?\s*(.*?)```", content, re.DOTALL)
-        if match:
+        # First-brace / last-brace slice -- robust to conversational wrapping
+        # and avoids a regex on uncontrolled input (CodeQL ReDoS).
+        start, end = content.find("{"), content.rfind("}")
+        if start != -1 and end > start:
             try:
-                parsed = json.loads(match.group(1))
+                parsed = json.loads(content[start : end + 1])
                 return parsed if isinstance(parsed, dict) else None
             except json.JSONDecodeError:
                 return None
@@ -165,5 +166,5 @@ def parse_synonym_response(content: str, candidates: list[str]) -> list[SynonymG
             confidence = 0.7
         confidence = max(0.0, min(1.0, float(confidence)))
 
-        out.append(SynonymGroup(canonical, members_surface, confidence))
+        out.append(SynonymGroup(canonical, tuple(members_surface), confidence))
     return out

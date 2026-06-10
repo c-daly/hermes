@@ -458,6 +458,9 @@ class EmbedTextResponse(BaseModel):
     embedding_id: str = Field(..., description="Unique identifier for this embedding")
 
 
+MAX_EMBED_BATCH = 1024
+
+
 class EmbedTextBatchRequest(BaseModel):
     texts: List[str] = Field(..., description="Texts to embed in one batch call.")
     model: str = Field(default="default", description="Optional embedding model id.")
@@ -816,12 +819,21 @@ async def embed_text_batch(request: EmbedTextBatchRequest) -> EmbedTextBatchResp
         span.set_attribute("embedding.batch_size", len(request.texts))
         if not request.texts:
             return EmbedTextBatchResponse(embeddings=[])
+        if len(request.texts) > MAX_EMBED_BATCH:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"texts exceeds the {MAX_EMBED_BATCH}-item batch cap; "
+                    "split into smaller batches (OpenAI per-request token limits "
+                    "and Milvus persist fan-out)"
+                ),
+            )
         if any(not t or not t.strip() for t in request.texts):
             raise HTTPException(
                 status_code=400, detail="texts must not contain empty/blank entries"
             )
         try:
-            results = await generate_embeddings_batch(request.texts)
+            results = await generate_embeddings_batch(request.texts, request.model)
             return EmbedTextBatchResponse(
                 embeddings=[
                     EmbedTextResponse(

@@ -295,8 +295,14 @@ async def generate_embedding(text: str, model_name: str = "default") -> Dict[str
     }
 
 
-async def generate_embeddings_batch(texts: list[str]) -> list[Dict[str, Any]]:
+async def generate_embeddings_batch(
+    texts: list[str], model_name: str = "default"
+) -> list[Dict[str, Any]]:
     """Generate embeddings for multiple texts in a single API call.
+
+    ``model_name`` is accepted for parity with ``generate_embedding`` (the
+    configured provider is still authoritative; the field is not silently
+    dropped at the API boundary).
 
     Args:
         texts: List of texts to embed

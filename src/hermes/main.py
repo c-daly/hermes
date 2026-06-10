@@ -2008,7 +2008,10 @@ async def relation_synonyms(
             messages=messages,
             temperature=0.0,
             max_tokens=1024,
-            metadata={"scenario": "relation_synonyms", "request_id": request.request_id},
+            metadata={
+                "scenario": "relation_synonyms",
+                "request_id": request.request_id,
+            },
         )
     except LLMProviderNotConfiguredError as exc:
         logger.error("relation_synonyms: LLM provider not configured: %s", exc)

@@ -285,6 +285,9 @@ _type_registry = None
 _type_registry_event_bus = None
 _type_registry_listener = None
 _type_registry_redis_client = None
+_relation_registry = None
+_relation_registry_event_bus = None
+_relation_registry_listener = None
 
 
 @asynccontextmanager
@@ -314,6 +317,7 @@ async def lifespan(app: FastAPI):  # type: ignore
     milvus_client.initialize_milvus()
     # Initialize TypeRegistry for ontology type sync
     global _type_registry, _type_registry_event_bus, _type_registry_listener, _type_registry_redis_client
+    global _relation_registry, _relation_registry_event_bus, _relation_registry_listener
     try:
         from hermes.type_registry import TypeRegistry
         import redis
@@ -341,6 +345,29 @@ async def lifespan(app: FastAPI):  # type: ignore
         )
         _type_registry_listener.start()
         logger.info("TypeRegistry subscribed to ontology changes")
+
+        # Seed the match-before-mint predicate vocabulary from the same
+        # Sophia sync (sophia#190 -> hermes#137). Own EventBus/listener
+        # because redis-py keeps one handler per channel; Redis pub/sub
+        # broadcasts the event to both.
+        from hermes.predicate_resolver import get_predicate_vocabulary
+        from hermes.relation_registry import RelationRegistry
+
+        _relation_registry = RelationRegistry(
+            _type_registry_redis_client, get_predicate_vocabulary()
+        )
+        _relation_registry_event_bus = EventBus(_redis_config)
+        _relation_registry_event_bus.subscribe(
+            "logos:sophia:proposal_processed",
+            _relation_registry.on_proposal_processed,
+        )
+        _relation_registry_listener = threading.Thread(
+            target=_relation_registry_event_bus.listen,
+            daemon=True,
+            name="relation-registry-listener",
+        )
+        _relation_registry_listener.start()
+        logger.info("RelationRegistry seeded and subscribed to ontology changes")
     except Exception:
         logger.warning(
             "TypeRegistry unavailable — ontology type sync disabled",
@@ -368,6 +395,15 @@ async def lifespan(app: FastAPI):  # type: ignore
             logger.warning("TypeRegistry listener thread did not stop within 5s")
         else:
             logger.info("TypeRegistry event listener stopped")
+    # Stop RelationRegistry event listener (shares the redis client closed above)
+    if _relation_registry_event_bus is not None:
+        _relation_registry_event_bus.stop()
+    if _relation_registry_listener is not None:
+        _relation_registry_listener.join(timeout=5)
+        if _relation_registry_listener.is_alive():
+            logger.warning("RelationRegistry listener thread did not stop within 5s")
+        else:
+            logger.info("RelationRegistry event listener stopped")
     if _type_registry_redis_client is not None:
         _type_registry_redis_client.close()
     milvus_client.disconnect_milvus()

@@ -9,7 +9,6 @@ collapse; the canonical label is H1-normalized. Output is a PROPOSAL.
 
 import json
 
-import pytest
 
 from hermes.relation_synonyms import (
     build_synonym_messages,
@@ -27,7 +26,9 @@ CANDIDATES = ["HAULS", "DRAGS", "CARRIES", "PRODUCES", "MAKES", "IS_A", "PART_OF
 class TestParseHappyPath:
     def test_valid_group_kept_and_canonicalized(self):
         out = parse_synonym_response(
-            _content({"canonical": "carries", "members": ["HAULS", "DRAGS", "CARRIES"]}),
+            _content(
+                {"canonical": "carries", "members": ["HAULS", "DRAGS", "CARRIES"]}
+            ),
             CANDIDATES,
         )
         assert len(out) == 1
@@ -39,7 +40,11 @@ class TestParseHappyPath:
     def test_confidence_passed_through_and_clamped(self):
         out = parse_synonym_response(
             _content(
-                {"canonical": "MAKES", "members": ["PRODUCES", "MAKES"], "confidence": 2.0}
+                {
+                    "canonical": "MAKES",
+                    "members": ["PRODUCES", "MAKES"],
+                    "confidence": 2.0,
+                }
             ),
             CANDIDATES,
         )

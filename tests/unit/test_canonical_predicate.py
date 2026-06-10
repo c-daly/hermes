@@ -90,15 +90,15 @@ class TestProperties:
     def test_present_forms_converge(self):
         # base and 3sg of a long-enough verb reach the same key
         assert canonicalize_predicate("USES") == canonicalize_predicate("USE")
-        assert canonicalize_predicate("PRODUCES") == canonicalize_predicate(
-            "PRODUCE"
-        )
+        assert canonicalize_predicate("PRODUCES") == canonicalize_predicate("PRODUCE")
 
     def test_y_verb_past_tense_converges(self):
         # review #134: -IED past tense must not strand a bare -I
         key = canonicalize_predicate("CARRY")
-        assert key == canonicalize_predicate("CARRIES") == canonicalize_predicate(
-            "CARRIED"
+        assert (
+            key
+            == canonicalize_predicate("CARRIES")
+            == canonicalize_predicate("CARRIED")
         )
         assert canonicalize_predicate("APPLIED") == canonicalize_predicate("APPLIES")
 

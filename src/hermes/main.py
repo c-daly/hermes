@@ -1953,7 +1953,13 @@ async def relation_synonyms(
     choices = result.get("choices") or []
     if not choices:
         raise HTTPException(status_code=502, detail="LLM returned no choices")
-    content = choices[0]["message"]["content"]
+    try:
+        content = choices[0]["message"]["content"]
+    except (KeyError, TypeError, IndexError) as exc:
+        logger.error("relation_synonyms: malformed LLM response shape: %s", exc)
+        raise HTTPException(
+            status_code=502, detail="LLM returned a malformed response"
+        ) from exc
 
     groups = parse_synonym_response(content, request.predicates)
     return RelationSynonymsResponse(

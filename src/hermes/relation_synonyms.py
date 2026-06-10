@@ -27,7 +27,7 @@ import re
 from dataclasses import dataclass
 
 from hermes.canonical import (
-    _RESERVED_PREDICATES,
+    RESERVED_PREDICATES,
     canonicalize_predicate,
     normalize_predicate_surface,
 )
@@ -73,8 +73,8 @@ def build_synonym_messages(
     candidates = [
         p
         for p in predicates
-        if normalize_predicate_surface(p) not in _RESERVED_PREDICATES
-        and normalize_predicate_surface(p)
+        if (surf := normalize_predicate_surface(p))
+        and surf not in RESERVED_PREDICATES
     ]
     ctx = f"Domain context: {context}\n\n" if context else ""
     user = f"{ctx}Candidates: {', '.join(candidates)}\n\nGroup the synonyms."
@@ -85,6 +85,8 @@ def build_synonym_messages(
 
 
 def _coerce_json(content: str) -> dict | None:
+    if not isinstance(content, str):
+        return None
     try:
         return json.loads(content)
     except json.JSONDecodeError:
@@ -111,9 +113,7 @@ def parse_synonym_response(
 
     # candidate surfaces by canonical key (what the members may reference)
     allowed_surface = {
-        normalize_predicate_surface(c)
-        for c in candidates
-        if normalize_predicate_surface(c)
+        surf for c in candidates if (surf := normalize_predicate_surface(c))
     }
 
     out: list[SynonymGroup] = []
@@ -135,7 +135,7 @@ def parse_synonym_response(
             if not surface or surface not in allowed_surface:
                 bad = True  # hallucinated or empty member
                 break
-            if surface in _RESERVED_PREDICATES:
+            if surface in RESERVED_PREDICATES:
                 bad = True  # reserved relation anywhere kills the group
                 break
             canon = canonicalize_predicate(surface)
@@ -149,10 +149,15 @@ def parse_synonym_response(
 
         # canonical label: the LLM's pick if it is a real member, else the
         # first member (deterministic) -- never a hallucinated/reserved name
-        proposed = normalize_predicate_surface(str(grp.get("canonical", "")))
+        raw_canonical = grp.get("canonical")
+        proposed = (
+            normalize_predicate_surface(raw_canonical)
+            if isinstance(raw_canonical, str)
+            else ""
+        )
         canonical = (
             proposed
-            if proposed in members_surface and proposed not in _RESERVED_PREDICATES
+            if proposed in members_surface and proposed not in RESERVED_PREDICATES
             else members_surface[0]
         )
 

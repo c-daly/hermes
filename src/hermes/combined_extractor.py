@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from typing import Any
 
@@ -102,10 +103,49 @@ class OpenAICombinedExtractor:
             "- Only extract relations clearly supported by the text\n"
             "- confidence is a float 0\u20131\n"
             "- If no entities or relations are found, return empty arrays\n\n"
-            "Return ONLY valid JSON, no other text."
         )
 
+        prompt += self._known_relations_section()
+        prompt += "Return ONLY valid JSON, no other text."
+
         return prompt
+
+    @staticmethod
+    def _known_relations_section() -> str:
+        """Closed-vocabulary clause for the RE step (H5, hermes#140).
+
+        Injects the current match-before-mint predicate vocabulary so the
+        model reuses an existing relation instead of minting a near-duplicate
+        -- the source-side lever for relation over-generation (the df=1
+        problem), validated by the NER/RE bake-off (logos-experiments#38).
+
+        Fail-soft: an empty or unavailable vocabulary yields no clause, so the
+        prompt degrades to the open form rather than raising. Bounded by
+        ``RE_VOCAB_CAP`` (default 150) because the live vocabulary can hold
+        thousands of surfaces; the cap keeps prompt tokens in check and, as
+        consolidation shrinks the vocabulary below it, the full clean set is
+        injected automatically.
+        """
+        try:
+            from hermes.predicate_resolver import get_predicate_vocabulary
+
+            known = get_predicate_vocabulary().known()
+        except Exception:
+            logger.warning("H5: predicate vocabulary unavailable; using open RE prompt")
+            return ""
+
+        if not known:
+            return ""
+
+        cap = int(os.getenv("RE_VOCAB_CAP", "150"))
+        vocab = sorted(known)[:cap]
+        return (
+            "## Known Relations\n"
+            "Prefer an existing predicate from this list when one fits the "
+            "meaning; only mint a NEW UPPER_SNAKE_CASE label when none of "
+            "these applies:\n"
+            f"{', '.join(vocab)}\n\n"
+        )
 
     async def extract_entities_and_relations(
         self, text: str

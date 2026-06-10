@@ -285,6 +285,10 @@ _type_registry = None
 _type_registry_event_bus = None
 _type_registry_listener = None
 _type_registry_redis_client = None
+_relation_registry = None
+_relation_registry_event_bus = None
+_relation_registry_listener = None
+_relation_registry_redis_client = None
 
 
 @asynccontextmanager
@@ -314,6 +318,7 @@ async def lifespan(app: FastAPI):  # type: ignore
     milvus_client.initialize_milvus()
     # Initialize TypeRegistry for ontology type sync
     global _type_registry, _type_registry_event_bus, _type_registry_listener, _type_registry_redis_client
+    global _relation_registry, _relation_registry_event_bus, _relation_registry_listener
     try:
         from hermes.type_registry import TypeRegistry
         import redis
@@ -355,6 +360,56 @@ async def lifespan(app: FastAPI):  # type: ignore
         _type_registry = None
         _type_registry_event_bus = None
         _type_registry_listener = None
+
+    # Seed the match-before-mint predicate vocabulary from the same Sophia
+    # sync (sophia#190 -> hermes#137). INDEPENDENT fail-soft block: a failure
+    # here must not disable the already-running TypeRegistry (and vice versa),
+    # and its own thread is cleaned up on failure. Own redis client +
+    # EventBus/listener because redis-py keeps one handler per channel; Redis
+    # pub/sub broadcasts the event to both.
+    global _relation_registry_redis_client
+    try:
+        import redis as _redis_mod
+
+        from hermes.predicate_resolver import get_predicate_vocabulary
+        from hermes.relation_registry import RelationRegistry
+        from logos_events import EventBus  # type: ignore[import-not-found]
+
+        _relation_registry_redis_client = _redis_mod.from_url(RedisConfig().url)
+        _relation_registry = RelationRegistry(
+            _relation_registry_redis_client, get_predicate_vocabulary()
+        )
+        _relation_registry_event_bus = EventBus(RedisConfig())
+        _relation_registry_event_bus.subscribe(
+            "logos:sophia:proposal_processed",
+            _relation_registry.on_proposal_processed,
+        )
+        _relation_registry_listener = threading.Thread(
+            target=_relation_registry_event_bus.listen,
+            daemon=True,
+            name="relation-registry-listener",
+        )
+        _relation_registry_listener.start()
+        logger.info("RelationRegistry seeded and subscribed to ontology changes")
+    except Exception:
+        logger.warning(
+            "RelationRegistry unavailable — predicate vocabulary sync disabled",
+            exc_info=True,
+        )
+        if _relation_registry_event_bus is not None:
+            try:
+                _relation_registry_event_bus.stop()
+            except Exception:
+                pass
+        if _relation_registry_redis_client is not None:
+            try:
+                _relation_registry_redis_client.close()
+            except Exception:
+                pass
+            _relation_registry_redis_client = None
+        _relation_registry = None
+        _relation_registry_event_bus = None
+        _relation_registry_listener = None
     logger.info("Hermes API startup complete")
     yield
     # Shutdown
@@ -368,6 +423,20 @@ async def lifespan(app: FastAPI):  # type: ignore
             logger.warning("TypeRegistry listener thread did not stop within 5s")
         else:
             logger.info("TypeRegistry event listener stopped")
+    # Stop RelationRegistry event listener (EventBus closes its own connection via .stop())
+    if _relation_registry_event_bus is not None:
+        _relation_registry_event_bus.stop()
+    if _relation_registry_listener is not None:
+        _relation_registry_listener.join(timeout=5)
+        if _relation_registry_listener.is_alive():
+            logger.warning("RelationRegistry listener thread did not stop within 5s")
+        else:
+            logger.info("RelationRegistry event listener stopped")
+    if _relation_registry_redis_client is not None:
+        try:
+            _relation_registry_redis_client.close()
+        except Exception:
+            pass
     if _type_registry_redis_client is not None:
         _type_registry_redis_client.close()
     milvus_client.disconnect_milvus()
@@ -1820,6 +1889,98 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         over_specified=over_specified,
         residual_ids=sorted(residual_ids),
         raw_partition_ok=raw_partition_ok,
+    )
+
+
+# ---------------------------------------------------------------------
+# Relation synonym-collapse: POST /relation-synonyms (hermes#133, H3)
+#
+# The relation-axis analog of /name-cluster: the LLM groups DESCRIPTIVE
+# relation synonyms (HAULS/DRAGS/CARRIES -> CARRIES). Server-side
+# validation (hermes.relation_synonyms) is fail-closed and enforces the
+# epic #131 hard constraint -- no group may contain a reserved typing
+# relation (IS_A/INSTANCE_OF/SUBTYPE_OF). The response is a PROPOSAL;
+# callers apply it through the existing propose->assert / review path.
+# ---------------------------------------------------------------------
+class RelationSynonymsRequest(BaseModel):
+    predicates: list[str] = Field(..., description="Descriptive relation labels.")
+    context: str | None = Field(
+        default=None, description="Optional domain context for disambiguation."
+    )
+    request_id: str | None = None
+
+
+class RelationSynonymGroup(BaseModel):
+    canonical: str
+    members: list[str]
+    confidence: float
+
+
+class RelationSynonymsResponse(BaseModel):
+    request_id: str | None = None
+    groups: list[RelationSynonymGroup]
+
+
+@app.post("/relation-synonyms", response_model=RelationSynonymsResponse)
+async def relation_synonyms(
+    request: RelationSynonymsRequest,
+) -> RelationSynonymsResponse:
+    """Propose descriptive-relation synonym groups (the relation naming pass).
+
+    The LLM is a codec: it proposes groupings + a canonical name from the
+    members; placement/assertion happen elsewhere. Reserved typing relations
+    are filtered from the prompt AND rejected in validation -- they are never
+    consolidated. Empty/insufficient input returns no groups (200, not 4xx):
+    "nothing to collapse" is a valid answer.
+    """
+    from hermes.relation_synonyms import (
+        build_synonym_messages,
+        parse_synonym_response,
+    )
+
+    if len([p for p in request.predicates if p and p.strip()]) < 2:
+        return RelationSynonymsResponse(request_id=request.request_id, groups=[])
+
+    messages = build_synonym_messages(request.predicates, context=request.context)
+    try:
+        result = await generate_completion(
+            messages=messages,
+            temperature=0.0,
+            max_tokens=1024,
+            metadata={
+                "scenario": "relation_synonyms",
+                "request_id": request.request_id,
+            },
+        )
+    except LLMProviderNotConfiguredError as exc:
+        logger.error("relation_synonyms: LLM provider not configured: %s", exc)
+        raise HTTPException(
+            status_code=503, detail="LLM provider not configured"
+        ) from exc
+    except LLMProviderError as exc:
+        logger.error("relation_synonyms: LLM provider error: %s", exc)
+        raise HTTPException(status_code=502, detail="LLM provider error") from exc
+
+    choices = result.get("choices") or []
+    if not choices:
+        raise HTTPException(status_code=502, detail="LLM returned no choices")
+    try:
+        content = choices[0]["message"]["content"]
+    except (KeyError, TypeError, IndexError) as exc:
+        logger.error("relation_synonyms: malformed LLM response shape: %s", exc)
+        raise HTTPException(
+            status_code=502, detail="LLM returned a malformed response"
+        ) from exc
+
+    groups = parse_synonym_response(content, request.predicates)
+    return RelationSynonymsResponse(
+        request_id=request.request_id,
+        groups=[
+            RelationSynonymGroup(
+                canonical=g.canonical, members=list(g.members), confidence=g.confidence
+            )
+            for g in groups
+        ],
     )
 
 

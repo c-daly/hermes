@@ -454,3 +454,84 @@ class TestSingleton:
         inst = get_combined_instance()
         assert isinstance(inst, OpenAICombinedExtractor)
         mod._combined_instance = None
+
+
+class TestClosedVocabPrompt:
+    """H5: closed-vocabulary clause injected into the combined RE prompt.
+
+    The clause reuses the live match-before-mint vocabulary
+    (``get_predicate_vocabulary().known()``) so the model prefers an existing
+    predicate over minting a near-duplicate -- the source-side df=1 lever.
+    """
+
+    @staticmethod
+    def _patch_vocab(monkeypatch, known):
+        class _StubVocab:
+            def known(self):
+                return set(known)
+
+        monkeypatch.setattr(
+            "hermes.predicate_resolver.get_predicate_vocabulary",
+            lambda: _StubVocab(),
+        )
+
+    def test_clause_injected_when_vocab_present(self, monkeypatch):
+        from hermes.combined_extractor import OpenAICombinedExtractor
+
+        self._patch_vocab(monkeypatch, {"LOCATED_IN", "PART_OF"})
+        prompt = OpenAICombinedExtractor()._build_system_prompt()
+
+        assert "## Known Relations" in prompt
+        assert "LOCATED_IN" in prompt
+        assert "PART_OF" in prompt
+        assert "only mint a NEW" in prompt
+        # the clause must sit before the JSON-only sign-off, not after it
+        assert prompt.index("## Known Relations") < prompt.index(
+            "Return ONLY valid JSON"
+        )
+
+    def test_clause_omitted_when_vocab_empty(self, monkeypatch):
+        from hermes.combined_extractor import OpenAICombinedExtractor
+
+        self._patch_vocab(monkeypatch, set())
+        prompt = OpenAICombinedExtractor()._build_system_prompt()
+
+        assert "## Known Relations" not in prompt
+
+    def test_cap_respected(self, monkeypatch):
+        from hermes.combined_extractor import OpenAICombinedExtractor
+
+        self._patch_vocab(monkeypatch, {f"R{i:03d}" for i in range(200)})
+        monkeypatch.setenv("RE_VOCAB_CAP", "150")
+        prompt = OpenAICombinedExtractor()._build_system_prompt()
+
+        # sorted, capped at 150 -> R000..R149 in, R150.. out
+        assert "R149" in prompt
+        assert "R150" not in prompt
+
+    def test_non_int_cap_falls_back_without_raising(self, monkeypatch):
+        from hermes.combined_extractor import OpenAICombinedExtractor
+
+        self._patch_vocab(monkeypatch, {"LOCATED_IN", "PART_OF"})
+        monkeypatch.setenv("RE_VOCAB_CAP", "not-a-number")
+        # must not raise; falls back to the default cap and still injects
+        prompt = OpenAICombinedExtractor()._build_system_prompt()
+
+        assert "## Known Relations" in prompt
+        assert "LOCATED_IN" in prompt
+
+    def test_fail_soft_when_vocab_raises(self, monkeypatch):
+        from hermes.combined_extractor import OpenAICombinedExtractor
+
+        class _Boom:
+            def known(self):
+                raise RuntimeError("redis down")
+
+        monkeypatch.setattr(
+            "hermes.predicate_resolver.get_predicate_vocabulary",
+            lambda: _Boom(),
+        )
+        # must not raise; falls back to the open prompt
+        prompt = OpenAICombinedExtractor()._build_system_prompt()
+
+        assert "## Known Relations" not in prompt

@@ -1,58 +1,39 @@
-"""OpenAPI conformance tests for the Hermes FastAPI app.
+"""OpenAPI conformance gate for the Hermes FastAPI app.
 
-These tests validate the *served* OpenAPI document (``app.openapi()``) entirely
-in-process via the FastAPI/Starlette route table and ``TestClient`` — no Neo4j,
-Milvus, or any external service is required.
+The served OpenAPI document (``app.openapi()``) is the **source of truth** for
+the Hermes API contract. ``openapi.yaml`` at the repo root is a snapshot of that
+document, regenerated with ``make openapi`` (``python scripts/export_openapi.py``)
+and pulled by logos into ``contracts/hermes.openapi.yaml`` to drive SDK and docs
+generation.
 
-What is asserted here:
+These tests are a **gate, not a record**: if a route is added, removed, or
+renamed — or an operation's schema changes — and the snapshot is not refreshed,
+CI fails. This replaces the previous hand-maintained ``CANONICAL_CONTRACT_PATHS``
+baseline and the ``xfail`` that merely recorded contract drift. Drift can no
+longer merge silently.
 
-* **Completeness** — every public route implemented by the app is present in the
-  served OpenAPI schema with matching HTTP methods. If a new public route is
-  added but accidentally hidden from the schema (``include_in_schema=False``),
-  these tests fail.
-* **Structural validity** — the served schema is a well-formed OpenAPI 3.x
-  document: it declares a version and ``info``, every operation has at least one
-  documented response, and there are no duplicate ``operationId`` values.
-* **Canonical contract gap** — the served schema is compared against the set of
-  paths documented in the canonical contract
-  (``logos/contracts/hermes.openapi.yaml``). The app implements several routes
-  that are not yet in that contract; that gap is recorded as an expected failure
-  pending the contract being expanded (see ``logos#91`` follow-up).
-
-The source of truth for the canonical contract is:
-https://github.com/c-daly/logos/blob/main/contracts/hermes.openapi.yaml
+All assertions run in-process via the FastAPI/Starlette route table; no Neo4j,
+Milvus, or other external service is required.
 """
-
 from __future__ import annotations
 
 from collections import Counter
+from pathlib import Path
 from typing import Dict, Generator, Set, Tuple
 
 import pytest
+import yaml
 from starlette.routing import Route
 
 from hermes.main import app
 
 pytestmark = pytest.mark.unit
 
+# openapi.yaml lives at the repo root: tests/unit/<this file> -> parents[2].
+SNAPSHOT_PATH = Path(__file__).resolve().parents[2] / "openapi.yaml"
 
-# ---------------------------------------------------------------------------
-# Canonical contract baseline
-# ---------------------------------------------------------------------------
-# Paths currently documented in logos/contracts/hermes.openapi.yaml. Kept here
-# as an explicit baseline so this test has no dependency on the (un-packaged)
-# contract file or network access. Update this set when the contract changes.
-CANONICAL_CONTRACT_PATHS: Set[str] = {
-    "/stt",
-    "/tts",
-    "/simple_nlp",
-    "/embed_text",
-    "/llm",
-}
-
-# Routes that are part of the served app but are intentionally NOT part of the
-# documented public API surface (infra / tooling / static assets). These are
-# excluded from the completeness check.
+# Infra / tooling / static routes that are not part of the public API surface
+# and need no contract documentation.
 NON_API_PATHS: Set[str] = {
     "/",
     "/ui",
@@ -63,15 +44,11 @@ NON_API_PATHS: Set[str] = {
     "/redoc",
 }
 
-# Routes implemented by the app that are public API but not yet documented in
-# the canonical contract. These are the gap this ticket surfaces.
-EXPECTED_UNDOCUMENTED_IN_CONTRACT: Set[str] = {
-    "/embed_visual",
-    "/ingest/media",
-    "/feedback",
-    "/name-type",
-    "/name-relationship",
-}
+# An OpenAPI Path Item Object may hold non-operation keys (summary, parameters,
+# $ref, ...) alongside HTTP operations. Only these are operations.
+HTTP_METHODS = frozenset(
+    {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
+)
 
 
 # ---------------------------------------------------------------------------
@@ -82,8 +59,8 @@ EXPECTED_UNDOCUMENTED_IN_CONTRACT: Set[str] = {
 def _implemented_routes() -> Dict[str, Set[str]]:
     """Return ``{path: {METHOD, ...}}`` for every concrete app route.
 
-    HEAD and OPTIONS are dropped because they are auto-added by the framework
-    and are not meaningful API operations.
+    HEAD and OPTIONS are dropped: the framework adds them and they are not
+    meaningful API operations.
     """
     routes: Dict[str, Set[str]] = {}
     for route in app.routes:
@@ -105,23 +82,14 @@ def _public_api_routes() -> Dict[str, Set[str]]:
     }
 
 
-# An OpenAPI Path Item Object may hold non-operation keys (summary, description,
-# parameters, servers, $ref) alongside HTTP operations. Only these keys are
-# operations; filtering on them keeps the conformance checks from mis-reading a
-# non-method field as an operation (or crashing when its value isn't a dict).
-HTTP_METHODS = frozenset(
-    {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
-)
-
-
-def _schema_path_methods(schema: Dict) -> Dict[str, Set[str]]:
-    """Return ``{path: {METHOD, ...}}`` documented in an OpenAPI ``paths`` block."""
-    result: Dict[str, Set[str]] = {}
+def _surface(schema: Dict) -> Set[Tuple[str, str]]:
+    """Return ``{(path, METHOD), ...}`` for every operation in an OpenAPI schema."""
+    out: Set[Tuple[str, str]] = set()
     for path, item in schema.get("paths", {}).items():
-        result[path] = {
-            method.upper() for method in item if method.lower() in HTTP_METHODS
-        }
-    return result
+        for method in item:
+            if method.lower() in HTTP_METHODS:
+                out.add((path, method.upper()))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -131,11 +99,7 @@ def _schema_path_methods(schema: Dict) -> Dict[str, Set[str]]:
 
 @pytest.fixture(scope="module")
 def openapi_schema() -> Generator[Dict, None, None]:
-    """The served OpenAPI document, regenerated fresh and restored on teardown.
-
-    Restoring ``app.openapi_schema`` keeps this module from leaking a cleared
-    cache into later test modules that import the same ``app`` (greptile review).
-    """
+    """The served OpenAPI document, regenerated fresh and restored on teardown."""
     previous = app.openapi_schema
     app.openapi_schema = None  # force regeneration, ignore any cached schema
     try:
@@ -144,58 +108,71 @@ def openapi_schema() -> Generator[Dict, None, None]:
         app.openapi_schema = previous
 
 
+@pytest.fixture(scope="module")
+def snapshot_schema() -> Dict:
+    """The committed openapi.yaml snapshot, parsed."""
+    assert SNAPSHOT_PATH.exists(), (
+        f"{SNAPSHOT_PATH.name} is missing — generate it with: make openapi "
+        "(python scripts/export_openapi.py)"
+    )
+    return yaml.safe_load(SNAPSHOT_PATH.read_text(encoding="utf-8"))
+
+
 # ---------------------------------------------------------------------------
-# Completeness: every implemented public route is documented in the served schema
+# The gate: served document must equal the committed snapshot
 # ---------------------------------------------------------------------------
 
 
-def test_served_schema_documents_every_public_route(openapi_schema: Dict) -> None:
-    """Fail if any implemented public route is missing from the served schema.
+def test_served_document_matches_snapshot(
+    openapi_schema: Dict, snapshot_schema: Dict
+) -> None:
+    """``app.openapi()`` must match the committed openapi.yaml snapshot.
 
-    This is the core acceptance criterion: a route that exists in the app but is
-    not present in ``app.openapi()`` (e.g. accidentally hidden with
-    ``include_in_schema=False``) is an undocumented endpoint and is rejected.
+    This is the core gate. A mismatch means the live app drifted from the
+    contract snapshot. Refresh and commit it in the *same* change that altered
+    the API: ``make openapi`` (``python scripts/export_openapi.py``).
     """
-    documented = _schema_path_methods(openapi_schema)
-    implemented = _public_api_routes()
+    if openapi_schema == snapshot_schema:
+        return
 
-    missing: list[Tuple[str, Set[str]]] = []
-    for path, methods in sorted(implemented.items()):
-        documented_methods = documented.get(path, set())
-        missing_methods = methods - documented_methods
-        if missing_methods:
-            missing.append((path, missing_methods))
+    served = _surface(openapi_schema)
+    snapshot = _surface(snapshot_schema)
+    added = sorted(served - snapshot)
+    removed = sorted(snapshot - served)
 
-    assert not missing, (
-        "Implemented public route(s) missing from the served OpenAPI schema: "
-        + ", ".join(f"{p} {sorted(m)}" for p, m in missing)
+    if added or removed:
+        detail = (
+            f"\n  routes served but absent from openapi.yaml: {added}"
+            f"\n  routes in openapi.yaml but no longer served: {removed}"
+        )
+    else:
+        detail = (
+            "\n  (route surface is unchanged — an operation's schema, parameters, "
+            "responses, or metadata changed)"
+        )
+
+    pytest.fail(
+        "Served app.openapi() differs from the committed openapi.yaml snapshot. "
+        "Regenerate and commit it in this change: make openapi "
+        "(python scripts/export_openapi.py)." + detail
     )
 
 
-@pytest.mark.parametrize("path", sorted(EXPECTED_UNDOCUMENTED_IN_CONTRACT))
-def test_previously_undocumented_routes_now_in_served_schema(
-    openapi_schema: Dict, path: str
-) -> None:
-    """Routes that were missing from the contract must at least be self-documented.
+def test_snapshot_documents_every_public_route(openapi_schema: Dict) -> None:
+    """Every implemented public route is present in the served schema.
 
-    These endpoints (``/embed_visual``, ``/ingest/media``, ``/feedback``,
-    ``/name-type``, ``/name-relationship``) are implemented in ``main.py``. They
-    must appear in the served schema even while the canonical contract catches
-    up, so clients reading ``/openapi.json`` see them.
+    Catches a route accidentally hidden with ``include_in_schema=False`` (which
+    would silently drop it from the snapshot and therefore the SDK).
     """
-    documented = _schema_path_methods(openapi_schema)
-    assert path in documented, f"{path} is implemented but absent from app.openapi()"
-    assert documented[path], f"{path} is in the schema but documents no operations"
-
-
-def test_canonical_contract_paths_are_served(openapi_schema: Dict) -> None:
-    """Every path in the canonical contract must still be served by the app."""
-    documented = _schema_path_methods(openapi_schema)
-    missing = sorted(CANONICAL_CONTRACT_PATHS - set(documented))
-    assert (
-        not missing
-    ), "Canonical contract path(s) not served by the app (regression): " + ", ".join(
-        missing
+    documented = _surface(openapi_schema)
+    missing: list[str] = []
+    for path, methods in sorted(_public_api_routes().items()):
+        for method in sorted(methods):
+            if (path, method) not in documented:
+                missing.append(f"{method} {path}")
+    assert not missing, (
+        "Implemented public route(s) missing from app.openapi() "
+        "(hidden via include_in_schema=False?): " + ", ".join(missing)
     )
 
 
@@ -222,8 +199,7 @@ def test_every_operation_documents_responses(openapi_schema: Dict) -> None:
         for method, operation in item.items():
             if method.lower() not in HTTP_METHODS:
                 continue
-            responses = operation.get("responses") or {}
-            if not responses:
+            if not (operation.get("responses") or {}):
                 offenders.append(f"{method.upper()} {path}")
     assert not offenders, "Operations without documented responses: " + ", ".join(
         offenders
@@ -233,9 +209,7 @@ def test_every_operation_documents_responses(openapi_schema: Dict) -> None:
 def test_no_duplicate_operation_ids(openapi_schema: Dict) -> None:
     """``operationId`` values must be unique across the served schema.
 
-    A duplicate ``operationId`` produces an invalid OpenAPI document and breaks
-    client/code generators. This previously occurred for the ``/health`` route,
-    which registered GET and HEAD under one ``api_route`` (shared operationId).
+    A duplicate produces an invalid document and breaks client/code generators.
     """
     op_ids = [
         operation.get("operationId")
@@ -247,12 +221,8 @@ def test_no_duplicate_operation_ids(openapi_schema: Dict) -> None:
     assert not duplicates, f"Duplicate operationId(s) in served schema: {duplicates}"
 
 
-def test_schema_path_methods_ignores_non_operation_keys() -> None:
-    """Path Item non-operation keys (summary, parameters, $ref) are not methods.
-
-    Without filtering, these would be mis-read as HTTP methods (e.g. "PARAMETERS")
-    and their non-dict values would crash the operation-level checks.
-    """
+def test_surface_ignores_non_operation_keys() -> None:
+    """Path Item non-operation keys (summary, parameters, $ref) are not methods."""
     schema = {
         "paths": {
             "/x": {
@@ -262,31 +232,4 @@ def test_schema_path_methods_ignores_non_operation_keys() -> None:
             }
         }
     }
-    assert _schema_path_methods(schema) == {"/x": {"GET"}}
-
-
-# ---------------------------------------------------------------------------
-# Canonical contract gap (recorded, not yet closed)
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.xfail(
-    reason=(
-        "logos/contracts/hermes.openapi.yaml documents only 5 of the implemented "
-        "public routes. Expanding the canonical contract to cover the remaining "
-        "endpoints is tracked as a follow-up to logos#91."
-    ),
-    strict=True,
-)
-def test_canonical_contract_covers_all_public_routes() -> None:
-    """The canonical contract should eventually document every public route.
-
-    This intentionally xfails today to record the known gap. When the contract is
-    expanded (and ``CANONICAL_CONTRACT_PATHS`` updated to match), it will XPASS,
-    signalling the gap is closed and the marker can be removed.
-    """
-    public_paths = set(_public_api_routes())
-    undocumented = sorted(public_paths - CANONICAL_CONTRACT_PATHS)
-    assert (
-        not undocumented
-    ), "Public routes not present in the canonical contract: " + ", ".join(undocumented)
+    assert _surface(schema) == {("/x", "GET")}

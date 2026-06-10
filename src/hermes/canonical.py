@@ -63,6 +63,83 @@ _SINGULAR_SUFFIX_GUARD = ("ss", "is", "us")
 
 _WHITESPACE_RE = re.compile(r"\s+")
 
+# --- predicate (descriptive-relation) canonicalization (hermes#130, H1) -----
+# The edge-axis analog of canonicalize(): folds morphological variants of a
+# descriptive relation onto one UPPER_SNAKE key so the open relation
+# vocabulary stops sprawling. Applied only to descriptive relations; the
+# reserved typing relations below are structural and never touched. Public
+# (consumed by predicate_resolver / relation_synonyms) -- the boundary is
+# explicit, not a private import.
+RESERVED_PREDICATES = frozenset({"IS_A", "INSTANCE_OF", "SUBTYPE_OF"})
+
+# Tokens ending in these are not plurals/3sg -- never strip the trailing S
+# (ALIAS, BASIS, FOCUS, CHAOS, MASS). Same family as _SINGULAR_SUFFIX_GUARD,
+# uppercased for the predicate token space.
+_PREDICATE_NO_S_STRIP = ("SS", "US", "IS", "AS", "OS")
+
+_PREDICATE_SEP_RE = re.compile(r"[\s\-_]+")
+
+
+def _fold_predicate_token(token: str) -> str:
+    """Crude, deterministic, convergent stem for one UPPER-case token.
+
+    Strips one inflectional suffix (-ING / -IES / -IED / -ED / -S) then a
+    trailing stem -E, so base/3sg/past/gerund of a long-enough verb reach
+    the SAME key (ACQUIRE/ACQUIRES/ACQUIRED/ACQUIRING -> ACQUIR). The -IED
+    past tense of -y verbs maps to -Y to match -IES (CARRY/CARRIES/CARRIED
+    -> CARRY), without which -y past tenses would diverge (review #134).
+    Length guards keep short tokens intact (RED, BED, IN); the
+    -SS/-US/-IS/-AS/-OS guard keeps non-plurals. The key is a stem, not
+    necessarily prose -- convergence is the contract (see golden table).
+    """
+    t = token
+    if len(t) >= 6 and t.endswith("ING"):
+        t = t[:-3]
+    elif len(t) >= 5 and t.endswith("IES"):
+        t = t[:-3] + "Y"
+    elif len(t) >= 5 and t.endswith("IED"):
+        # past tense of a -y verb (carried/studied) -> the -y stem, so it
+        # converges with -IES/-Y rather than stranding a bare -I.
+        t = t[:-3] + "Y"
+    elif len(t) >= 5 and t.endswith("ED"):
+        t = t[:-2]
+    elif len(t) >= 4 and t.endswith("S") and not t.endswith(_PREDICATE_NO_S_STRIP):
+        t = t[:-1]
+    if len(t) >= 5 and t.endswith("E"):
+        t = t[:-1]
+    return t
+
+
+def canonicalize_predicate(raw: str) -> str:
+    """Return the canonical UPPER_SNAKE key for a descriptive relation.
+
+    Idempotent. Non-string / empty / whitespace-only input returns "".
+    Reserved typing relations (IS_A / INSTANCE_OF / SUBTYPE_OF) are returned
+    unchanged -- structural, never consolidated (callers exclude them too;
+    defense in depth).
+
+    Negation is safe WITHOUT special-casing: folding is per-token and never
+    removes a polarity token (NOT/NEVER/...), so a negated predicate always
+    keeps that token and can never collide with its positive form
+    (DOES_NOT_REFER_TO -> DOE_NOT_REFER_TO vs REFERS_TO -> REFER_TO). Folding
+    them is therefore both correct AND lets negated variants converge
+    (NOT_PRODUCES / NOT_PRODUCED -> NOT_PRODUC).
+    """
+    if not isinstance(raw, str):
+        return ""
+    text = unicodedata.normalize("NFKC", raw).strip()
+    if not text:
+        return ""
+    tokens = [t for t in _PREDICATE_SEP_RE.split(text.upper()) if t]
+    if not tokens:
+        return ""
+
+    joined = "_".join(tokens)
+    if joined in RESERVED_PREDICATES:
+        return joined
+
+    return "_".join(_fold_predicate_token(t) for t in tokens)
+
 
 def singularize_word(word: str) -> str:
     """Singularize a single already-lowercased token, conservatively.

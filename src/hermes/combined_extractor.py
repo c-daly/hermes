@@ -137,7 +137,14 @@ class OpenAICombinedExtractor:
         if not known:
             return ""
 
-        cap = int(os.getenv("RE_VOCAB_CAP", "150"))
+        try:
+            cap = int(os.getenv("RE_VOCAB_CAP", "150"))
+        except ValueError:
+            logger.warning(
+                "H5: invalid RE_VOCAB_CAP=%r; using default 150",
+                os.getenv("RE_VOCAB_CAP"),
+            )
+            cap = 150
         vocab = sorted(known)[:cap]
         return (
             "## Known Relations\n"

@@ -485,6 +485,10 @@ class TestClosedVocabPrompt:
         assert "LOCATED_IN" in prompt
         assert "PART_OF" in prompt
         assert "only mint a NEW" in prompt
+        # the clause must sit before the JSON-only sign-off, not after it
+        assert prompt.index("## Known Relations") < prompt.index(
+            "Return ONLY valid JSON"
+        )
 
     def test_clause_omitted_when_vocab_empty(self, monkeypatch):
         from hermes.combined_extractor import OpenAICombinedExtractor
@@ -504,6 +508,17 @@ class TestClosedVocabPrompt:
         # sorted, capped at 150 -> R000..R149 in, R150.. out
         assert "R149" in prompt
         assert "R150" not in prompt
+
+    def test_non_int_cap_falls_back_without_raising(self, monkeypatch):
+        from hermes.combined_extractor import OpenAICombinedExtractor
+
+        self._patch_vocab(monkeypatch, {"LOCATED_IN", "PART_OF"})
+        monkeypatch.setenv("RE_VOCAB_CAP", "not-a-number")
+        # must not raise; falls back to the default cap and still injects
+        prompt = OpenAICombinedExtractor()._build_system_prompt()
+
+        assert "## Known Relations" in prompt
+        assert "LOCATED_IN" in prompt
 
     def test_fail_soft_when_vocab_raises(self, monkeypatch):
         from hermes.combined_extractor import OpenAICombinedExtractor

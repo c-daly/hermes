@@ -1884,6 +1884,89 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
     )
 
 
+# ---------------------------------------------------------------------
+# Relation synonym-collapse: POST /relation-synonyms (hermes#133, H3)
+#
+# The relation-axis analog of /name-cluster: the LLM groups DESCRIPTIVE
+# relation synonyms (HAULS/DRAGS/CARRIES -> CARRIES). Server-side
+# validation (hermes.relation_synonyms) is fail-closed and enforces the
+# epic #131 hard constraint -- no group may contain a reserved typing
+# relation (IS_A/INSTANCE_OF/SUBTYPE_OF). The response is a PROPOSAL;
+# callers apply it through the existing propose->assert / review path.
+# ---------------------------------------------------------------------
+class RelationSynonymsRequest(BaseModel):
+    predicates: list[str] = Field(..., description="Descriptive relation labels.")
+    context: str | None = Field(
+        default=None, description="Optional domain context for disambiguation."
+    )
+    request_id: str | None = None
+
+
+class RelationSynonymGroup(BaseModel):
+    canonical: str
+    members: list[str]
+    confidence: float
+
+
+class RelationSynonymsResponse(BaseModel):
+    request_id: str | None = None
+    groups: list[RelationSynonymGroup]
+
+
+@app.post("/relation-synonyms", response_model=RelationSynonymsResponse)
+async def relation_synonyms(
+    request: RelationSynonymsRequest,
+) -> RelationSynonymsResponse:
+    """Propose descriptive-relation synonym groups (the relation naming pass).
+
+    The LLM is a codec: it proposes groupings + a canonical name from the
+    members; placement/assertion happen elsewhere. Reserved typing relations
+    are filtered from the prompt AND rejected in validation -- they are never
+    consolidated. Empty/insufficient input returns no groups (200, not 4xx):
+    "nothing to collapse" is a valid answer.
+    """
+    from hermes.relation_synonyms import (
+        build_synonym_messages,
+        parse_synonym_response,
+    )
+
+    if len([p for p in request.predicates if p and p.strip()]) < 2:
+        return RelationSynonymsResponse(request_id=request.request_id, groups=[])
+
+    messages = build_synonym_messages(request.predicates, context=request.context)
+    try:
+        result = await generate_completion(
+            messages=messages,
+            temperature=0.0,
+            max_tokens=1024,
+            metadata={"scenario": "relation_synonyms", "request_id": request.request_id},
+        )
+    except LLMProviderNotConfiguredError as exc:
+        logger.error("relation_synonyms: LLM provider not configured: %s", exc)
+        raise HTTPException(
+            status_code=503, detail="LLM provider not configured"
+        ) from exc
+    except LLMProviderError as exc:
+        logger.error("relation_synonyms: LLM provider error: %s", exc)
+        raise HTTPException(status_code=502, detail="LLM provider error") from exc
+
+    choices = result.get("choices") or []
+    if not choices:
+        raise HTTPException(status_code=502, detail="LLM returned no choices")
+    content = choices[0]["message"]["content"]
+
+    groups = parse_synonym_response(content, request.predicates)
+    return RelationSynonymsResponse(
+        request_id=request.request_id,
+        groups=[
+            RelationSynonymGroup(
+                canonical=g.canonical, members=g.members, confidence=g.confidence
+            )
+            for g in groups
+        ],
+    )
+
+
 class NameRelationshipRequest(BaseModel):
     source_name: str = Field(..., description="Source node name")
     target_name: str = Field(..., description="Target node name")

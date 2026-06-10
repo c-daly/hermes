@@ -73,8 +73,7 @@ def build_synonym_messages(
     candidates = [
         p
         for p in predicates
-        if (surf := normalize_predicate_surface(p))
-        and surf not in RESERVED_PREDICATES
+        if (surf := normalize_predicate_surface(p)) and surf not in RESERVED_PREDICATES
     ]
     ctx = f"Domain context: {context}\n\n" if context else ""
     user = f"{ctx}Candidates: {', '.join(candidates)}\n\nGroup the synonyms."
@@ -88,20 +87,20 @@ def _coerce_json(content: str) -> dict | None:
     if not isinstance(content, str):
         return None
     try:
-        return json.loads(content)
+        parsed = json.loads(content)
+        return parsed if isinstance(parsed, dict) else None
     except json.JSONDecodeError:
         match = re.search(r"```(?:json)?\s*(.*?)```", content, re.DOTALL)
         if match:
             try:
-                return json.loads(match.group(1))
+                parsed = json.loads(match.group(1))
+                return parsed if isinstance(parsed, dict) else None
             except json.JSONDecodeError:
                 return None
     return None
 
 
-def parse_synonym_response(
-    content: str, candidates: list[str]
-) -> list[SynonymGroup]:
+def parse_synonym_response(content: str, candidates: list[str]) -> list[SynonymGroup]:
     """Validate the LLM response into safe synonym groups. Fail closed:
     anything malformed or rule-violating drops the offending group."""
     data = _coerce_json(content)

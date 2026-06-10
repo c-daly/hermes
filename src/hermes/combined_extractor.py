@@ -138,7 +138,7 @@ class OpenAICombinedExtractor:
             return ""
 
         try:
-            cap = int(os.getenv("RE_VOCAB_CAP", "150"))
+            cap = max(0, int(os.getenv("RE_VOCAB_CAP", "150")))
         except ValueError:
             logger.warning(
                 "H5: invalid RE_VOCAB_CAP=%r; using default 150",
@@ -146,6 +146,8 @@ class OpenAICombinedExtractor:
             )
             cap = 150
         vocab = sorted(known)[:cap]
+        if not vocab:  # cap sliced everything away -> open prompt, not an empty clause
+            return ""
         return (
             "## Known Relations\n"
             "Prefer an existing predicate from this list when one fits the "

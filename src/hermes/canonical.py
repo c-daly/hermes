@@ -122,7 +122,7 @@ def _fold_predicate_token(token: str) -> str:
         t = t[:-2]
     elif len(t) >= 4 and t.endswith("S") and not t.endswith(_PREDICATE_NO_S_STRIP):
         t = t[:-1]
-    if len(t) >= 5 and t.endswith("E"):
+    if len(t) >= 4 and t.endswith("E"):
         t = t[:-1]
     return t
 

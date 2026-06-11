@@ -180,6 +180,7 @@ class OpenAINERProvider:
         original_text: str,
         *,
         valid_types: set[str] | None = None,
+        coerce_unknown_types: bool = True,
     ) -> list[dict]:
         """Parse the LLM JSON response into entity dicts."""
         try:
@@ -205,10 +206,15 @@ class OpenAINERProvider:
             ent_type = ent.get("type", "entity")
             if not name:
                 continue
-            # Validate type — accept dynamic Sophia types or hardcoded fallback
-            allowed = valid_types if valid_types is not None else set(ONTOLOGY_TYPES)
-            if ent_type not in allowed:
-                ent_type = "entity"
+            # Validate type — accept dynamic Sophia types or hardcoded fallback.
+            # The combined path disables coercion entirely (hermes#148 free
+            # typing): the extractor's chosen category passes through.
+            if coerce_unknown_types:
+                allowed = (
+                    valid_types if valid_types is not None else set(ONTOLOGY_TYPES)
+                )
+                if ent_type not in allowed:
+                    ent_type = "entity"
             # Use provided offsets, or find them in the text.
             # Track search offset so repeated entities get distinct spans
             # instead of all mapping to the first occurrence.

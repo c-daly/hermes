@@ -16,8 +16,7 @@ import re
 from typing import Any
 
 
-from hermes.ner_provider import ONTOLOGY_TYPES, OpenAINERProvider
-from hermes.ontology_client import fetch_type_list, get_sophia_url
+from hermes.ner_provider import OpenAINERProvider
 from hermes.relation_extractor import OpenAIRelationExtractor
 
 logger = logging.getLogger(__name__)
@@ -36,28 +35,17 @@ class OpenAICombinedExtractor:
 
     name: str = "combined"
 
-    def _build_system_prompt(
-        self,
-        type_list: list[dict] | None = None,
-    ) -> str:
-        """Build the system prompt, optionally using dynamic type lists."""
-        if type_list is not None:
-            entity_types_section = "\n".join(
-                f"- {t['name']}: {t.get('description', '')}" for t in type_list
-            )
-            entity_types_section += "\nIf none of these types fit, use 'object'."
-        else:
-            entity_types_section = "\n".join(
-                f"- {t}: {desc}" for t, desc in ONTOLOGY_TYPES.items()
-            )
-
+    def _build_system_prompt(self) -> str:
+        """Build the system prompt. Entity types are NOT constrained: the
+        2026-06-11 ablation (hermes#148) measured any type list suppressing
+        type_accuracy ~4x and taxing entity/link F1 — and sophia classifies
+        via centroid proximity, ignoring the proposal type field, so the
+        constraint had no downstream consumer."""
         prompt = (
             "You are a combined named-entity recognition and relation extraction "
             "system for the LOGOS robotics ontology.\n\n"
             "Given input text, extract ALL named entities and ALL meaningful "
             "semantic relations between them in a SINGLE pass.\n\n"
-            "## Entity Types\n"
-            f"{entity_types_section}\n\n"
         )
 
         prompt += (
@@ -84,15 +72,15 @@ class OpenAICombinedExtractor:
             "with conjunctions like 'and', 'or', or commas into one name\n"
             "- Entity names must match the text exactly\n"
             "- start/end are character offsets into the input text\n"
-            "- Entity type must be one of the types listed above\n"
+            '- "type": a short lowercase category you choose for the entity\n'
             "- Prefer specific, contentful noun phrases; do NOT extract bare "
             "adjectives, pronouns, sentence fragments, or generic standalone nouns "
             "(e.g. 'structure', 'system', 'thing', 'result'); use the canonical "
             "noun-phrase surface form\n"
-            "- Temporal entities (type 'state': dates/times): set \"value\" to a "
+            '- Temporal entities (dates/times): set "value" to a '
             "normalized form, ISO-8601 where possible ('1943'->'1943', "
             "'March 1898'->'1898-03', 'the 1950s'->'195X'); \"unit\" is null\n"
-            "- Quantitative entities (type 'data': measurements/quantities): set "
+            "- Quantitative entities (measurements/quantities): set "
             '"value" to the numeric magnitude and "unit" to the unit '
             "('10 km'->10/'km'; '5 mg'->5/'mg'); plain counts: \"unit\" is null\n"
             '- All other entities: "value" and "unit" are null\n'
@@ -166,9 +154,7 @@ class OpenAICombinedExtractor:
         """
         from hermes.llm import generate_completion
 
-        sophia_url = get_sophia_url()
-        type_list = await fetch_type_list(sophia_url)
-        system_prompt = self._build_system_prompt(type_list)
+        system_prompt = self._build_system_prompt()
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -188,11 +174,9 @@ class OpenAICombinedExtractor:
 
         content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
 
-        valid_types: set[str] | None = None
-        if type_list is not None:
-            valid_types = {t["name"] for t in type_list}
-
-        return self._parse_combined_response(content, text, valid_types=valid_types)
+        # Free typing (hermes#148): the extractor's chosen categories pass
+        # through unfiltered; sophia classifies by centroid.
+        return self._parse_combined_response(content, text)
 
     # -- Protocol compat: NERProvider ------------------------------------
 
@@ -220,8 +204,6 @@ class OpenAICombinedExtractor:
     def _parse_combined_response(
         content: str,
         original_text: str,
-        *,
-        valid_types: set[str] | None = None,
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         """Parse the combined JSON response into (entities, relations)."""
         data = _extract_json(content)
@@ -231,7 +213,7 @@ class OpenAICombinedExtractor:
         entities = OpenAINERProvider._parse_response(
             json.dumps({"entities": data.get("entities", [])}),
             original_text,
-            valid_types=valid_types,
+            coerce_unknown_types=False,
         )
 
         entity_names = {e["name"] for e in entities}

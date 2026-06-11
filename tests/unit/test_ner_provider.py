@@ -198,6 +198,48 @@ class TestParseResponse:
         assert result[0]["start"] == 0
         assert result[0]["end"] == 5
 
+    def test_mixed_case_type_lowercased_under_free_typing(self):
+        from hermes.ner_provider import OpenAINERProvider
+
+        content = (
+            '{"entities": [{"name": "Ada", "type": "Person", "start": 0, "end": 3}]}'
+        )
+        result = OpenAINERProvider._parse_response(
+            content, "Ada codes", coerce_unknown_types=False
+        )
+        assert result[0]["type"] == "person"
+
+    def test_null_type_falls_back_to_entity_under_free_typing(self):
+        from hermes.ner_provider import OpenAINERProvider
+
+        content = '{"entities": [{"name": "Ada", "type": null, "start": 0, "end": 3}]}'
+        result = OpenAINERProvider._parse_response(
+            content, "Ada codes", coerce_unknown_types=False
+        )
+        assert result[0]["type"] == "entity"
+
+    def test_non_string_type_falls_back_to_entity(self):
+        from hermes.ner_provider import OpenAINERProvider
+
+        content = '{"entities": [{"name": "Ada", "type": 7, "start": 0, "end": 3}]}'
+        result = OpenAINERProvider._parse_response(
+            content, "Ada codes", coerce_unknown_types=False
+        )
+        assert result[0]["type"] == "entity"
+
+    def test_valid_types_with_coercion_disabled_raises(self):
+        import pytest
+
+        from hermes.ner_provider import OpenAINERProvider
+
+        with pytest.raises(ValueError, match="valid_types has no effect"):
+            OpenAINERProvider._parse_response(
+                '{"entities": []}',
+                "",
+                valid_types={"person"},
+                coerce_unknown_types=False,
+            )
+
 
 class TestNERDetectBackend:
     """Tests for _detect_backend and get_ner_provider factory."""

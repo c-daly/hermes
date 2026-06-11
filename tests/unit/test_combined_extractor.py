@@ -269,7 +269,7 @@ class TestFreeTypingPrompt:
     (centroid classification), so the constraint had no consumer.
     """
 
-    async def test_prompt_has_no_entity_types_section(self):
+    def test_prompt_has_no_entity_types_section(self):
         from hermes.combined_extractor import OpenAICombinedExtractor
         from hermes.ner_provider import ONTOLOGY_TYPES
 
@@ -278,7 +278,7 @@ class TestFreeTypingPrompt:
         for type_name in ONTOLOGY_TYPES:
             assert f"- {type_name}:" not in prompt
 
-    async def test_prompt_documents_free_type_field(self):
+    def test_prompt_documents_free_type_field(self):
         from hermes.combined_extractor import OpenAICombinedExtractor
 
         prompt = OpenAICombinedExtractor()._build_system_prompt()

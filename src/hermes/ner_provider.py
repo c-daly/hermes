@@ -182,7 +182,17 @@ class OpenAINERProvider:
         valid_types: set[str] | None = None,
         coerce_unknown_types: bool = True,
     ) -> list[dict]:
-        """Parse the LLM JSON response into entity dicts."""
+        """Parse the LLM JSON response into entity dicts.
+
+        ``valid_types`` only participates when ``coerce_unknown_types`` is
+        True; combining a validation set with coercion disabled is a caller
+        bug and raises rather than silently discarding the set.
+        """
+        if valid_types is not None and not coerce_unknown_types:
+            raise ValueError(
+                "valid_types has no effect when coerce_unknown_types=False; "
+                "pass one or the other"
+            )
         try:
             data = json.loads(content)
         except json.JSONDecodeError:
@@ -206,6 +216,14 @@ class OpenAINERProvider:
             ent_type = ent.get("type", "entity")
             if not name:
                 continue
+            # Normalize the category defensively: the prompt asks for a short
+            # lowercase string, but the model may emit "Person", null, or a
+            # non-string. Lowercase strings; anything else falls back to
+            # "entity" so downstream consumers always see a lowercase str.
+            if isinstance(ent_type, str) and ent_type:
+                ent_type = ent_type.lower()
+            else:
+                ent_type = "entity"
             # Validate type — accept dynamic Sophia types or hardcoded fallback.
             # The combined path disables coercion entirely (hermes#148 free
             # typing): the extractor's chosen category passes through.

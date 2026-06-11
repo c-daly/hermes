@@ -154,6 +154,35 @@ _PREPOSITIONS = {
     "without",
 }
 
+# Single-word names that are pure prepositions — never nouns in their own
+# right — are junk ("of", "with").  Deliberately a subset of _PREPOSITIONS:
+# homographs that work as standalone nouns/concepts ("outside", "past",
+# "above") are kept.
+_PURE_PREPOSITIONS = {
+    "amid",
+    "among",
+    "at",
+    "by",
+    "despite",
+    "during",
+    "except",
+    "for",
+    "from",
+    "in",
+    "into",
+    "of",
+    "onto",
+    "per",
+    "to",
+    "toward",
+    "towards",
+    "until",
+    "unto",
+    "upon",
+    "via",
+    "with",
+}
+
 
 def _lemmatize_word(word: str) -> str:
     """Singularize a single word via the shared core (hermes.canonical).
@@ -222,14 +251,15 @@ def is_junk_entity_name(name: str) -> bool:
     """True for cleaned names with no usable referent.
 
     Bare pronouns ("it", "they") refer only within their source document;
-    preposition-led multi-word names ("over two hundred mile per hour") are
+    bare pure prepositions ("of", "with") name nothing; preposition-led
+    multi-word names ("over two hundred mile per hour") are
     adverbial/measure phrases, not entities.
     """
     words = name.split()
     if not words:
         return True
     if len(words) == 1:
-        return words[0] in _PRONOUNS
+        return words[0] in _PRONOUNS or words[0] in _PURE_PREPOSITIONS
     return words[0] in _PREPOSITIONS
 
 

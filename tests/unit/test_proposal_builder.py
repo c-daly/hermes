@@ -334,3 +334,46 @@ class TestNormalizeEdgeNames:
         assert len(result) == 1
         assert result[0]["source_name"] == "morning light"
         assert result[0]["target_name"] == "meadow"
+
+    def test_junk_endpoint_edge_dropped_at_debug_not_warning(self):
+        from unittest.mock import patch
+
+        import hermes.proposal_builder as pb
+        from hermes.name_normalizer import normalize_entities
+        from hermes.proposal_builder import _normalize_edge_names
+
+        entities = normalize_entities(
+            [
+                {"name": "it", "type": "entity", "start": 0, "end": 2},
+                {"name": "a meadow", "type": "entity", "start": 9, "end": 17},
+            ],
+            "it fills a meadow",
+        )
+        edges = [{"source_name": "it", "target_name": "a meadow", "relation": "FILLS"}]
+        with (
+            patch.object(pb.logger, "debug") as mock_debug,
+            patch.object(pb.logger, "warning") as mock_warning,
+        ):
+            result = _normalize_edge_names(edges, entities)
+        assert result == []
+        mock_warning.assert_not_called()
+        assert any(
+            "junk-rejected endpoint" in str(call.args)
+            for call in mock_debug.call_args_list
+        )
+
+    def test_missing_endpoint_edge_dropped_at_warning(self):
+        from unittest.mock import patch
+
+        import hermes.proposal_builder as pb
+        from hermes.proposal_builder import _normalize_edge_names
+
+        entities = [{"name": "meadow", "type": "entity", "start": 0, "end": 6}]
+        edges = [{"source_name": "truck", "target_name": "meadow", "relation": "NEAR"}]
+        with patch.object(pb.logger, "warning") as mock_warning:
+            result = _normalize_edge_names(edges, entities)
+        assert result == []
+        assert any(
+            "not in normalized entity set" in str(call.args)
+            for call in mock_warning.call_args_list
+        )

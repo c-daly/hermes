@@ -1,9 +1,10 @@
 """Post-extraction entity name normalization.
 
-Cleans entity names via lowercasing, singularization, and deduplication
-before they leave Hermes.  Word-level singularization is delegated to the
-shared inflect-based core in ``hermes.canonical`` -- one engine for entity,
-edge, and type names.
+Cleans entity names via lowercasing, singularization, leading-determiner
+stripping, junk rejection (bare pronouns, preposition-led phrases), and
+deduplication before they leave Hermes.  Word-level singularization is
+delegated to the shared inflect-based core in ``hermes.canonical`` -- one
+engine for entity, edge, and type names.
 """
 
 from __future__ import annotations
@@ -13,6 +14,145 @@ import logging
 from hermes.canonical import singularize_word
 
 logger = logging.getLogger(__name__)
+
+# Leading tokens stripped from names: determiners and possessive pronouns
+# carry no referent of their own ("the morning light" -> "morning light").
+# A name that strips to nothing is dropped.
+_DETERMINERS = {
+    "a",
+    "an",
+    "the",
+    "this",
+    "that",
+    "these",
+    "those",
+    "my",
+    "your",
+    "his",
+    "her",
+    "its",
+    "our",
+    "their",
+    "some",
+    "any",
+    "each",
+    "every",
+    "no",
+}
+
+# A name that is nothing but a pronoun has no cross-document referent.
+_PRONOUNS = {
+    "i",
+    "me",
+    "my",
+    "mine",
+    "myself",
+    "we",
+    "us",
+    "our",
+    "ours",
+    "ourselves",
+    "you",
+    "your",
+    "yours",
+    "yourself",
+    "yourselves",
+    "he",
+    "him",
+    "his",
+    "himself",
+    "she",
+    "her",
+    "hers",
+    "herself",
+    "it",
+    "its",
+    "itself",
+    "they",
+    "them",
+    "their",
+    "theirs",
+    "themselves",
+    "this",
+    "that",
+    "these",
+    "those",
+    "who",
+    "whom",
+    "whose",
+    "which",
+    "what",
+    "something",
+    "anything",
+    "nothing",
+    "everything",
+    "someone",
+    "anyone",
+    "everyone",
+    "somebody",
+    "anybody",
+    "nobody",
+    "everybody",
+    "one",
+    "none",
+}
+
+# A multi-word name led by a preposition is an adverbial or measure phrase,
+# not an entity ("over two hundred miles per hour"). "up"/"down"/"out"/"off"
+# are deliberately absent: they lead legitimate compounds ("down payment").
+_PREPOSITIONS = {
+    "about",
+    "above",
+    "across",
+    "after",
+    "against",
+    "along",
+    "amid",
+    "among",
+    "around",
+    "at",
+    "before",
+    "behind",
+    "below",
+    "beneath",
+    "beside",
+    "besides",
+    "between",
+    "beyond",
+    "by",
+    "despite",
+    "during",
+    "except",
+    "for",
+    "from",
+    "in",
+    "inside",
+    "into",
+    "near",
+    "of",
+    "on",
+    "onto",
+    "outside",
+    "over",
+    "past",
+    "per",
+    "since",
+    "through",
+    "throughout",
+    "till",
+    "to",
+    "toward",
+    "towards",
+    "under",
+    "underneath",
+    "until",
+    "unto",
+    "upon",
+    "via",
+    "with",
+    "within",
+    "without",
+}
 
 
 def _lemmatize_word(word: str) -> str:
@@ -59,8 +199,43 @@ def _lemmatize_name(name: str, original_name: str | None = None) -> str:
     return " ".join(result)
 
 
+def clean_entity_name(name: str, original_name: str | None = None) -> str:
+    """Full name-cleaning pipeline: strip leading determiners, then lemmatize.
+
+    Expects ``name`` already lowercased (``original_name`` carries the raw
+    casing for the proper-noun heuristic in ``_lemmatize_name``). Returns ""
+    when nothing survives the strip (caller drops the entity).
+    """
+    words = name.split()
+    orig_words = original_name.split() if original_name else []
+    while words and words[0] in _DETERMINERS:
+        words.pop(0)
+        if orig_words:
+            orig_words.pop(0)
+    if not words:
+        return ""
+    stripped_orig = " ".join(orig_words) if orig_words else None
+    return _lemmatize_name(" ".join(words), original_name=stripped_orig)
+
+
+def is_junk_entity_name(name: str) -> bool:
+    """True for cleaned names with no usable referent.
+
+    Bare pronouns ("it", "they") refer only within their source document;
+    preposition-led multi-word names ("over two hundred mile per hour") are
+    adverbial/measure phrases, not entities.
+    """
+    words = name.split()
+    if not words:
+        return True
+    if len(words) == 1:
+        return words[0] in _PRONOUNS
+    return words[0] in _PREPOSITIONS
+
+
 def normalize_entities(entities: list[dict], text: str) -> list[dict]:
-    """Normalize entity names: lowercase, lemmatize, deduplicate.
+    """Normalize entity names: lowercase, strip determiners, lemmatize,
+    reject junk, deduplicate.
 
     Args:
         entities: List of entity dicts with name, type, start, end fields.
@@ -79,7 +254,10 @@ def normalize_entities(entities: list[dict], text: str) -> list[dict]:
         if not name:
             continue
 
-        norm_name = _lemmatize_name(name.lower(), original_name=name)
+        norm_name = clean_entity_name(name.lower(), original_name=name)
+        if not norm_name or is_junk_entity_name(norm_name):
+            logger.debug("Dropping junk entity name: %r", name)
+            continue
 
         normalized.append(
             {

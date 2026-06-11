@@ -309,3 +309,28 @@ class TestProposalBuilder:
         assert proposal["proposed_nodes"][0]["name"] == "alice"
         assert proposal["proposed_nodes"][1]["name"] == "google"
         assert proposal["metadata"]["pipeline"]["ner_provider"] == "combined"
+
+
+class TestNormalizeEdgeNames:
+    def test_edge_endpoints_cleaned_to_match_stripped_entities(self):
+        from hermes.name_normalizer import normalize_entities
+        from hermes.proposal_builder import _normalize_edge_names
+
+        entities = normalize_entities(
+            [
+                {"name": "The Morning Light", "type": "entity", "start": 0, "end": 17},
+                {"name": "a meadow", "type": "entity", "start": 24, "end": 32},
+            ],
+            "The Morning Light fills a meadow",
+        )
+        edges = [
+            {
+                "source_name": "The Morning Light",
+                "target_name": "a meadow",
+                "relation": "FILLS",
+            }
+        ]
+        result = _normalize_edge_names(edges, entities)
+        assert len(result) == 1
+        assert result[0]["source_name"] == "morning light"
+        assert result[0]["target_name"] == "meadow"

@@ -41,12 +41,15 @@ def _normalize_edge_names(
 ) -> list[dict]:
     """Normalize edge endpoint names and drop edges with unresolvable endpoints.
 
-    Applies the same normalization pipeline (lowercase + lemmatize) to
-    edge endpoint names, then validates both endpoints exist in the
-    normalized entity set.  Edges referencing non-existent entities are
-    dropped with a warning — they would fail silently in Sophia anyway.
+    Applies the same cleaning pipeline as the entity set (lowercase +
+    determiner strip + lemmatize) to edge endpoint names, then validates
+    both endpoints exist in the normalized entity set.  Edges referencing
+    non-existent entities are dropped with a warning — they would fail
+    silently in Sophia anyway. Endpoints whose entity was rejected as junk
+    (pronouns, preposition-led phrases) fail the membership check and the
+    edge is dropped with them.
     """
-    from hermes.name_normalizer import _lemmatize_name
+    from hermes.name_normalizer import clean_entity_name
 
     known_names = {e["name"] for e in normalized_entities}
 
@@ -55,8 +58,8 @@ def _normalize_edge_names(
         edge = dict(edge)  # don't mutate originals
         src = edge.get("source_name", "")
         tgt = edge.get("target_name", "")
-        edge["source_name"] = _lemmatize_name(src.lower(), original_name=src)
-        edge["target_name"] = _lemmatize_name(tgt.lower(), original_name=tgt)
+        edge["source_name"] = clean_entity_name(src.lower(), original_name=src)
+        edge["target_name"] = clean_entity_name(tgt.lower(), original_name=tgt)
 
         if (
             edge["source_name"] not in known_names

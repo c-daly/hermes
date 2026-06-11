@@ -57,10 +57,14 @@ class TestSingularization:
         assert result[0]["name"] == "grass"
 
     def test_should_not_singularize_short_words(self):
-        """Words <= 2 chars should not be singularized."""
-        entities = [{"name": "us", "type": "entity", "start": 0, "end": 2}]
-        result = normalize_entities(entities, "us")
-        assert result[0]["name"] == "us"
+        """Words <= 2 chars should not be singularized.
+
+        Fixture is "ox", not "us": bare pronouns are now junk-rejected
+        (hermes#144), so "us" never reaches the singularization path.
+        """
+        entities = [{"name": "ox", "type": "entity", "start": 0, "end": 2}]
+        result = normalize_entities(entities, "ox")
+        assert result[0]["name"] == "ox"
 
     def test_should_not_singularize_non_plural_s(self):
         """Words like 'paris', 'diabetes' should not be singularized."""
@@ -272,3 +276,68 @@ class TestInvariantNouns:
         entities = [{"name": "chassis", "type": "entity", "start": 0, "end": 7}]
         result = normalize_entities(entities, "chassis")
         assert result[0]["name"] == "chassis"
+
+
+class TestDeterminerStripping:
+    def test_strips_leading_indefinite_article(self):
+        entities = [
+            {"name": "a slow delivery truck", "type": "entity", "start": 0, "end": 21}
+        ]
+        result = normalize_entities(entities, "a slow delivery truck")
+        assert result[0]["name"] == "slow delivery truck"
+
+    def test_strips_leading_definite_article(self):
+        entities = [
+            {"name": "The Morning Light", "type": "entity", "start": 0, "end": 17}
+        ]
+        result = normalize_entities(entities, "The Morning Light")
+        assert result[0]["name"] == "morning light"
+
+    def test_strips_possessive_determiner(self):
+        entities = [{"name": "its jaw", "type": "entity", "start": 0, "end": 7}]
+        result = normalize_entities(entities, "its jaw")
+        assert result[0]["name"] == "jaw"
+
+    def test_dedups_after_determiner_strip(self):
+        entities = [
+            {"name": "the acorn", "type": "entity", "start": 0, "end": 9},
+            {"name": "acorn", "type": "entity", "start": 20, "end": 25},
+        ]
+        result = normalize_entities(entities, "the acorn fell near an acorn")
+        assert len(result) == 1
+        assert result[0]["name"] == "acorn"
+
+
+class TestJunkRejection:
+    def test_drops_bare_pronoun(self):
+        entities = [{"name": "it", "type": "entity", "start": 0, "end": 2}]
+        assert normalize_entities(entities, "it") == []
+
+    def test_drops_capitalized_pronoun(self):
+        entities = [{"name": "They", "type": "entity", "start": 0, "end": 4}]
+        assert normalize_entities(entities, "They") == []
+
+    def test_drops_name_that_is_only_a_determiner(self):
+        entities = [{"name": "the", "type": "entity", "start": 0, "end": 3}]
+        assert normalize_entities(entities, "the") == []
+
+    def test_drops_leading_preposition_phrase(self):
+        entities = [
+            {
+                "name": "over two hundred miles per hour",
+                "type": "concept",
+                "start": 0,
+                "end": 31,
+            }
+        ]
+        assert normalize_entities(entities, "over two hundred miles per hour") == []
+
+    def test_keeps_single_common_noun(self):
+        entities = [{"name": "suv", "type": "entity", "start": 0, "end": 3}]
+        result = normalize_entities(entities, "suv")
+        assert result[0]["name"] == "suv"
+
+    def test_keeps_single_word_even_if_preposition_homograph(self):
+        entities = [{"name": "outside", "type": "concept", "start": 0, "end": 7}]
+        result = normalize_entities(entities, "outside")
+        assert result[0]["name"] == "outside"

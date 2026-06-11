@@ -341,3 +341,11 @@ class TestJunkRejection:
         entities = [{"name": "outside", "type": "concept", "start": 0, "end": 7}]
         result = normalize_entities(entities, "outside")
         assert result[0]["name"] == "outside"
+
+    def test_drops_single_word_pure_preposition(self):
+        entities = [{"name": "of", "type": "entity", "start": 0, "end": 2}]
+        assert normalize_entities(entities, "of") == []
+
+    def test_drops_single_word_pure_preposition_with(self):
+        entities = [{"name": "with", "type": "entity", "start": 0, "end": 4}]
+        assert normalize_entities(entities, "with") == []

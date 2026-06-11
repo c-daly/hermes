@@ -25,6 +25,7 @@ class TypeRegistry:
         self._redis = redis_client
         self._lock = threading.Lock()
         self._types: dict[str, dict] = {}
+        self._generation = 0
         self._load_from_redis()
 
     def _load_from_redis(self) -> None:
@@ -61,8 +62,20 @@ class TypeRegistry:
                 else:
                     self._types = {}
                     logger.info("TypeRegistry: no snapshot in Redis, cleared to empty")
+                self._generation += 1
         except Exception:
             logger.exception("TypeRegistry: failed to load from Redis")
+
+    @property
+    def generation(self) -> int:
+        """Monotonic counter bumped on every (re)load from Redis.
+
+        Lets consumers (ontology_client's TTL cache) detect a live reload
+        and invalidate immediately instead of serving stale types for a
+        full TTL window.
+        """
+        with self._lock:
+            return self._generation
 
     def get_type_names(self) -> list[str]:
         """Return sorted list of known type names."""

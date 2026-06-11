@@ -320,7 +320,7 @@ async def lifespan(app: FastAPI):  # type: ignore
     global _type_registry, _type_registry_event_bus, _type_registry_listener, _type_registry_redis_client
     global _relation_registry, _relation_registry_event_bus, _relation_registry_listener
     try:
-        from hermes.type_registry import TypeRegistry
+        from hermes.type_registry import TypeRegistry, set_active_registry
         import redis
 
         _redis_config = RedisConfig()
@@ -329,8 +329,6 @@ async def lifespan(app: FastAPI):  # type: ignore
         # Expose to ontology_client so extraction prompts see live types
         # (hermes#146 — the legacy HTTP fetch hit an endpoint that never
         # existed and always fell back to defaults).
-        from hermes.type_registry import set_active_registry
-
         set_active_registry(_type_registry)
         logger.info(
             "TypeRegistry initialized with %d types",

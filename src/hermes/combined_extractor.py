@@ -17,7 +17,7 @@ from typing import Any
 
 
 from hermes.ner_provider import ONTOLOGY_TYPES, OpenAINERProvider
-from hermes.ontology_client import fetch_type_list, get_sophia_url
+from hermes.ontology_client import fetch_type_list
 from hermes.relation_extractor import OpenAIRelationExtractor
 
 logger = logging.getLogger(__name__)
@@ -166,8 +166,7 @@ class OpenAICombinedExtractor:
         """
         from hermes.llm import generate_completion
 
-        sophia_url = get_sophia_url()
-        type_list = await fetch_type_list(sophia_url)
+        type_list = await fetch_type_list()
         system_prompt = self._build_system_prompt(type_list)
 
         messages = [

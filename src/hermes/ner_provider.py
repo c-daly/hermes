@@ -16,7 +16,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from logos_config import get_env_value
 
-from hermes.ontology_client import fetch_type_list, get_sophia_url
+from hermes.ontology_client import fetch_type_list
 
 logger = logging.getLogger(__name__)
 
@@ -145,8 +145,7 @@ class OpenAINERProvider:
     async def extract_entities(self, text: str) -> list[dict]:
         from hermes.llm import generate_completion
 
-        sophia_url = get_sophia_url()
-        type_list = await fetch_type_list(sophia_url)
+        type_list = await fetch_type_list()
         system_prompt = self._build_system_prompt(type_list)
 
         messages = [

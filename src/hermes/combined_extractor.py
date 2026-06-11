@@ -124,12 +124,19 @@ class OpenAICombinedExtractor:
         ``RE_VOCAB_CAP`` (default 150) because the live vocabulary can hold
         thousands of surfaces; the cap keeps prompt tokens in check and, as
         consolidation shrinks the vocabulary below it, the full clean set is
-        injected automatically.
+        injected automatically. The window is ranked by graph usage
+        (``edge_count`` from Sophia's relation snapshot, via
+        ``get_relation_counts``) so the capped slice shows the model the
+        reusable core rather than an alphabetical prefix.
         """
         try:
-            from hermes.predicate_resolver import get_predicate_vocabulary
+            from hermes.predicate_resolver import (
+                get_predicate_vocabulary,
+                get_relation_counts,
+            )
 
             known = get_predicate_vocabulary().known()
+            counts = get_relation_counts()
         except Exception:
             logger.warning("H5: predicate vocabulary unavailable; using open RE prompt")
             return ""
@@ -145,7 +152,11 @@ class OpenAICombinedExtractor:
                 os.getenv("RE_VOCAB_CAP"),
             )
             cap = 150
-        vocab = sorted(known)[:cap]
+        # Rank by graph usage (Sophia's snapshot edge_count) so the capped
+        # window advertises the reusable core, not an alphabetical slice;
+        # surfaces without a count (e.g. just minted in-process) rank last.
+        # Alphabetical tiebreak keeps the clause deterministic.
+        vocab = sorted(known, key=lambda s: (-counts.get(s, 0), s))[:cap]
         if not vocab:  # cap sliced everything away -> open prompt, not an empty clause
             return ""
         return (

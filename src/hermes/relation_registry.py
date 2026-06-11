@@ -20,7 +20,8 @@ import json
 import logging
 from typing import Any
 
-from hermes.predicate_resolver import PredicateVocabulary
+from hermes.canonical import normalize_predicate_surface
+from hermes.predicate_resolver import PredicateVocabulary, set_relation_counts
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,21 @@ class RelationRegistry:
             added,
             len(data),
         )
+        # Retain the snapshot's usage counts for the H5 prompt window: the
+        # known-relations clause ranks the advertised vocabulary by
+        # edge_count so the model is shown the reusable core rather than an
+        # alphabetical slice. Surfaces minted in-process have no count yet
+        # and simply rank last; a wholesale replace tracks Sophia's view.
+        counts: dict[str, int] = {}
+        for raw_surface, props in data.items():
+            surface = normalize_predicate_surface(raw_surface)
+            if not surface or not isinstance(props, dict):
+                continue
+            try:
+                counts[surface] = int(props.get("edge_count", 0))
+            except (TypeError, ValueError):
+                counts[surface] = 0
+        set_relation_counts(counts)
 
     def on_proposal_processed(self, event: dict) -> None:
         """EventBus callback — re-read the snapshot and re-seed (additive)."""

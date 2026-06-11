@@ -7,12 +7,11 @@ from unittest.mock import AsyncMock, patch
 
 
 def _patch_ontology_client():
-    """Patch ontology client to return None (fallback to hardcoded types)."""
-    return patch(
-        "hermes.combined_extractor.fetch_type_list",
-        new_callable=AsyncMock,
-        return_value=None,
-    )
+    """No-op kept for call-site compatibility: the extractor no longer
+    consults the ontology client (hermes#148 — free typing)."""
+    from contextlib import nullcontext
+
+    return nullcontext()
 
 
 @pytest.mark.asyncio
@@ -261,70 +260,66 @@ class TestCombinedExtraction:
 
 
 @pytest.mark.asyncio
-class TestDynamicTypePrompt:
-    """Tests for dynamic type list injection into the system prompt."""
+class TestFreeTypingPrompt:
+    """The prompt must not constrain entity types (hermes#148).
 
-    async def test_dynamic_types_included_when_available(self):
-        from hermes.combined_extractor import OpenAICombinedExtractor
+    The 2026-06-11 ablation measured any type list in the prompt
+    suppressing type_accuracy ~4x (0.457 free vs ~0.12 constrained) and
+    taxing entity/link F1 — and sophia ignores the proposal type field
+    (centroid classification), so the constraint had no consumer.
+    """
 
-        extractor = OpenAICombinedExtractor()
-
-        fetched_types = [
-            {"name": "robot", "description": "an autonomous agent"},
-            {"name": "sensor", "description": "a sensing device"},
-        ]
-
-        llm_response = {
-            "choices": [
-                {"message": {"content": json.dumps({"entities": [], "relations": []})}}
-            ]
-        }
-
-        with (
-            patch(
-                "hermes.combined_extractor.fetch_type_list",
-                new_callable=AsyncMock,
-                return_value=fetched_types,
-            ),
-            patch(
-                "hermes.llm.generate_completion",
-                new_callable=AsyncMock,
-                return_value=llm_response,
-            ) as mock_llm,
-        ):
-            await extractor.extract_entities_and_relations("test")
-
-        system_msg = mock_llm.call_args[1]["messages"][0]["content"]
-        assert "- robot: an autonomous agent" in system_msg
-        assert "- sensor: a sensing device" in system_msg
-        assert "If none of these types fit, use 'object'." in system_msg
-
-    async def test_falls_back_to_hardcoded_when_fetch_returns_none(self):
+    def test_prompt_has_no_entity_types_section(self):
         from hermes.combined_extractor import OpenAICombinedExtractor
         from hermes.ner_provider import ONTOLOGY_TYPES
 
-        extractor = OpenAICombinedExtractor()
+        prompt = OpenAICombinedExtractor()._build_system_prompt()
+        assert "## Entity Types" not in prompt
+        for type_name in ONTOLOGY_TYPES:
+            assert f"- {type_name}:" not in prompt
 
+    def test_prompt_documents_free_type_field(self):
+        from hermes.combined_extractor import OpenAICombinedExtractor
+
+        prompt = OpenAICombinedExtractor()._build_system_prompt()
+        assert "category you choose" in prompt
+        assert "must be one of the types listed above" not in prompt
+
+    async def test_extraction_runs_without_ontology_client(self):
+        from hermes.combined_extractor import OpenAICombinedExtractor
+
+        extractor = OpenAICombinedExtractor()
         llm_response = {
             "choices": [
-                {"message": {"content": json.dumps({"entities": [], "relations": []})}}
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "entities": [
+                                    {
+                                        "name": "Bob",
+                                        "type": "person",
+                                        "start": 0,
+                                        "end": 3,
+                                    }
+                                ],
+                                "relations": [],
+                            }
+                        )
+                    }
+                }
             ]
         }
+        with patch(
+            "hermes.llm.generate_completion",
+            new_callable=AsyncMock,
+            return_value=llm_response,
+        ) as mock_llm:
+            entities, _ = await extractor.extract_entities_and_relations("Bob")
 
-        p1 = _patch_ontology_client()
-        with (
-            p1,
-            patch(
-                "hermes.llm.generate_completion",
-                new_callable=AsyncMock,
-                return_value=llm_response,
-            ) as mock_llm,
-        ):
-            await extractor.extract_entities_and_relations("test")
-
+        assert entities[0]["type"] == "person"
         system_msg = mock_llm.call_args[1]["messages"][0]["content"]
-        for type_name, desc in ONTOLOGY_TYPES.items():
-            assert f"- {type_name}: {desc}" in system_msg
+        assert "## Entity Types" not in system_msg
 
 
 @pytest.mark.asyncio

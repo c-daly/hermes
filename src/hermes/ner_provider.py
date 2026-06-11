@@ -180,8 +180,19 @@ class OpenAINERProvider:
         original_text: str,
         *,
         valid_types: set[str] | None = None,
+        coerce_unknown_types: bool = True,
     ) -> list[dict]:
-        """Parse the LLM JSON response into entity dicts."""
+        """Parse the LLM JSON response into entity dicts.
+
+        ``valid_types`` only participates when ``coerce_unknown_types`` is
+        True; combining a validation set with coercion disabled is a caller
+        bug and raises rather than silently discarding the set.
+        """
+        if valid_types is not None and not coerce_unknown_types:
+            raise ValueError(
+                "valid_types has no effect when coerce_unknown_types=False; "
+                "pass one or the other"
+            )
         try:
             data = json.loads(content)
         except json.JSONDecodeError:
@@ -205,10 +216,23 @@ class OpenAINERProvider:
             ent_type = ent.get("type", "entity")
             if not name:
                 continue
-            # Validate type — accept dynamic Sophia types or hardcoded fallback
-            allowed = valid_types if valid_types is not None else set(ONTOLOGY_TYPES)
-            if ent_type not in allowed:
+            # Normalize the category defensively: the prompt asks for a short
+            # lowercase string, but the model may emit "Person", null, or a
+            # non-string. Lowercase strings; anything else falls back to
+            # "entity" so downstream consumers always see a lowercase str.
+            if isinstance(ent_type, str) and ent_type:
+                ent_type = ent_type.lower()
+            else:
                 ent_type = "entity"
+            # Validate type — accept dynamic Sophia types or hardcoded fallback.
+            # The combined path disables coercion entirely (hermes#148 free
+            # typing): the extractor's chosen category passes through.
+            if coerce_unknown_types:
+                allowed = (
+                    valid_types if valid_types is not None else set(ONTOLOGY_TYPES)
+                )
+                if ent_type not in allowed:
+                    ent_type = "entity"
             # Use provided offsets, or find them in the text.
             # Track search offset so repeated entities get distinct spans
             # instead of all mapping to the first occurrence.

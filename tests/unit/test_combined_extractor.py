@@ -498,6 +498,40 @@ class TestClosedVocabPrompt:
 
         assert "## Known Relations" not in prompt
 
+    @staticmethod
+    def _patch_counts(monkeypatch, counts):
+        monkeypatch.setattr(
+            "hermes.predicate_resolver.get_relation_counts",
+            lambda: dict(counts),
+        )
+
+    def test_window_ranked_by_usage_not_alphabetical(self, monkeypatch):
+        from hermes.combined_extractor import OpenAICombinedExtractor
+
+        self._patch_vocab(monkeypatch, {"AAA_OF", "PART_OF", "LOCATED_IN"})
+        self._patch_counts(monkeypatch, {"PART_OF": 100, "LOCATED_IN": 40})
+        monkeypatch.setenv("RE_VOCAB_CAP", "2")
+        prompt = OpenAICombinedExtractor()._build_system_prompt()
+
+        # usage-ranked window: the frequent core makes the cap; the
+        # alphabetically-first zero-count surface is squeezed out
+        assert "PART_OF" in prompt
+        assert "LOCATED_IN" in prompt
+        assert "AAA_OF" not in prompt
+
+    def test_window_alphabetical_when_counts_absent(self, monkeypatch):
+        from hermes.combined_extractor import OpenAICombinedExtractor
+
+        self._patch_vocab(monkeypatch, {"B_OF", "A_OF", "C_OF"})
+        self._patch_counts(monkeypatch, {})
+        monkeypatch.setenv("RE_VOCAB_CAP", "2")
+        prompt = OpenAICombinedExtractor()._build_system_prompt()
+
+        # no counts yet (pre-snapshot) -> deterministic alphabetical fallback
+        assert "A_OF" in prompt
+        assert "B_OF" in prompt
+        assert "C_OF" not in prompt
+
     def test_cap_respected(self, monkeypatch):
         from hermes.combined_extractor import OpenAICombinedExtractor
 

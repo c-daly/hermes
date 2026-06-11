@@ -128,3 +128,22 @@ _VOCABULARY = PredicateVocabulary()
 
 def get_predicate_vocabulary() -> PredicateVocabulary:
     return _VOCABULARY
+
+
+# Graph usage counts (surface -> edge_count) published by RelationRegistry
+# from Sophia's relation snapshot. Consumed by the H5 known-relations clause
+# to rank the advertised vocabulary window by usage instead of slicing it
+# alphabetically. Replaced wholesale on every snapshot load (atomic rebind;
+# readers only .get on the current dict); {} until the first snapshot lands.
+_RELATION_COUNTS: dict[str, int] = {}
+
+
+def set_relation_counts(counts: dict[str, int]) -> None:
+    """Replace the published usage-count map (surface -> edge_count)."""
+    global _RELATION_COUNTS
+    _RELATION_COUNTS = dict(counts)
+
+
+def get_relation_counts() -> dict[str, int]:
+    """Usage counts for known relations; {} before the first snapshot."""
+    return _RELATION_COUNTS

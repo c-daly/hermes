@@ -30,6 +30,28 @@ def test_seeds_vocabulary_from_snapshot_on_boot():
     assert redis.get.call_args[0][0] == "logos:ontology:relations"
 
 
+def test_boot_publishes_usage_counts_for_prompt_ranking(monkeypatch):
+    import hermes.predicate_resolver as pr
+
+    monkeypatch.setattr(pr, "_RELATION_COUNTS", {})
+    vocab = PredicateVocabulary()
+    RelationRegistry(
+        _redis_with({"PART_OF": {"edge_count": 100}, "LOCATED_IN": {"edge_count": 7}}),
+        vocab,
+    )
+    # the snapshot's edge_counts are retained for the H5 window ranking
+    assert pr.get_relation_counts() == {"PART_OF": 100, "LOCATED_IN": 7}
+
+
+def test_malformed_edge_count_publishes_zero(monkeypatch):
+    import hermes.predicate_resolver as pr
+
+    monkeypatch.setattr(pr, "_RELATION_COUNTS", {})
+    vocab = PredicateVocabulary()
+    RelationRegistry(_redis_with({"PART_OF": {"edge_count": "many"}}), vocab)
+    assert pr.get_relation_counts() == {"PART_OF": 0}
+
+
 def test_seeded_vocabulary_matches_inflected_variant():
     vocab = PredicateVocabulary()
     RelationRegistry(_redis_with({"LOCATED_IN": {"edge_count": 3}}), vocab)

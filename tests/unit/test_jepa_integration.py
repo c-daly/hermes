@@ -14,6 +14,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 torch = pytest.importorskip("torch")
+if not hasattr(torch, "Tensor"):
+    # A pruned venv can leave an orphaned namespace-package shell that
+    # imports as `torch` with no API; importorskip alone can't catch it.
+    pytest.skip(
+        "torch import is a namespace-package remnant, not a real install",
+        allow_module_level=True,
+    )
 
 
 # ---------------------------------------------------------------------------

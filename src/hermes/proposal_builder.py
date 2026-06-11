@@ -13,7 +13,11 @@ from datetime import UTC, datetime
 
 from hermes.combined_extractor import OpenAICombinedExtractor
 from hermes.embedding_provider import get_embedding_provider
-from hermes.name_normalizer import normalize_entities
+from hermes.name_normalizer import (
+    clean_entity_name,
+    is_junk_entity_name,
+    normalize_entities,
+)
 from hermes.ner_provider import get_ner_provider
 from hermes.relation_extractor import get_relation_extractor
 from hermes.services import generate_embeddings_batch
@@ -41,13 +45,14 @@ def _normalize_edge_names(
 ) -> list[dict]:
     """Normalize edge endpoint names and drop edges with unresolvable endpoints.
 
-    Applies the same normalization pipeline (lowercase + lemmatize) to
-    edge endpoint names, then validates both endpoints exist in the
-    normalized entity set.  Edges referencing non-existent entities are
-    dropped with a warning — they would fail silently in Sophia anyway.
+    Applies the same cleaning pipeline as the entity set (lowercase +
+    determiner strip + lemmatize) to edge endpoint names, then validates
+    both endpoints exist in the normalized entity set.  Edges referencing
+    non-existent entities are dropped with a warning — they would fail
+    silently in Sophia anyway. Endpoints whose entity was rejected as junk
+    (pronouns, preposition-led phrases) fail the membership check and the
+    edge is dropped with them at DEBUG, since the rejection was deliberate.
     """
-    from hermes.name_normalizer import _lemmatize_name
-
     known_names = {e["name"] for e in normalized_entities}
 
     result: list[dict] = []
@@ -55,17 +60,29 @@ def _normalize_edge_names(
         edge = dict(edge)  # don't mutate originals
         src = edge.get("source_name", "")
         tgt = edge.get("target_name", "")
-        edge["source_name"] = _lemmatize_name(src.lower(), original_name=src)
-        edge["target_name"] = _lemmatize_name(tgt.lower(), original_name=tgt)
+        edge["source_name"] = clean_entity_name(src.lower(), original_name=src)
+        edge["target_name"] = clean_entity_name(tgt.lower(), original_name=tgt)
 
         if (
             edge["source_name"] not in known_names
             or edge["target_name"] not in known_names
         ):
-            logger.warning(
-                "Dropping edge %s -> %s: endpoint not in normalized entity set",
+            # An endpoint that cleaned to nothing or to a junk name was
+            # deliberately rejected upstream — that's routine, not a fault.
+            junk_endpoint = any(
+                not name or is_junk_entity_name(name)
+                for name in (edge["source_name"], edge["target_name"])
+            )
+            log = logger.debug if junk_endpoint else logger.warning
+            log(
+                "Dropping edge %s -> %s: %s",
                 edge["source_name"],
                 edge["target_name"],
+                (
+                    "junk-rejected endpoint"
+                    if junk_endpoint
+                    else "endpoint not in normalized entity set"
+                ),
             )
             continue
         result.append(edge)

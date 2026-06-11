@@ -101,3 +101,22 @@ class TypeRegistry:
         """
         logger.info("TypeRegistry: proposal_processed event, reloading types")
         self._load_from_redis()
+
+
+# ---------------------------------------------------------------------------
+# Process-wide active registry (wired by main.py at startup; consumed by
+# ontology_client so the extraction path reads live types — hermes#146).
+# ---------------------------------------------------------------------------
+
+_active_registry: TypeRegistry | None = None
+
+
+def set_active_registry(registry: TypeRegistry | None) -> None:
+    """Install (or clear) the process-wide TypeRegistry instance."""
+    global _active_registry
+    _active_registry = registry
+
+
+def get_active_registry() -> TypeRegistry | None:
+    """Return the process-wide TypeRegistry, or None before startup wiring."""
+    return _active_registry

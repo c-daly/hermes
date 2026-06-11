@@ -1,7 +1,13 @@
-"""Fetches ontology type lists from Sophia with in-memory caching.
+"""Node-type lists for extraction prompts, from the Redis-backed TypeRegistry.
 
-Falls back to None when Sophia is unreachable, allowing callers to
-use hardcoded types as a default.
+Historically this fetched ``GET {sophia}/api/ontology/node-types`` — an
+endpoint that never existed sophia-side, so every caller silently fell back
+to hardcoded defaults (hermes#146). Types now come from the TypeRegistry
+that ``hermes.main`` wires at startup (sophia publishes the snapshot to
+``logos:ontology:types``; the registry stays live via pub/sub).
+
+Falls back to None when no registry is wired or it holds no types,
+allowing callers to use hardcoded types as a default.
 """
 
 from __future__ import annotations
@@ -9,8 +15,9 @@ from __future__ import annotations
 import logging
 import time
 
-import httpx
 from logos_config import get_env_value
+
+from hermes.type_registry import get_active_registry
 
 logger = logging.getLogger(__name__)
 
@@ -54,14 +61,17 @@ async def fetch_type_list(
     *,
     _cache: _TypeCache | None = None,
 ) -> list[dict] | None:
-    """Fetch current node types from Sophia.
+    """Current node types from the active TypeRegistry.
 
     Args:
-        sophia_url: Base URL of the Sophia service (e.g. "http://localhost:8080").
+        sophia_url: Unused; retained for caller compatibility (the legacy
+            HTTP endpoint never existed — hermes#146).
         _cache: Optional cache override for testing.
 
     Returns:
-        List of {"name": ..., "description": ...} dicts, or None on failure.
+        List of {"name": ..., "description": ...} dicts, or None when no
+        registry is wired or it holds no types (callers fall back to
+        defaults).
     """
     cache = _cache if _cache is not None else _shared_cache
     cache_key = "node_types"
@@ -70,22 +80,20 @@ async def fetch_type_list(
     if cached is not None:
         return cached
 
-    try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
-            response = await client.get(f"{sophia_url}/api/ontology/node-types")
-        if response.status_code != 200:
-            logger.warning(
-                "Sophia returned %d for node types, falling back to defaults",
-                response.status_code,
-            )
-            return None
-        data = response.json()
-        types: list[dict] = data.get("types", [])
-        if not types:
-            logger.debug("Sophia returned empty node type list, using fallback")
-            return None
-        cache.set(cache_key, types)
-        return types
-    except Exception as e:
-        logger.warning("Failed to fetch node types from Sophia: %s", e)
+    registry = get_active_registry()
+    if registry is None:
+        logger.debug("No active TypeRegistry; using fallback types")
         return None
+    names = registry.get_type_names()
+    if not names:
+        logger.debug("TypeRegistry holds no types; using fallback types")
+        return None
+    types = [
+        {
+            "name": name,
+            "description": (registry.get_type(name) or {}).get("description", ""),
+        }
+        for name in names
+    ]
+    cache.set(cache_key, types)
+    return types

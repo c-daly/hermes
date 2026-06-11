@@ -1,0 +1,6992 @@
+{
+  "INCLUDES": {
+    "edge_count": 350
+  },
+  "PART_OF": {
+    "edge_count": 161
+  },
+  "LOCATED_IN": {
+    "edge_count": 105
+  },
+  "ALSO_KNOWN_AS": {
+    "edge_count": 94
+  },
+  "USED_IN": {
+    "edge_count": 78
+  },
+  "COMPOSED_OF": {
+    "edge_count": 69
+  },
+  "CONTAINS": {
+    "edge_count": 69
+  },
+  "PRODUCES": {
+    "edge_count": 68
+  },
+  "OCCURS_IN": {
+    "edge_count": 57
+  },
+  "EXAMPLE_OF": {
+    "edge_count": 47
+  },
+  "AFFECTS": {
+    "edge_count": 46
+  },
+  "DERIVED_FROM": {
+    "edge_count": 43
+  },
+  "ASSOCIATED_WITH": {
+    "edge_count": 41
+  },
+  "USED_FOR": {
+    "edge_count": 39
+  },
+  "ALIAS_OF": {
+    "edge_count": 38
+  },
+  "USES": {
+    "edge_count": 38
+  },
+  "INVOLVES": {
+    "edge_count": 36
+  },
+  "OCCURRED_IN": {
+    "edge_count": 32
+  },
+  "HAS_PROPERTY": {
+    "edge_count": 30
+  },
+  "DEFINED_AS": {
+    "edge_count": 27
+  },
+  "FOUND_IN": {
+    "edge_count": 26
+  },
+  "TYPE_OF": {
+    "edge_count": 25
+  },
+  "BETWEEN": {
+    "edge_count": 24
+  },
+  "EXEMPLIFIED_BY": {
+    "edge_count": 24
+  },
+  "HAS": {
+    "edge_count": 23
+  },
+  "HAS_PART": {
+    "edge_count": 23
+  },
+  "INVOLVED_IN": {
+    "edge_count": 22
+  },
+  "MEMBER_OF": {
+    "edge_count": 22
+  },
+  "DEPENDS_ON": {
+    "edge_count": 21
+  },
+  "OBSERVED_IN": {
+    "edge_count": 21
+  },
+  "RELATED_TO": {
+    "edge_count": 21
+  },
+  "REPRESENTS": {
+    "edge_count": 21
+  },
+  "STUDIED": {
+    "edge_count": 21
+  },
+  "APPLIED_TO": {
+    "edge_count": 20
+  },
+  "FORMS": {
+    "edge_count": 20
+  },
+  "SOURCE_OF": {
+    "edge_count": 20
+  },
+  "APPLIED_IN": {
+    "edge_count": 19
+  },
+  "CAUSES": {
+    "edge_count": 19
+  },
+  "COMPONENT_OF": {
+    "edge_count": 19
+  },
+  "CONSISTS_OF": {
+    "edge_count": 19
+  },
+  "CONTAINED_IN": {
+    "edge_count": 19
+  },
+  "CONTRIBUTED_TO": {
+    "edge_count": 19
+  },
+  "IS": {
+    "edge_count": 19
+  },
+  "DESCRIBES": {
+    "edge_count": 18
+  },
+  "OF": {
+    "edge_count": 18
+  },
+  "PUBLISHED_IN": {
+    "edge_count": 18
+  },
+  "AUTHORED": {
+    "edge_count": 16
+  },
+  "ENABLES": {
+    "edge_count": 16
+  },
+  "RESEARCHES": {
+    "edge_count": 16
+  },
+  "RESULTS_IN": {
+    "edge_count": 16
+  },
+  "STUDIES": {
+    "edge_count": 16
+  },
+  "INFLUENCES": {
+    "edge_count": 15
+  },
+  "LOCATED_AT": {
+    "edge_count": 15
+  },
+  "PERFORMS": {
+    "edge_count": 15
+  },
+  "PRODUCE": {
+    "edge_count": 15
+  },
+  "APPLIES_TO": {
+    "edge_count": 14
+  },
+  "CONTAIN": {
+    "edge_count": 14
+  },
+  "REQUIRES": {
+    "edge_count": 14
+  },
+  "USED_BY": {
+    "edge_count": 14
+  },
+  "DRIVEN_BY": {
+    "edge_count": 13
+  },
+  "HAS_VALUE": {
+    "edge_count": 13
+  },
+  "INCLUDED_IN": {
+    "edge_count": 13
+  },
+  "INFLUENCED": {
+    "edge_count": 13
+  },
+  "PERFORMED": {
+    "edge_count": 13
+  },
+  "REFERRED_TO_AS": {
+    "edge_count": 13
+  },
+  "USED_AS": {
+    "edge_count": 13
+  },
+  "AFFECTED_BY": {
+    "edge_count": 12
+  },
+  "ALSO_CALLED": {
+    "edge_count": 12
+  },
+  "CAUSED_BY": {
+    "edge_count": 12
+  },
+  "CHARACTERIZED_BY": {
+    "edge_count": 12
+  },
+  "CONVERTS": {
+    "edge_count": 12
+  },
+  "DERIVES_FROM": {
+    "edge_count": 12
+  },
+  "DEVELOPED": {
+    "edge_count": 12
+  },
+  "DISCOVERED": {
+    "edge_count": 12
+  },
+  "ENCOMPASSES": {
+    "edge_count": 12
+  },
+  "INFLUENCED_BY": {
+    "edge_count": 12
+  },
+  "INVENTED_IN": {
+    "edge_count": 12
+  },
+  "SUBCLASS_OF": {
+    "edge_count": 12
+  },
+  "ACTS_ON": {
+    "edge_count": 11
+  },
+  "CATALYZES": {
+    "edge_count": 11
+  },
+  "CONSISTED_OF": {
+    "edge_count": 11
+  },
+  "DESCRIBED_AS": {
+    "edge_count": 11
+  },
+  "FOCUSES_ON": {
+    "edge_count": 11
+  },
+  "INVENTED_BY": {
+    "edge_count": 11
+  },
+  "IS_INSTANCE_OF": {
+    "edge_count": 11
+  },
+  "MEASURED_BY": {
+    "edge_count": 11
+  },
+  "SUCH_AS": {
+    "edge_count": 11
+  },
+  "WORKED_ON": {
+    "edge_count": 11
+  },
+  "BASED_ON": {
+    "edge_count": 10
+  },
+  "CREATED": {
+    "edge_count": 10
+  },
+  "EXCHANGES": {
+    "edge_count": 10
+  },
+  "INTERACTS_WITH": {
+    "edge_count": 10
+  },
+  "MADE_FROM": {
+    "edge_count": 10
+  },
+  "PREDICTED": {
+    "edge_count": 10
+  },
+  "PRODUCED_BY": {
+    "edge_count": 10
+  },
+  "PROPERTY_OF": {
+    "edge_count": 10
+  },
+  "RELATES": {
+    "edge_count": 10
+  },
+  "RESULTS_FROM": {
+    "edge_count": 10
+  },
+  "CONVERTED_TO": {
+    "edge_count": 9
+  },
+  "DESCRIBED_BY": {
+    "edge_count": 9
+  },
+  "DESIGNS_AND_IMPROVES": {
+    "edge_count": 9
+  },
+  "DEVELOPED_BY": {
+    "edge_count": 9
+  },
+  "DEVELOPED_IN": {
+    "edge_count": 9
+  },
+  "FROM": {
+    "edge_count": 9
+  },
+  "MENTIONED_IN": {
+    "edge_count": 9
+  },
+  "OCCURS_AT": {
+    "edge_count": 9
+  },
+  "ORIGINATES_FROM": {
+    "edge_count": 9
+  },
+  "PROVIDES": {
+    "edge_count": 9
+  },
+  "RELATES_TO": {
+    "edge_count": 9
+  },
+  "SUBSET_OF": {
+    "edge_count": 9
+  },
+  "ARE": {
+    "edge_count": 8
+  },
+  "ATTRIBUTE_OF": {
+    "edge_count": 8
+  },
+  "CALLED": {
+    "edge_count": 8
+  },
+  "CREATED_BY": {
+    "edge_count": 8
+  },
+  "CREATES": {
+    "edge_count": 8
+  },
+  "DESCRIBED": {
+    "edge_count": 8
+  },
+  "DETERMINES": {
+    "edge_count": 8
+  },
+  "DIVIDED_INTO": {
+    "edge_count": 8
+  },
+  "EMBEDDED_IN": {
+    "edge_count": 8
+  },
+  "ENABLE": {
+    "edge_count": 8
+  },
+  "EXPRESSES": {
+    "edge_count": 8
+  },
+  "HAS_INTERMEDIATE": {
+    "edge_count": 8
+  },
+  "HAS_STATE": {
+    "edge_count": 8
+  },
+  "IN": {
+    "edge_count": 8
+  },
+  "INCREASES": {
+    "edge_count": 8
+  },
+  "INTRODUCED": {
+    "edge_count": 8
+  },
+  "INVOLVE": {
+    "edge_count": 8
+  },
+  "LACKS": {
+    "edge_count": 8
+  },
+  "LEADS_TO": {
+    "edge_count": 8
+  },
+  "LOCATED_ON": {
+    "edge_count": 8
+  },
+  "MAY_INCLUDE": {
+    "edge_count": 8
+  },
+  "MEANS": {
+    "edge_count": 8
+  },
+  "PROPOSED": {
+    "edge_count": 8
+  },
+  "REGULATES": {
+    "edge_count": 8
+  },
+  "SUPPORTED_BY": {
+    "edge_count": 8
+  },
+  "TRANSFORMED": {
+    "edge_count": 8
+  },
+  "TRANSFORMED_INTO": {
+    "edge_count": 8
+  },
+  "USED": {
+    "edge_count": 8
+  },
+  "ACTIVE_DURING": {
+    "edge_count": 7
+  },
+  "ACTIVE_IN": {
+    "edge_count": 7
+  },
+  "AFFECTED": {
+    "edge_count": 7
+  },
+  "AWARDED": {
+    "edge_count": 7
+  },
+  "CHANGES": {
+    "edge_count": 7
+  },
+  "CONTRASTED_WITH": {
+    "edge_count": 7
+  },
+  "CONTRASTS_WITH": {
+    "edge_count": 7
+  },
+  "CROSSES": {
+    "edge_count": 7
+  },
+  "DESCRIBED_IN": {
+    "edge_count": 7
+  },
+  "DISCOVERED_IN": {
+    "edge_count": 7
+  },
+  "EMITS": {
+    "edge_count": 7
+  },
+  "EXISTS_AS": {
+    "edge_count": 7
+  },
+  "FIRST_APPEARED_IN": {
+    "edge_count": 7
+  },
+  "GENERATES": {
+    "edge_count": 7
+  },
+  "GIVES_RISE_TO": {
+    "edge_count": 7
+  },
+  "HAS_DENSITY": {
+    "edge_count": 7
+  },
+  "LINKED_TO": {
+    "edge_count": 7
+  },
+  "MAIN_CONSTITUENT_OF": {
+    "edge_count": 7
+  },
+  "NAMED_BY": {
+    "edge_count": 7
+  },
+  "OCCURRED_DURING": {
+    "edge_count": 7
+  },
+  "PREDICTS": {
+    "edge_count": 7
+  },
+  "PRESENT_IN": {
+    "edge_count": 7
+  },
+  "PROPOSED_BY": {
+    "edge_count": 7
+  },
+  "REFERS_TO": {
+    "edge_count": 7
+  },
+  "RELY_ON": {
+    "edge_count": 7
+  },
+  "RESULTS_IN_CREATION_OF": {
+    "edge_count": 7
+  },
+  "SEE_ALSO": {
+    "edge_count": 7
+  },
+  "SHAPED_BY": {
+    "edge_count": 7
+  },
+  "STORES": {
+    "edge_count": 7
+  },
+  "ALTERNATIVE_TO": {
+    "edge_count": 6
+  },
+  "ASPECT_OF": {
+    "edge_count": 6
+  },
+  "CAN_BE": {
+    "edge_count": 6
+  },
+  "CAN_BE_ORGANIZED_AS": {
+    "edge_count": 6
+  },
+  "COLLABORATED_WITH": {
+    "edge_count": 6
+  },
+  "COMPLETED_IN": {
+    "edge_count": 6
+  },
+  "COMPRISES": {
+    "edge_count": 6
+  },
+  "DEFINED_BY": {
+    "edge_count": 6
+  },
+  "DEPENDENT_ON": {
+    "edge_count": 6
+  },
+  "DEPEND_ON": {
+    "edge_count": 6
+  },
+  "DETERMINED_BY": {
+    "edge_count": 6
+  },
+  "EMPLOYED": {
+    "edge_count": 6
+  },
+  "EMPLOYS": {
+    "edge_count": 6
+  },
+  "ENCODES": {
+    "edge_count": 6
+  },
+  "ENGAGED_IN": {
+    "edge_count": 6
+  },
+  "EXAMINES": {
+    "edge_count": 6
+  },
+  "EXPLAINS": {
+    "edge_count": 6
+  },
+  "GENERATE": {
+    "edge_count": 6
+  },
+  "HAS_FUNCTION": {
+    "edge_count": 6
+  },
+  "HAS_PRESSURE": {
+    "edge_count": 6
+  },
+  "HAS_STRUCTURE": {
+    "edge_count": 6
+  },
+  "HAS_TEMPERATURE": {
+    "edge_count": 6
+  },
+  "IMPLICATED_IN": {
+    "edge_count": 6
+  },
+  "IMPOSES": {
+    "edge_count": 6
+  },
+  "IS_A_TYPE_OF": {
+    "edge_count": 6
+  },
+  "LIMITED_BY": {
+    "edge_count": 6
+  },
+  "MAINTAINS": {
+    "edge_count": 6
+  },
+  "MEASURE_OF": {
+    "edge_count": 6
+  },
+  "NAMED_AFTER": {
+    "edge_count": 6
+  },
+  "OCCUR_IN": {
+    "edge_count": 6
+  },
+  "OPERATES_ON": {
+    "edge_count": 6
+  },
+  "OVERLAPS_WITH": {
+    "edge_count": 6
+  },
+  "PART_OF_HIERARCHY": {
+    "edge_count": 6
+  },
+  "PERCENTAGE_OF": {
+    "edge_count": 6
+  },
+  "PERFORMED_BY": {
+    "edge_count": 6
+  },
+  "PLAYS_ROLE_IN": {
+    "edge_count": 6
+  },
+  "PRESENTED": {
+    "edge_count": 6
+  },
+  "PROCESSES": {
+    "edge_count": 6
+  },
+  "RELEASES": {
+    "edge_count": 6
+  },
+  "RELIES_ON": {
+    "edge_count": 6
+  },
+  "RESULT_OF": {
+    "edge_count": 6
+  },
+  "SHOWS": {
+    "edge_count": 6
+  },
+  "SIMILAR_TO": {
+    "edge_count": 6
+  },
+  "SUBJECT_OF": {
+    "edge_count": 6
+  },
+  "TRANSFORMS_FROM": {
+    "edge_count": 6
+  },
+  "TRANSFORMS_TO": {
+    "edge_count": 6
+  },
+  "ACROSS": {
+    "edge_count": 5
+  },
+  "ACTS_AS": {
+    "edge_count": 5
+  },
+  "AFTER": {
+    "edge_count": 5
+  },
+  "ARGUED_FOR": {
+    "edge_count": 5
+  },
+  "ARISES_FROM": {
+    "edge_count": 5
+  },
+  "AT_LEVEL": {
+    "edge_count": 5
+  },
+  "BALANCES": {
+    "edge_count": 5
+  },
+  "BUILT_IN": {
+    "edge_count": 5
+  },
+  "CARRIES": {
+    "edge_count": 5
+  },
+  "CENTRAL_TO": {
+    "edge_count": 5
+  },
+  "COMBINED_WITH": {
+    "edge_count": 5
+  },
+  "COMBINES_WITH": {
+    "edge_count": 5
+  },
+  "COMPRISE_PERCENTAGE_OF_MASS": {
+    "edge_count": 5
+  },
+  "CONDUCTED_IN": {
+    "edge_count": 5
+  },
+  "CONDUCTED_WORK_DURING": {
+    "edge_count": 5
+  },
+  "CONNECTS": {
+    "edge_count": 5
+  },
+  "CONSEQUENCE_OF": {
+    "edge_count": 5
+  },
+  "CONSIDERED_AT_LEVEL": {
+    "edge_count": 5
+  },
+  "CONTROLS": {
+    "edge_count": 5
+  },
+  "DEALS_WITH": {
+    "edge_count": 5
+  },
+  "DEFINES": {
+    "edge_count": 5
+  },
+  "DESCRIBES_STATE_OF": {
+    "edge_count": 5
+  },
+  "DESIGNED": {
+    "edge_count": 5
+  },
+  "DISTINGUISHED_FROM": {
+    "edge_count": 5
+  },
+  "DISTRIBUTED_IN": {
+    "edge_count": 5
+  },
+  "ENCLOSES": {
+    "edge_count": 5
+  },
+  "EXERTS": {
+    "edge_count": 5
+  },
+  "EXISTS_IN": {
+    "edge_count": 5
+  },
+  "FOCUSED_ON": {
+    "edge_count": 5
+  },
+  "FORMED_BY": {
+    "edge_count": 5
+  },
+  "FOUNDED": {
+    "edge_count": 5
+  },
+  "GENERATED_BY": {
+    "edge_count": 5
+  },
+  "GROUPED_WITH": {
+    "edge_count": 5
+  },
+  "HELD_TOGETHER_BY": {
+    "edge_count": 5
+  },
+  "INCORPORATED_INTO": {
+    "edge_count": 5
+  },
+  "INTEGRAL_TO": {
+    "edge_count": 5
+  },
+  "INTERTWINED_WITH": {
+    "edge_count": 5
+  },
+  "MADE_OF": {
+    "edge_count": 5
+  },
+  "MEASURED_IN": {
+    "edge_count": 5
+  },
+  "MENTIONS": {
+    "edge_count": 5
+  },
+  "OBSERVED": {
+    "edge_count": 5
+  },
+  "OBSERVED_AT": {
+    "edge_count": 5
+  },
+  "OBSERVED_BY": {
+    "edge_count": 5
+  },
+  "OCCURS_WITHIN": {
+    "edge_count": 5
+  },
+  "PARTICULARLY_IN": {
+    "edge_count": 5
+  },
+  "PHASE_OF": {
+    "edge_count": 5
+  },
+  "PRECEDED": {
+    "edge_count": 5
+  },
+  "PROPOSED_IN": {
+    "edge_count": 5
+  },
+  "PUBLISHED": {
+    "edge_count": 5
+  },
+  "REACTS_WITH": {
+    "edge_count": 5
+  },
+  "RELATIVE_TO": {
+    "edge_count": 5
+  },
+  "REPLACED": {
+    "edge_count": 5
+  },
+  "REPORTS_ON": {
+    "edge_count": 5
+  },
+  "REQUIRED_FOR": {
+    "edge_count": 5
+  },
+  "RESULTED_FROM": {
+    "edge_count": 5
+  },
+  "SHARE": {
+    "edge_count": 5
+  },
+  "STUDY_OF": {
+    "edge_count": 5
+  },
+  "TRAVELS_THROUGH": {
+    "edge_count": 5
+  },
+  "UNIFIES": {
+    "edge_count": 5
+  },
+  "USES_TERM": {
+    "edge_count": 5
+  },
+  "VARIES_BY": {
+    "edge_count": 5
+  },
+  "VARIETY_OF": {
+    "edge_count": 5
+  },
+  "WORKS_AT": {
+    "edge_count": 5
+  },
+  "ABOUT": {
+    "edge_count": 4
+  },
+  "ACCOUNTS_FOR": {
+    "edge_count": 4
+  },
+  "ACQUIRES": {
+    "edge_count": 4
+  },
+  "AIMS_TO_UNDERSTAND": {
+    "edge_count": 4
+  },
+  "ANALOGOUS_TO": {
+    "edge_count": 4
+  },
+  "ATTACHED_TO": {
+    "edge_count": 4
+  },
+  "BINDS": {
+    "edge_count": 4
+  },
+  "BREAKS_DOWN": {
+    "edge_count": 4
+  },
+  "BUILT": {
+    "edge_count": 4
+  },
+  "CANNOT_EXCEED": {
+    "edge_count": 4
+  },
+  "CATALYZE": {
+    "edge_count": 4
+  },
+  "CHARACTERIZES": {
+    "edge_count": 4
+  },
+  "CLASSIFIED_AS": {
+    "edge_count": 4
+  },
+  "CLASSIFIED_BY": {
+    "edge_count": 4
+  },
+  "CLOSE_TO": {
+    "edge_count": 4
+  },
+  "COGNATE_WITH": {
+    "edge_count": 4
+  },
+  "COINED_BY": {
+    "edge_count": 4
+  },
+  "COINED_TERM": {
+    "edge_count": 4
+  },
+  "COMPARABLE_TO": {
+    "edge_count": 4
+  },
+  "CONNECTED_TO": {
+    "edge_count": 4
+  },
+  "CONSIST_OF": {
+    "edge_count": 4
+  },
+  "CONTRADICTED": {
+    "edge_count": 4
+  },
+  "CONTRIBUTED_TO_UNDERSTANDING_OF": {
+    "edge_count": 4
+  },
+  "CONTRIBUTES_TO": {
+    "edge_count": 4
+  },
+  "CONTROL": {
+    "edge_count": 4
+  },
+  "CONVERTS_FROM": {
+    "edge_count": 4
+  },
+  "CORRESPONDS_TO": {
+    "edge_count": 4
+  },
+  "COUNT_OF": {
+    "edge_count": 4
+  },
+  "COVERS": {
+    "edge_count": 4
+  },
+  "CROSSES_BOUNDARY_WITH": {
+    "edge_count": 4
+  },
+  "DETECTS": {
+    "edge_count": 4
+  },
+  "DEVISED": {
+    "edge_count": 4
+  },
+  "DIFFERENT_FROM": {
+    "edge_count": 4
+  },
+  "DISCIPLINE_OF": {
+    "edge_count": 4
+  },
+  "DISCUSSED": {
+    "edge_count": 4
+  },
+  "DOCUMENTS": {
+    "edge_count": 4
+  },
+  "DRIVES": {
+    "edge_count": 4
+  },
+  "ENABLED_BY": {
+    "edge_count": 4
+  },
+  "EQUIVALENT_TO": {
+    "edge_count": 4
+  },
+  "FACILITATES": {
+    "edge_count": 4
+  },
+  "FIRST_APPEARED_DURING": {
+    "edge_count": 4
+  },
+  "FORM": {
+    "edge_count": 4
+  },
+  "FORMED": {
+    "edge_count": 4
+  },
+  "FORMED_FROM": {
+    "edge_count": 4
+  },
+  "FORMULATED_IN": {
+    "edge_count": 4
+  },
+  "HAS_ATOMIC_NUMBER": {
+    "edge_count": 4
+  },
+  "HAS_LIMITED": {
+    "edge_count": 4
+  },
+  "HAS_PRACTICAL_APPLICATION_IN": {
+    "edge_count": 4
+  },
+  "HAVE": {
+    "edge_count": 4
+  },
+  "IDENTIFIED": {
+    "edge_count": 4
+  },
+  "IDENTIFIED_IN": {
+    "edge_count": 4
+  },
+  "IMPORTANT_IN": {
+    "edge_count": 4
+  },
+  "IMPROVES": {
+    "edge_count": 4
+  },
+  "INCLUDES_ELEMENT": {
+    "edge_count": 4
+  },
+  "INCLUDES_MEMBER": {
+    "edge_count": 4
+  },
+  "INCREASED_UNTIL": {
+    "edge_count": 4
+  },
+  "INDICATES": {
+    "edge_count": 4
+  },
+  "INTRODUCED_CONCEPT": {
+    "edge_count": 4
+  },
+  "INVENTED": {
+    "edge_count": 4
+  },
+  "KNOWN_AS": {
+    "edge_count": 4
+  },
+  "LABELLED_AS": {
+    "edge_count": 4
+  },
+  "LACK": {
+    "edge_count": 4
+  },
+  "LOCATED_BETWEEN": {
+    "edge_count": 4
+  },
+  "MANIFESTS_AS": {
+    "edge_count": 4
+  },
+  "MEASURES": {
+    "edge_count": 4
+  },
+  "MODIFIES": {
+    "edge_count": 4
+  },
+  "OFFER": {
+    "edge_count": 4
+  },
+  "ORBITS": {
+    "edge_count": 4
+  },
+  "PRESENTS": {
+    "edge_count": 4
+  },
+  "QUANTITY_OF": {
+    "edge_count": 4
+  },
+  "RANGES_FROM": {
+    "edge_count": 4
+  },
+  "RANGES_TO": {
+    "edge_count": 4
+  },
+  "RECOGNIZED_IN": {
+    "edge_count": 4
+  },
+  "REPLACES": {
+    "edge_count": 4
+  },
+  "REQUIRED_KNOWLEDGE_OF": {
+    "edge_count": 4
+  },
+  "RESEARCHED": {
+    "edge_count": 4
+  },
+  "SEEKS_TO_EXPLAIN": {
+    "edge_count": 4
+  },
+  "SPANS": {
+    "edge_count": 4
+  },
+  "SPECIFIES": {
+    "edge_count": 4
+  },
+  "STIMULATES": {
+    "edge_count": 4
+  },
+  "STORED_IN": {
+    "edge_count": 4
+  },
+  "STUDENT_OF": {
+    "edge_count": 4
+  },
+  "STUDIED_BY": {
+    "edge_count": 4
+  },
+  "SUBDIVIDED_INTO": {
+    "edge_count": 4
+  },
+  "SUBFIELD_OF": {
+    "edge_count": 4
+  },
+  "SUBJECT_TO": {
+    "edge_count": 4
+  },
+  "SURROUNDS": {
+    "edge_count": 4
+  },
+  "SYNTHESIZE": {
+    "edge_count": 4
+  },
+  "TRANSPORTS": {
+    "edge_count": 4
+  },
+  "UNDERGOES": {
+    "edge_count": 4
+  },
+  "UNDERLIE": {
+    "edge_count": 4
+  },
+  "USED_WITH": {
+    "edge_count": 4
+  },
+  "USES_OBJECT": {
+    "edge_count": 4
+  },
+  "WITHIN_AND_BETWEEN": {
+    "edge_count": 4
+  },
+  "WRITTEN_IN": {
+    "edge_count": 4
+  },
+  "ACHIEVES": {
+    "edge_count": 3
+  },
+  "ACTS_AS_SOLVENT_DURING": {
+    "edge_count": 3
+  },
+  "ADAPTED_TO": {
+    "edge_count": 3
+  },
+  "ADDRESSED_TO": {
+    "edge_count": 3
+  },
+  "ADVANCED_IN": {
+    "edge_count": 3
+  },
+  "ALLOWS_PASSAGE_OF": {
+    "edge_count": 3
+  },
+  "AMPLIFIES": {
+    "edge_count": 3
+  },
+  "ANALYZED": {
+    "edge_count": 3
+  },
+  "ASSUMPTION_OF": {
+    "edge_count": 3
+  },
+  "ATTRACTS": {
+    "edge_count": 3
+  },
+  "AUTHORED_BY": {
+    "edge_count": 3
+  },
+  "BACKED_BY": {
+    "edge_count": 3
+  },
+  "BASIS_OF": {
+    "edge_count": 3
+  },
+  "BECOMES": {
+    "edge_count": 3
+  },
+  "BORDER_OF": {
+    "edge_count": 3
+  },
+  "BUILT_ON_RESULTS_OF": {
+    "edge_count": 3
+  },
+  "BUILT_USING": {
+    "edge_count": 3
+  },
+  "CAN_EXIST_AS": {
+    "edge_count": 3
+  },
+  "CAN_INCLUDE": {
+    "edge_count": 3
+  },
+  "CATALOGED": {
+    "edge_count": 3
+  },
+  "CATCH_ALL_FOR": {
+    "edge_count": 3
+  },
+  "CATEGORIZED_BY": {
+    "edge_count": 3
+  },
+  "CAUSES_FALL_IN": {
+    "edge_count": 3
+  },
+  "CAUSES_TO_DESCRIBE": {
+    "edge_count": 3
+  },
+  "CHARGED_BY": {
+    "edge_count": 3
+  },
+  "COEXISTS_WITH": {
+    "edge_count": 3
+  },
+  "COINED_IN": {
+    "edge_count": 3
+  },
+  "COLLAPSES_TO": {
+    "edge_count": 3
+  },
+  "COLLAPSES_TO_FORM": {
+    "edge_count": 3
+  },
+  "COLLECTED": {
+    "edge_count": 3
+  },
+  "COMMON_IN": {
+    "edge_count": 3
+  },
+  "COMPLETELY_LOST": {
+    "edge_count": 3
+  },
+  "CONNECTED_BY": {
+    "edge_count": 3
+  },
+  "CONSIDERS": {
+    "edge_count": 3
+  },
+  "CONSTRUCTED_BY": {
+    "edge_count": 3
+  },
+  "CONSUMES": {
+    "edge_count": 3
+  },
+  "CONTAINS_SECTION_ON": {
+    "edge_count": 3
+  },
+  "CONVERTED_INTO": {
+    "edge_count": 3
+  },
+  "CONVERTIBLE_TO": {
+    "edge_count": 3
+  },
+  "CORNERSTONE_OF": {
+    "edge_count": 3
+  },
+  "CO_FOUNDED": {
+    "edge_count": 3
+  },
+  "DATED_TO": {
+    "edge_count": 3
+  },
+  "DEFINED": {
+    "edge_count": 3
+  },
+  "DEFINED_IN": {
+    "edge_count": 3
+  },
+  "DEMONSTRATES": {
+    "edge_count": 3
+  },
+  "DESCENDED_FROM": {
+    "edge_count": 3
+  },
+  "DETECTS_EFFECT_ON": {
+    "edge_count": 3
+  },
+  "DETERMINED": {
+    "edge_count": 3
+  },
+  "DEVELOPED_AROUND": {
+    "edge_count": 3
+  },
+  "DIRECTED_AT": {
+    "edge_count": 3
+  },
+  "DISCOVERED_BY": {
+    "edge_count": 3
+  },
+  "DISCOVERY_DATE": {
+    "edge_count": 3
+  },
+  "DISPLAYS_PHASE": {
+    "edge_count": 3
+  },
+  "DISRUPTS": {
+    "edge_count": 3
+  },
+  "DISTINCT_FROM": {
+    "edge_count": 3
+  },
+  "DISTINGUISHED_BY": {
+    "edge_count": 3
+  },
+  "DOES_NOT_AFFECT": {
+    "edge_count": 3
+  },
+  "DOES_NOT_PRODUCE": {
+    "edge_count": 3
+  },
+  "DRIVER_OF": {
+    "edge_count": 3
+  },
+  "DURATION": {
+    "edge_count": 3
+  },
+  "EARLIEST_EVIDENCE_DURING": {
+    "edge_count": 3
+  },
+  "EMITTED_BY": {
+    "edge_count": 3
+  },
+  "ENABLED": {
+    "edge_count": 3
+  },
+  "ENABLED_FOR": {
+    "edge_count": 3
+  },
+  "ENCLOSED_BY": {
+    "edge_count": 3
+  },
+  "ENCLOSED_IN": {
+    "edge_count": 3
+  },
+  "ENCODED_BY": {
+    "edge_count": 3
+  },
+  "ESTABLISHED": {
+    "edge_count": 3
+  },
+  "ESTIMATED_BASED_ON": {
+    "edge_count": 3
+  },
+  "EVALUATES": {
+    "edge_count": 3
+  },
+  "EXCEEDS": {
+    "edge_count": 3
+  },
+  "EXPLAINED": {
+    "edge_count": 3
+  },
+  "EXPLAINED_BY": {
+    "edge_count": 3
+  },
+  "EXPLORES": {
+    "edge_count": 3
+  },
+  "FIRST_USED_IN": {
+    "edge_count": 3
+  },
+  "FORMULATED_BY": {
+    "edge_count": 3
+  },
+  "FUNCTION_OF": {
+    "edge_count": 3
+  },
+  "GAVE_RISE_TO": {
+    "edge_count": 3
+  },
+  "HAS_ABUNDANCE_RANK": {
+    "edge_count": 3
+  },
+  "HAS_CAPABILITY": {
+    "edge_count": 3
+  },
+  "HAS_CHEMICAL_FORMULA": {
+    "edge_count": 3
+  },
+  "HAS_CHEMICAL_SYMBOL": {
+    "edge_count": 3
+  },
+  "HAS_SIZE": {
+    "edge_count": 3
+  },
+  "HOLDS_POSITION": {
+    "edge_count": 3
+  },
+  "ILLUMINATES": {
+    "edge_count": 3
+  },
+  "IMPLEMENTED_BY": {
+    "edge_count": 3
+  },
+  "IMPORTANT_FOR": {
+    "edge_count": 3
+  },
+  "IMPROVED": {
+    "edge_count": 3
+  },
+  "INCLUDES_EVENT": {
+    "edge_count": 3
+  },
+  "INDUCED_FROM": {
+    "edge_count": 3
+  },
+  "INTERESTED_IN": {
+    "edge_count": 3
+  },
+  "INTERRELATED_WITH": {
+    "edge_count": 3
+  },
+  "INVOLVED_IN_MAINTENANCE_OF": {
+    "edge_count": 3
+  },
+  "IONIZES": {
+    "edge_count": 3
+  },
+  "ISOTOPE_OF": {
+    "edge_count": 3
+  },
+  "KNOWN_SINCE": {
+    "edge_count": 3
+  },
+  "LISTS_FUNCTION": {
+    "edge_count": 3
+  },
+  "LOST": {
+    "edge_count": 3
+  },
+  "MAINLY": {
+    "edge_count": 3
+  },
+  "MAINTAINED_BY": {
+    "edge_count": 3
+  },
+  "MEASURED_AT": {
+    "edge_count": 3
+  },
+  "MODEL_OF": {
+    "edge_count": 3
+  },
+  "NAMED_AS": {
+    "edge_count": 3
+  },
+  "NOT_CONSIST_OF": {
+    "edge_count": 3
+  },
+  "OFFERS": {
+    "edge_count": 3
+  },
+  "ORDERED_BY": {
+    "edge_count": 3
+  },
+  "PARTICIPATES_IN": {
+    "edge_count": 3
+  },
+  "PERFORMED_ON": {
+    "edge_count": 3
+  },
+  "POWERED_BY": {
+    "edge_count": 3
+  },
+  "POWERS": {
+    "edge_count": 3
+  },
+  "PRECEDES": {
+    "edge_count": 3
+  },
+  "PROJECTED_FROM": {
+    "edge_count": 3
+  },
+  "PROTECTS": {
+    "edge_count": 3
+  },
+  "PROVIDED": {
+    "edge_count": 3
+  },
+  "REACHES": {
+    "edge_count": 3
+  },
+  "RECEIVED": {
+    "edge_count": 3
+  },
+  "RECEIVES": {
+    "edge_count": 3
+  },
+  "RECORDED_IN": {
+    "edge_count": 3
+  },
+  "REDUCES": {
+    "edge_count": 3
+  },
+  "REFERRED_TO": {
+    "edge_count": 3
+  },
+  "REQUIRES_CAPABILITY": {
+    "edge_count": 3
+  },
+  "RESEMBLES": {
+    "edge_count": 3
+  },
+  "RESPECTS_HARD_BOUNDARY": {
+    "edge_count": 3
+  },
+  "RESPONSIBLE_FOR": {
+    "edge_count": 3
+  },
+  "SEPARATES_FROM": {
+    "edge_count": 3
+  },
+  "SERVES_AS": {
+    "edge_count": 3
+  },
+  "SPECIES_OF": {
+    "edge_count": 3
+  },
+  "SPLITS": {
+    "edge_count": 3
+  },
+  "STATE_UNDER": {
+    "edge_count": 3
+  },
+  "STUDIED_IN": {
+    "edge_count": 3
+  },
+  "SUBSUMED_IN": {
+    "edge_count": 3
+  },
+  "SUM_OF": {
+    "edge_count": 3
+  },
+  "SUPPLIES": {
+    "edge_count": 3
+  },
+  "SUPPORTS": {
+    "edge_count": 3
+  },
+  "SYNTHESIZED_IN": {
+    "edge_count": 3
+  },
+  "THROUGH": {
+    "edge_count": 3
+  },
+  "TOGETHER_COMPRISE_PERCENTAGE_OF_MASS": {
+    "edge_count": 3
+  },
+  "TRANSFERS": {
+    "edge_count": 3
+  },
+  "TRANSFORMS": {
+    "edge_count": 3
+  },
+  "TRANSLATED_AS": {
+    "edge_count": 3
+  },
+  "UNDERSTOOD_AS": {
+    "edge_count": 3
+  },
+  "USED_FOR_CONSTRUCTION": {
+    "edge_count": 3
+  },
+  "USED_UNTIL": {
+    "edge_count": 3
+  },
+  "USES_AS_INPUT": {
+    "edge_count": 3
+  },
+  "USES_PROCESS": {
+    "edge_count": 3
+  },
+  "VALIDATES": {
+    "edge_count": 3
+  },
+  "VARIES_WITH_RESPECT_TO": {
+    "edge_count": 3
+  },
+  "VISIBLE_TO": {
+    "edge_count": 3
+  },
+  "WARPED_INTO": {
+    "edge_count": 3
+  },
+  "WITHIN": {
+    "edge_count": 3
+  },
+  "WROTE": {
+    "edge_count": 3
+  },
+  "ABBREVIATED_AS": {
+    "edge_count": 2
+  },
+  "ABSORB": {
+    "edge_count": 2
+  },
+  "ABSORBED_BY": {
+    "edge_count": 2
+  },
+  "ABSORBS": {
+    "edge_count": 2
+  },
+  "ABUNDANT_IN": {
+    "edge_count": 2
+  },
+  "ACCELERATES": {
+    "edge_count": 2
+  },
+  "ACCEPTED": {
+    "edge_count": 2
+  },
+  "ACCEPTED_IN": {
+    "edge_count": 2
+  },
+  "ACCEPTED_VIEWPOINT_OF": {
+    "edge_count": 2
+  },
+  "ACKNOWLEDGED": {
+    "edge_count": 2
+  },
+  "ADOPTED_IN": {
+    "edge_count": 2
+  },
+  "ADVANCED": {
+    "edge_count": 2
+  },
+  "ADVANCED_BY": {
+    "edge_count": 2
+  },
+  "ALIGNED_WITH": {
+    "edge_count": 2
+  },
+  "ALLOWS": {
+    "edge_count": 2
+  },
+  "ALTERNATES_WITH": {
+    "edge_count": 2
+  },
+  "ALTERNATIVE_EXPLANATION_FOR": {
+    "edge_count": 2
+  },
+  "ALTERS": {
+    "edge_count": 2
+  },
+  "ANALYSED": {
+    "edge_count": 2
+  },
+  "AND": {
+    "edge_count": 2
+  },
+  "APPEARED_DURING": {
+    "edge_count": 2
+  },
+  "APPEARED_IN": {
+    "edge_count": 2
+  },
+  "APPEARS_ON": {
+    "edge_count": 2
+  },
+  "APPEAR_IDENTICAL_ON": {
+    "edge_count": 2
+  },
+  "APPLIED": {
+    "edge_count": 2
+  },
+  "APPLIES": {
+    "edge_count": 2
+  },
+  "ARRIVES_AT": {
+    "edge_count": 2
+  },
+  "ASCRIBED_TO": {
+    "edge_count": 2
+  },
+  "ASSUMED": {
+    "edge_count": 2
+  },
+  "ATTESTED_TO": {
+    "edge_count": 2
+  },
+  "ATTRIBUTED_TO_CHANGES_IN": {
+    "edge_count": 2
+  },
+  "AWARDED_IN": {
+    "edge_count": 2
+  },
+  "BALANCES_SOFT_CONSTRAINT": {
+    "edge_count": 2
+  },
+  "BECAME": {
+    "edge_count": 2
+  },
+  "BECAME_MAINSTREAM_DURING": {
+    "edge_count": 2
+  },
+  "BELIEVED_TO_ATTRACT": {
+    "edge_count": 2
+  },
+  "BIND_TO": {
+    "edge_count": 2
+  },
+  "BIND_TOGETHER": {
+    "edge_count": 2
+  },
+  "BOILS_AT": {
+    "edge_count": 2
+  },
+  "BONDED_BY": {
+    "edge_count": 2
+  },
+  "BOUNDARY_OF": {
+    "edge_count": 2
+  },
+  "BROUGHT_UNDER": {
+    "edge_count": 2
+  },
+  "BUILT_DURING": {
+    "edge_count": 2
+  },
+  "BUILT_FROM": {
+    "edge_count": 2
+  },
+  "BUILT_WITH": {
+    "edge_count": 2
+  },
+  "BYPRODUCT_OF": {
+    "edge_count": 2
+  },
+  "CALCULATED": {
+    "edge_count": 2
+  },
+  "CAN_BE_CLASSIFIED_AS": {
+    "edge_count": 2
+  },
+  "CAN_BE_INTERPRETED_AS": {
+    "edge_count": 2
+  },
+  "CAN_BE_IN_FORM_OF": {
+    "edge_count": 2
+  },
+  "CAN_BE_TRANSFORMED_BY": {
+    "edge_count": 2
+  },
+  "CAN_FORM": {
+    "edge_count": 2
+  },
+  "CAN_INVOLVE": {
+    "edge_count": 2
+  },
+  "CAN_MIX_WITH": {
+    "edge_count": 2
+  },
+  "CAN_OCCUR_IN": {
+    "edge_count": 2
+  },
+  "CAN_STORE": {
+    "edge_count": 2
+  },
+  "CARRIES_CHARGE": {
+    "edge_count": 2
+  },
+  "CATALYSE": {
+    "edge_count": 2
+  },
+  "CATEGORIZES": {
+    "edge_count": 2
+  },
+  "CAUSE": {
+    "edge_count": 2
+  },
+  "CAUSES_CHANGE_TO": {
+    "edge_count": 2
+  },
+  "CAUSES_DROP_IN": {
+    "edge_count": 2
+  },
+  "CAUSES_FORMATION_OF": {
+    "edge_count": 2
+  },
+  "CAUSES_INCREASE_IN": {
+    "edge_count": 2
+  },
+  "CAUSES_LOSS_OF": {
+    "edge_count": 2
+  },
+  "CAUSES_RISE_IN": {
+    "edge_count": 2
+  },
+  "CHANGES_ASSOCIATION": {
+    "edge_count": 2
+  },
+  "CHARACTERISTIC_OF": {
+    "edge_count": 2
+  },
+  "COLLECTS": {
+    "edge_count": 2
+  },
+  "COMBUSTS": {
+    "edge_count": 2
+  },
+  "COMMUNICATES": {
+    "edge_count": 2
+  },
+  "COMPILED": {
+    "edge_count": 2
+  },
+  "COMPOSES": {
+    "edge_count": 2
+  },
+  "COMPRISED_OF": {
+    "edge_count": 2
+  },
+  "CONCEIVED_BY": {
+    "edge_count": 2
+  },
+  "CONDUCTED": {
+    "edge_count": 2
+  },
+  "CONDUCTED_BY": {
+    "edge_count": 2
+  },
+  "CONFERS": {
+    "edge_count": 2
+  },
+  "CONFIRMED_BY": {
+    "edge_count": 2
+  },
+  "CONSIDERED_AS": {
+    "edge_count": 2
+  },
+  "CONSTRUCTED_IN": {
+    "edge_count": 2
+  },
+  "CONTAINS_PERCENTAGE_OF_MASS": {
+    "edge_count": 2
+  },
+  "CONVERTS_TO": {
+    "edge_count": 2
+  },
+  "CONVEYS": {
+    "edge_count": 2
+  },
+  "COPLANAR_WITH": {
+    "edge_count": 2
+  },
+  "COUNTERACTS": {
+    "edge_count": 2
+  },
+  "COVERED_BY": {
+    "edge_count": 2
+  },
+  "CO_DISCOVERED": {
+    "edge_count": 2
+  },
+  "CREATED_DURING": {
+    "edge_count": 2
+  },
+  "CREATED_IN": {
+    "edge_count": 2
+  },
+  "CREATES_AT": {
+    "edge_count": 2
+  },
+  "CRITICIZES": {
+    "edge_count": 2
+  },
+  "CROSSED": {
+    "edge_count": 2
+  },
+  "CROSSED_BY": {
+    "edge_count": 2
+  },
+  "DATES_BACK_TO": {
+    "edge_count": 2
+  },
+  "DECLARED_BY": {
+    "edge_count": 2
+  },
+  "DECLARES": {
+    "edge_count": 2
+  },
+  "DECREASES": {
+    "edge_count": 2
+  },
+  "DECREASES_WITH": {
+    "edge_count": 2
+  },
+  "DEFINED_AS_FORCE_TIMES_DISTANCE": {
+    "edge_count": 2
+  },
+  "DEFINED_AS_MINUS": {
+    "edge_count": 2
+  },
+  "DEFINED_AS_PRODUCT_WITH": {
+    "edge_count": 2
+  },
+  "DEGRADED_BY": {
+    "edge_count": 2
+  },
+  "DEPICTS": {
+    "edge_count": 2
+  },
+  "DESCRIBES_RELATIONSHIP_WITH": {
+    "edge_count": 2
+  },
+  "DESIGNED_BY": {
+    "edge_count": 2
+  },
+  "DESIGNED_TO_OPERATE_OUTSIDE": {
+    "edge_count": 2
+  },
+  "DETECTED_BY": {
+    "edge_count": 2
+  },
+  "DEVELOPMENT_ENDED": {
+    "edge_count": 2
+  },
+  "DEVELOPMENT_STARTED": {
+    "edge_count": 2
+  },
+  "DEVELOPS": {
+    "edge_count": 2
+  },
+  "DIFFERENTIATE_INTO": {
+    "edge_count": 2
+  },
+  "DIFFER_IN": {
+    "edge_count": 2
+  },
+  "DIRECTS": {
+    "edge_count": 2
+  },
+  "DISCOURAGES": {
+    "edge_count": 2
+  },
+  "DISCUSSES": {
+    "edge_count": 2
+  },
+  "DISSOLVES": {
+    "edge_count": 2
+  },
+  "DISTORTED_BY": {
+    "edge_count": 2
+  },
+  "DOES_NOT_ALTER": {
+    "edge_count": 2
+  },
+  "DOMINATED_BY": {
+    "edge_count": 2
+  },
+  "DRIVE": {
+    "edge_count": 2
+  },
+  "EARLIEST_EVIDENCE_IN": {
+    "edge_count": 2
+  },
+  "EMBEDS": {
+    "edge_count": 2
+  },
+  "EMPHASIZES": {
+    "edge_count": 2
+  },
+  "EMPLOYED_IN": {
+    "edge_count": 2
+  },
+  "ENABLED_CREATION_OF": {
+    "edge_count": 2
+  },
+  "ENABLED_DETERMINATION_OF": {
+    "edge_count": 2
+  },
+  "ENABLES_RECALL_OF": {
+    "edge_count": 2
+  },
+  "ENCODED_IN": {
+    "edge_count": 2
+  },
+  "ENERGISES": {
+    "edge_count": 2
+  },
+  "ENGINEERED_TO": {
+    "edge_count": 2
+  },
+  "EQUAL_CONCENTRATION_IN": {
+    "edge_count": 2
+  },
+  "ESSENTIAL_FOR": {
+    "edge_count": 2
+  },
+  "ESTABLISHES": {
+    "edge_count": 2
+  },
+  "ESTIMATED_FROM": {
+    "edge_count": 2
+  },
+  "EVIDENCED_BY": {
+    "edge_count": 2
+  },
+  "EXCHANGED_BY": {
+    "edge_count": 2
+  },
+  "EXCLUDES": {
+    "edge_count": 2
+  },
+  "EXCLUDES_ALL_BUT": {
+    "edge_count": 2
+  },
+  "EXCLUDES_MECHANISM": {
+    "edge_count": 2
+  },
+  "EXHIBITS_STATE": {
+    "edge_count": 2
+  },
+  "EXISTED_IN": {
+    "edge_count": 2
+  },
+  "EXISTS_ABOVE": {
+    "edge_count": 2
+  },
+  "EXISTS_IN_OR": {
+    "edge_count": 2
+  },
+  "EXISTS_WITHIN": {
+    "edge_count": 2
+  },
+  "EXPANDS": {
+    "edge_count": 2
+  },
+  "EXPELS": {
+    "edge_count": 2
+  },
+  "EXPLAINS_EFFECT_ON": {
+    "edge_count": 2
+  },
+  "FADES_OVER": {
+    "edge_count": 2
+  },
+  "FAVOURS": {
+    "edge_count": 2
+  },
+  "FEATURE_OF": {
+    "edge_count": 2
+  },
+  "FIRST_APPEARED_AROUND": {
+    "edge_count": 2
+  },
+  "FIRST_APPEARED_BY": {
+    "edge_count": 2
+  },
+  "FIXED_TO": {
+    "edge_count": 2
+  },
+  "FOLLOWED_BY": {
+    "edge_count": 2
+  },
+  "FORMED_AS": {
+    "edge_count": 2
+  },
+  "FORMED_AT": {
+    "edge_count": 2
+  },
+  "FORMERLY_CLASSIFIED_AS": {
+    "edge_count": 2
+  },
+  "FORMER_STUDENT_OF": {
+    "edge_count": 2
+  },
+  "FORMULATED": {
+    "edge_count": 2
+  },
+  "FORMULATED_IN_YEAR": {
+    "edge_count": 2
+  },
+  "FORM_BY_DEPOSITION_ON": {
+    "edge_count": 2
+  },
+  "FORM_OF": {
+    "edge_count": 2
+  },
+  "FORWARDED_TO": {
+    "edge_count": 2
+  },
+  "FOUNDATION_OF": {
+    "edge_count": 2
+  },
+  "FREE_FROM": {
+    "edge_count": 2
+  },
+  "FUNCTIONS_AS": {
+    "edge_count": 2
+  },
+  "FUNDAMENTAL_TO": {
+    "edge_count": 2
+  },
+  "FUNDAMENTAL_TOOL_OF": {
+    "edge_count": 2
+  },
+  "GAVE_LECTURE_AT": {
+    "edge_count": 2
+  },
+  "GENERATED": {
+    "edge_count": 2
+  },
+  "GENERATED_IN": {
+    "edge_count": 2
+  },
+  "GOVERNS": {
+    "edge_count": 2
+  },
+  "GROUPED_INTO": {
+    "edge_count": 2
+  },
+  "GROUPED_UNDER": {
+    "edge_count": 2
+  },
+  "HAS_ATTRIBUTE": {
+    "edge_count": 2
+  },
+  "HAS_COLUMN_NUMBER": {
+    "edge_count": 2
+  },
+  "HAS_COUNT": {
+    "edge_count": 2
+  },
+  "HAS_DIFFERENT": {
+    "edge_count": 2
+  },
+  "HAS_GERM_LAYER": {
+    "edge_count": 2
+  },
+  "HAS_HIGHER_THAN": {
+    "edge_count": 2
+  },
+  "HAS_LENGTH": {
+    "edge_count": 2
+  },
+  "HAS_NO": {
+    "edge_count": 2
+  },
+  "HAS_OBJECTIVE": {
+    "edge_count": 2
+  },
+  "HAS_PEAK_IN": {
+    "edge_count": 2
+  },
+  "HAS_SUBSET": {
+    "edge_count": 2
+  },
+  "HAS_SYMMETRY": {
+    "edge_count": 2
+  },
+  "HAS_VARIETY_OF": {
+    "edge_count": 2
+  },
+  "HAS_WIDTH": {
+    "edge_count": 2
+  },
+  "HIGHER_THAN": {
+    "edge_count": 2
+  },
+  "HYPOTHESIZED": {
+    "edge_count": 2
+  },
+  "IDENTIFIED_AS": {
+    "edge_count": 2
+  },
+  "IDENTIFIES_AS_PRIMARY_FACTOR": {
+    "edge_count": 2
+  },
+  "IMPACTS": {
+    "edge_count": 2
+  },
+  "IMPLIES": {
+    "edge_count": 2
+  },
+  "IMPROVED_SCIENCE_OF": {
+    "edge_count": 2
+  },
+  "INAUGURATED": {
+    "edge_count": 2
+  },
+  "INCLUDES_CHANGES_IN": {
+    "edge_count": 2
+  },
+  "INCLUDES_IDEA": {
+    "edge_count": 2
+  },
+  "INCLUDES_REGION": {
+    "edge_count": 2
+  },
+  "INCORPORATES": {
+    "edge_count": 2
+  },
+  "INCREASED": {
+    "edge_count": 2
+  },
+  "INCREASED_AT": {
+    "edge_count": 2
+  },
+  "INCREASED_BY": {
+    "edge_count": 2
+  },
+  "INCREASED_DURING": {
+    "edge_count": 2
+  },
+  "INCREASES_AT": {
+    "edge_count": 2
+  },
+  "INDEPENDENT_OF": {
+    "edge_count": 2
+  },
+  "INDICATED_BY": {
+    "edge_count": 2
+  },
+  "INDISPENSABLE_IN": {
+    "edge_count": 2
+  },
+  "INFLUENCES_PRICE_OF": {
+    "edge_count": 2
+  },
+  "INFUSED_INTO": {
+    "edge_count": 2
+  },
+  "INHERITED_BY": {
+    "edge_count": 2
+  },
+  "INITIATED": {
+    "edge_count": 2
+  },
+  "INTERCONNECTED_WITH": {
+    "edge_count": 2
+  },
+  "INVARIANT_FOR": {
+    "edge_count": 2
+  },
+  "INVENTED_AT": {
+    "edge_count": 2
+  },
+  "INVENTED_DURING": {
+    "edge_count": 2
+  },
+  "INVERSELY_PROPORTIONAL_TO": {
+    "edge_count": 2
+  },
+  "INVESTIGATED": {
+    "edge_count": 2
+  },
+  "IN_FORM_OF": {
+    "edge_count": 2
+  },
+  "IN_FRAMEWORK_OF": {
+    "edge_count": 2
+  },
+  "IONIZED_BY": {
+    "edge_count": 2
+  },
+  "ISSUE": {
+    "edge_count": 2
+  },
+  "ISSUED": {
+    "edge_count": 2
+  },
+  "IS_CALLED": {
+    "edge_count": 2
+  },
+  "IS_NOT": {
+    "edge_count": 2
+  },
+  "IS_TYPE": {
+    "edge_count": 2
+  },
+  "KNOWN_IN_PERIOD": {
+    "edge_count": 2
+  },
+  "LED_TO": {
+    "edge_count": 2
+  },
+  "LED_TO_WIDER": {
+    "edge_count": 2
+  },
+  "LIVES_IN": {
+    "edge_count": 2
+  },
+  "LOSES": {
+    "edge_count": 2
+  },
+  "LOWER_THAN": {
+    "edge_count": 2
+  },
+  "MANAGES": {
+    "edge_count": 2
+  },
+  "MANIPULATES": {
+    "edge_count": 2
+  },
+  "MAY_BE": {
+    "edge_count": 2
+  },
+  "MAY_RETAIN": {
+    "edge_count": 2
+  },
+  "MEASURED": {
+    "edge_count": 2
+  },
+  "MEDIATED_BY": {
+    "edge_count": 2
+  },
+  "MENTIONED_BY": {
+    "edge_count": 2
+  },
+  "METABOLIZES": {
+    "edge_count": 2
+  },
+  "MORE_STABLE_AT": {
+    "edge_count": 2
+  },
+  "MOUNTED_USING": {
+    "edge_count": 2
+  },
+  "MOVES": {
+    "edge_count": 2
+  },
+  "NEAR": {
+    "edge_count": 2
+  },
+  "NECESSARY_FOR": {
+    "edge_count": 2
+  },
+  "NEW_TO": {
+    "edge_count": 2
+  },
+  "NOT_ASCRIBED_TO": {
+    "edge_count": 2
+  },
+  "NOT_COMPOSED_OF": {
+    "edge_count": 2
+  },
+  "NOT_DEPENDENT_ON": {
+    "edge_count": 2
+  },
+  "NOW_BUILT_PRIMARILY_OF": {
+    "edge_count": 2
+  },
+  "OBSERVED_AS": {
+    "edge_count": 2
+  },
+  "OBSERVES": {
+    "edge_count": 2
+  },
+  "OCCUPIES": {
+    "edge_count": 2
+  },
+  "OCCURRED_AT": {
+    "edge_count": 2
+  },
+  "OCCURS_AFTER": {
+    "edge_count": 2
+  },
+  "OCCURS_ALONG": {
+    "edge_count": 2
+  },
+  "OCCURS_AS": {
+    "edge_count": 2
+  },
+  "OCCURS_AT_TEMPERATURE": {
+    "edge_count": 2
+  },
+  "OCCURS_BETWEEN": {
+    "edge_count": 2
+  },
+  "OCCURS_DUE_TO_CHANGE_IN": {
+    "edge_count": 2
+  },
+  "OCCURS_DURING": {
+    "edge_count": 2
+  },
+  "OCCURS_THROUGH": {
+    "edge_count": 2
+  },
+  "OCCURS_WHEN": {
+    "edge_count": 2
+  },
+  "OFFICIAL_NAME_FOR": {
+    "edge_count": 2
+  },
+  "OFFICIAL_OF": {
+    "edge_count": 2
+  },
+  "OPERATED_ALONG": {
+    "edge_count": 2
+  },
+  "OPPOSED": {
+    "edge_count": 2
+  },
+  "ORBIT_WITHIN": {
+    "edge_count": 2
+  },
+  "OUTSIDE_OF": {
+    "edge_count": 2
+  },
+  "OVERLAPS": {
+    "edge_count": 2
+  },
+  "OVERWHELMED_IN": {
+    "edge_count": 2
+  },
+  "OXIDIZED_TO": {
+    "edge_count": 2
+  },
+  "PARTICIPANT": {
+    "edge_count": 2
+  },
+  "PARTLY_RESULTED_FROM": {
+    "edge_count": 2
+  },
+  "PEAKED_IN": {
+    "edge_count": 2
+  },
+  "PERFORMS_ACTION": {
+    "edge_count": 2
+  },
+  "PLURAL_FORM_OF": {
+    "edge_count": 2
+  },
+  "POSSESSED_BY": {
+    "edge_count": 2
+  },
+  "PREDICTED_BY": {
+    "edge_count": 2
+  },
+  "PREDICTED_STABILITY_OF": {
+    "edge_count": 2
+  },
+  "PREDICTS_WITH": {
+    "edge_count": 2
+  },
+  "PREFERS": {
+    "edge_count": 2
+  },
+  "PREVENTS": {
+    "edge_count": 2
+  },
+  "PREVENTS_ESCAPE_OF": {
+    "edge_count": 2
+  },
+  "PRIMARILY_USED": {
+    "edge_count": 2
+  },
+  "PRINCIPLE_IN": {
+    "edge_count": 2
+  },
+  "PROCESS_APPLIED_TO": {
+    "edge_count": 2
+  },
+  "PRODUCED": {
+    "edge_count": 2
+  },
+  "PROGRESSED_DURING": {
+    "edge_count": 2
+  },
+  "PROJECTED_BY": {
+    "edge_count": 2
+  },
+  "PROJECTS": {
+    "edge_count": 2
+  },
+  "PROPORTIONAL_TO_PRODUCT_OF": {
+    "edge_count": 2
+  },
+  "PROPOSED_MECHANISM_FOR": {
+    "edge_count": 2
+  },
+  "PROVIDE": {
+    "edge_count": 2
+  },
+  "PROVIDES_POWER_TO": {
+    "edge_count": 2
+  },
+  "RECORDED_BY": {
+    "edge_count": 2
+  },
+  "REFLECTS": {
+    "edge_count": 2
+  },
+  "REGARDED_AS": {
+    "edge_count": 2
+  },
+  "REJECTS": {
+    "edge_count": 2
+  },
+  "RELEVANT_TO": {
+    "edge_count": 2
+  },
+  "REMEMBERED_FOR": {
+    "edge_count": 2
+  },
+  "RENDERS_UNINHABITABLE": {
+    "edge_count": 2
+  },
+  "REPLACED_BY": {
+    "edge_count": 2
+  },
+  "REPORTS": {
+    "edge_count": 2
+  },
+  "RESPONDED_TO": {
+    "edge_count": 2
+  },
+  "RESPONDS_TO": {
+    "edge_count": 2
+  },
+  "RESULTS_FROM_INTERACTION_WITH": {
+    "edge_count": 2
+  },
+  "RESULT_FROM": {
+    "edge_count": 2
+  },
+  "REVIVED_IN": {
+    "edge_count": 2
+  },
+  "REVOLUTIONIZED": {
+    "edge_count": 2
+  },
+  "ROLE_IN": {
+    "edge_count": 2
+  },
+  "RUBBED_WITH": {
+    "edge_count": 2
+  },
+  "SEEKS_TO_UNIFY": {
+    "edge_count": 2
+  },
+  "SELECTED_BY": {
+    "edge_count": 2
+  },
+  "SELECTS_FOR_BREEDING": {
+    "edge_count": 2
+  },
+  "SENSES": {
+    "edge_count": 2
+  },
+  "SENSITIVE_TO": {
+    "edge_count": 2
+  },
+  "SENT_TO": {
+    "edge_count": 2
+  },
+  "SEQUENCED": {
+    "edge_count": 2
+  },
+  "SHARES_STRUCTURE_WITH": {
+    "edge_count": 2
+  },
+  "SINCE": {
+    "edge_count": 2
+  },
+  "SOLVED_BY": {
+    "edge_count": 2
+  },
+  "SOLVED_IN": {
+    "edge_count": 2
+  },
+  "SPECIFIED_BY": {
+    "edge_count": 2
+  },
+  "STABILIZES": {
+    "edge_count": 2
+  },
+  "STAGE_OF": {
+    "edge_count": 2
+  },
+  "STATE_OF": {
+    "edge_count": 2
+  },
+  "STEMS_FROM": {
+    "edge_count": 2
+  },
+  "STORED_BY": {
+    "edge_count": 2
+  },
+  "STRUCTURAL_COMPONENT_OF": {
+    "edge_count": 2
+  },
+  "STUDIED_WITH": {
+    "edge_count": 2
+  },
+  "STUDIES_RELATIONSHIPS_AMONG": {
+    "edge_count": 2
+  },
+  "SUGGESTED_AS_LOCATION_OF": {
+    "edge_count": 2
+  },
+  "SUITABLE_FOR": {
+    "edge_count": 2
+  },
+  "SUPPORTED": {
+    "edge_count": 2
+  },
+  "SUSPENDED_IN": {
+    "edge_count": 2
+  },
+  "SWEPT_AWAY": {
+    "edge_count": 2
+  },
+  "TAKES_PLACE_IN": {
+    "edge_count": 2
+  },
+  "TEMPORAL_DURATION": {
+    "edge_count": 2
+  },
+  "TESTED_BY": {
+    "edge_count": 2
+  },
+  "THEORIZED_ABOUT": {
+    "edge_count": 2
+  },
+  "TIME_OF": {
+    "edge_count": 2
+  },
+  "TIME_PERIOD_OF": {
+    "edge_count": 2
+  },
+  "TO": {
+    "edge_count": 2
+  },
+  "TRANSFERRED_AS": {
+    "edge_count": 2
+  },
+  "TRANSFERRED_BETWEEN": {
+    "edge_count": 2
+  },
+  "TRANSFERRED_TO": {
+    "edge_count": 2
+  },
+  "TRANSPORTED_BY": {
+    "edge_count": 2
+  },
+  "TREATS": {
+    "edge_count": 2
+  },
+  "TRIGGERED_BY": {
+    "edge_count": 2
+  },
+  "TRIGGERS": {
+    "edge_count": 2
+  },
+  "TYPICALLY_DESCRIBES": {
+    "edge_count": 2
+  },
+  "TYPICALLY_USE": {
+    "edge_count": 2
+  },
+  "UNDERSTOOD_IN_TERMS_OF": {
+    "edge_count": 2
+  },
+  "USED_DESIGN": {
+    "edge_count": 2
+  },
+  "USED_FOR_CROSSING": {
+    "edge_count": 2
+  },
+  "USED_FOR_PURCHASING": {
+    "edge_count": 2
+  },
+  "USED_IN_CREATION_OF": {
+    "edge_count": 2
+  },
+  "USED_TO_ARGUE_AGAINST": {
+    "edge_count": 2
+  },
+  "USES_AS_OXIDIZER": {
+    "edge_count": 2
+  },
+  "USES_FOR_SIGNAL_PROCESSING": {
+    "edge_count": 2
+  },
+  "USUALLY_REFERS_TO": {
+    "edge_count": 2
+  },
+  "VAPORIZES": {
+    "edge_count": 2
+  },
+  "VARIES_AMONG": {
+    "edge_count": 2
+  },
+  "VARIES_WITHIN": {
+    "edge_count": 2
+  },
+  "VIA": {
+    "edge_count": 2
+  },
+  "VISITED": {
+    "edge_count": 2
+  },
+  "YIELDED": {
+    "edge_count": 2
+  },
+  "ABSENT_FROM": {
+    "edge_count": 1
+  },
+  "ACCEPTED_BY": {
+    "edge_count": 1
+  },
+  "ACCEPTED_WITHIN": {
+    "edge_count": 1
+  },
+  "ACCOMPANIED_BY": {
+    "edge_count": 1
+  },
+  "ACCOMPANIES": {
+    "edge_count": 1
+  },
+  "ACCUMULATES_AT": {
+    "edge_count": 1
+  },
+  "ACCURATE_TO_DETECT": {
+    "edge_count": 1
+  },
+  "ACHIEVED_IN": {
+    "edge_count": 1
+  },
+  "ACKNOWLEDGED_IDEAS_OF": {
+    "edge_count": 1
+  },
+  "ACQUIRE": {
+    "edge_count": 1
+  },
+  "ACQUIRED_BY": {
+    "edge_count": 1
+  },
+  "ACTED_ON_BY": {
+    "edge_count": 1
+  },
+  "ACTS_IN": {
+    "edge_count": 1
+  },
+  "ACT_AS": {
+    "edge_count": 1
+  },
+  "ACT_IN": {
+    "edge_count": 1
+  },
+  "ADAPTATION_FOR": {
+    "edge_count": 1
+  },
+  "ADDRESSED": {
+    "edge_count": 1
+  },
+  "ADDRESSES": {
+    "edge_count": 1
+  },
+  "ADDS": {
+    "edge_count": 1
+  },
+  "ADJACENT_TO": {
+    "edge_count": 1
+  },
+  "ADMIRED_FOR": {
+    "edge_count": 1
+  },
+  "ADOPTED_BY": {
+    "edge_count": 1
+  },
+  "ADVANCED_AT_TIME": {
+    "edge_count": 1
+  },
+  "ADVERSE_EFFECT_ON": {
+    "edge_count": 1
+  },
+  "ADVOCATED": {
+    "edge_count": 1
+  },
+  "AFFECTED_DURING": {
+    "edge_count": 1
+  },
+  "AFFECTS_ENCODING_OF": {
+    "edge_count": 1
+  },
+  "AFFECTS_PURCHASING_POWER_OF": {
+    "edge_count": 1
+  },
+  "AFFECTS_UP_TO": {
+    "edge_count": 1
+  },
+  "AFFILIATED_WITH": {
+    "edge_count": 1
+  },
+  "AFTER_ENCOUNTERING": {
+    "edge_count": 1
+  },
+  "AGENT": {
+    "edge_count": 1
+  },
+  "AGREED_WITH": {
+    "edge_count": 1
+  },
+  "AIDED_BY": {
+    "edge_count": 1
+  },
+  "AIDED_EXPLANATION_OF": {
+    "edge_count": 1
+  },
+  "AIMED_TO_PRESENT": {
+    "edge_count": 1
+  },
+  "AIMS_TO_BENEFIT": {
+    "edge_count": 1
+  },
+  "ALIAS_FOR": {
+    "edge_count": 1
+  },
+  "ALLOTROPE_OF": {
+    "edge_count": 1
+  },
+  "ALLOWS_ATTRACTION_OR_REPULSION": {
+    "edge_count": 1
+  },
+  "ALONG": {
+    "edge_count": 1
+  },
+  "ALSO_CONSIDERED_AS": {
+    "edge_count": 1
+  },
+  "ALSO_MEASURED_FROM": {
+    "edge_count": 1
+  },
+  "ALSO_NAMED_BY_FIRST_ELEMENT": {
+    "edge_count": 1
+  },
+  "ALSO_REFERS_TO": {
+    "edge_count": 1
+  },
+  "ALSO_USED": {
+    "edge_count": 1
+  },
+  "ALTERNATE_STATE_OF": {
+    "edge_count": 1
+  },
+  "AMONG": {
+    "edge_count": 1
+  },
+  "ANALYSES": {
+    "edge_count": 1
+  },
+  "ANALYSES_AS": {
+    "edge_count": 1
+  },
+  "ANALYSES_AS_SYSTEMS": {
+    "edge_count": 1
+  },
+  "ANALYZE": {
+    "edge_count": 1
+  },
+  "ANALYZES": {
+    "edge_count": 1
+  },
+  "ANGULAR_DIAMETER_TWICE": {
+    "edge_count": 1
+  },
+  "ANNOUNCED": {
+    "edge_count": 1
+  },
+  "ANNOUNCED_RESULTS_TO": {
+    "edge_count": 1
+  },
+  "APPEAR_AS": {
+    "edge_count": 1
+  },
+  "APPEAR_WITH": {
+    "edge_count": 1
+  },
+  "APPLIED_IDEA_OF": {
+    "edge_count": 1
+  },
+  "APPLIES_IN": {
+    "edge_count": 1
+  },
+  "APPLIES_IN_ABSENCE_OF": {
+    "edge_count": 1
+  },
+  "APPROACH": {
+    "edge_count": 1
+  },
+  "APPROXIMATED_BY": {
+    "edge_count": 1
+  },
+  "ARE_CALLED": {
+    "edge_count": 1
+  },
+  "ARGUED_ABOUT": {
+    "edge_count": 1
+  },
+  "ARGUES_CAN_BE_STUDIED_IN_ONE_WAY": {
+    "edge_count": 1
+  },
+  "ARGUE_BASED_ON": {
+    "edge_count": 1
+  },
+  "ARISES_DURING": {
+    "edge_count": 1
+  },
+  "ARISES_FROM_MOTION_OF": {
+    "edge_count": 1
+  },
+  "AROSE_IN": {
+    "edge_count": 1
+  },
+  "AROUND": {
+    "edge_count": 1
+  },
+  "ARRANGE_INTO": {
+    "edge_count": 1
+  },
+  "ASSEMBLED_FROM": {
+    "edge_count": 1
+  },
+  "ASSERTED": {
+    "edge_count": 1
+  },
+  "ASSISTANT_OF": {
+    "edge_count": 1
+  },
+  "ASSOCIATES_WITH": {
+    "edge_count": 1
+  },
+  "ASSUME": {
+    "edge_count": 1
+  },
+  "ASSUMED_BY": {
+    "edge_count": 1
+  },
+  "AS_CURVATURE_OF": {
+    "edge_count": 1
+  },
+  "AS_FAR_BACK_AS": {
+    "edge_count": 1
+  },
+  "AS_FORM": {
+    "edge_count": 1
+  },
+  "AS_OF_DATE": {
+    "edge_count": 1
+  },
+  "ATTEMPTED_TO_DISPROVE_EXISTENCE_OF": {
+    "edge_count": 1
+  },
+  "ATTEMPTS_TO_RAISE": {
+    "edge_count": 1
+  },
+  "ATTEMPT_TO_UNDERSTAND_ROLE_OF": {
+    "edge_count": 1
+  },
+  "ATTESTED_IN": {
+    "edge_count": 1
+  },
+  "ATTRACT": {
+    "edge_count": 1
+  },
+  "ATTRACTED_BY": {
+    "edge_count": 1
+  },
+  "ATTRACTED_TO": {
+    "edge_count": 1
+  },
+  "ATTRIBUTED_TO_DECREASE_IN": {
+    "edge_count": 1
+  },
+  "ATTRIBUTED_TO_FLUCTUATIONS_IN": {
+    "edge_count": 1
+  },
+  "ATTRIBUTED_TO_INCREASE_IN": {
+    "edge_count": 1
+  },
+  "AT_REST_RELATIVE_TO": {
+    "edge_count": 1
+  },
+  "AUTHOR_OF": {
+    "edge_count": 1
+  },
+  "AVERAGE_LIFESPAN_IN": {
+    "edge_count": 1
+  },
+  "AVOIDS_COSTS_OF": {
+    "edge_count": 1
+  },
+  "AVOIDS_INEFFICIENCIES_OF": {
+    "edge_count": 1
+  },
+  "AWARDED_FOR": {
+    "edge_count": 1
+  },
+  "BALANCES_REQUIREMENT": {
+    "edge_count": 1
+  },
+  "BASED_ON_TERM": {
+    "edge_count": 1
+  },
+  "BASIS_FOR": {
+    "edge_count": 1
+  },
+  "BEARS_OPPOSITE": {
+    "edge_count": 1
+  },
+  "BECAME_AVAILABLE_DURING": {
+    "edge_count": 1
+  },
+  "BECAME_AVAILABLE_IN": {
+    "edge_count": 1
+  },
+  "BECAME_KNOWN_DURING": {
+    "edge_count": 1
+  },
+  "BECAME_KNOWN_IN": {
+    "edge_count": 1
+  },
+  "BECOMES_COMMON_IN": {
+    "edge_count": 1
+  },
+  "BECOMES_SINGULAR_AT": {
+    "edge_count": 1
+  },
+  "BEGAN_BEFORE": {
+    "edge_count": 1
+  },
+  "BEGAN_IN": {
+    "edge_count": 1
+  },
+  "BEGINS_WITH": {
+    "edge_count": 1
+  },
+  "BEHAVE_AS": {
+    "edge_count": 1
+  },
+  "BEHAVE_DIFFERENTLY_THAN": {
+    "edge_count": 1
+  },
+  "BEHIND": {
+    "edge_count": 1
+  },
+  "BELIEVED_CONSERVED": {
+    "edge_count": 1
+  },
+  "BELIEVED_DISCOVERED": {
+    "edge_count": 1
+  },
+  "BELIEVED_OPEN_TO_INVESTIGATION": {
+    "edge_count": 1
+  },
+  "BELONGS_TO": {
+    "edge_count": 1
+  },
+  "BEND_IN": {
+    "edge_count": 1
+  },
+  "BEYOND": {
+    "edge_count": 1
+  },
+  "BINDS_TO": {
+    "edge_count": 1
+  },
+  "BIRTH_DATE": {
+    "edge_count": 1
+  },
+  "BLENDS_WITH": {
+    "edge_count": 1
+  },
+  "BOILS_IN": {
+    "edge_count": 1
+  },
+  "BONDS_TO": {
+    "edge_count": 1
+  },
+  "BOOSTED": {
+    "edge_count": 1
+  },
+  "BOUNDARY_NEAR": {
+    "edge_count": 1
+  },
+  "BOUND_BY": {
+    "edge_count": 1
+  },
+  "BRANCH_OF": {
+    "edge_count": 1
+  },
+  "BROKE_RECORD_FOR": {
+    "edge_count": 1
+  },
+  "BROKE_WITH": {
+    "edge_count": 1
+  },
+  "BROUGHT_INTO": {
+    "edge_count": 1
+  },
+  "BROUGHT_ON_BY": {
+    "edge_count": 1
+  },
+  "BUILDS_OR_OPERATES": {
+    "edge_count": 1
+  },
+  "BUILT_AROUND": {
+    "edge_count": 1
+  },
+  "BUILT_BETWEEN": {
+    "edge_count": 1
+  },
+  "BUILT_BY": {
+    "edge_count": 1
+  },
+  "BUILT_OVER": {
+    "edge_count": 1
+  },
+  "BUNCHED_INTO": {
+    "edge_count": 1
+  },
+  "BURIED": {
+    "edge_count": 1
+  },
+  "BURNED_IN_PAST": {
+    "edge_count": 1
+  },
+  "BURNS": {
+    "edge_count": 1
+  },
+  "BUSINESS_PARTNER_OF": {
+    "edge_count": 1
+  },
+  "BY_MASS": {
+    "edge_count": 1
+  },
+  "CALCULATED_USING": {
+    "edge_count": 1
+  },
+  "CALLS_FOR": {
+    "edge_count": 1
+  },
+  "CANCELED_OUT_BY": {
+    "edge_count": 1
+  },
+  "CANCEL_OUT": {
+    "edge_count": 1
+  },
+  "CANNOT_BE_OBSERVED_BY": {
+    "edge_count": 1
+  },
+  "CANNOT_BE_PREDICTED_FROM": {
+    "edge_count": 1
+  },
+  "CANNOT_FUSE": {
+    "edge_count": 1
+  },
+  "CANNOT_MOTIVATE": {
+    "edge_count": 1
+  },
+  "CANNOT_OPPOSE": {
+    "edge_count": 1
+  },
+  "CAN_ACCELERATE": {
+    "edge_count": 1
+  },
+  "CAN_ACTIVATE": {
+    "edge_count": 1
+  },
+  "CAN_BECOME": {
+    "edge_count": 1
+  },
+  "CAN_BE_COMPRESSED_TO": {
+    "edge_count": 1
+  },
+  "CAN_BE_DESTROYED_IN": {
+    "edge_count": 1
+  },
+  "CAN_BE_IMPLEMENTED_AT": {
+    "edge_count": 1
+  },
+  "CAN_BE_OBSERVED_BY": {
+    "edge_count": 1
+  },
+  "CAN_BE_OXIDISED_BY": {
+    "edge_count": 1
+  },
+  "CAN_BE_PASSED_AS": {
+    "edge_count": 1
+  },
+  "CAN_BE_STUDIED_BY": {
+    "edge_count": 1
+  },
+  "CAN_BE_TRACED_BY": {
+    "edge_count": 1
+  },
+  "CAN_BE_USED_IN": {
+    "edge_count": 1
+  },
+  "CAN_BREAK_FREE_OF": {
+    "edge_count": 1
+  },
+  "CAN_BURST": {
+    "edge_count": 1
+  },
+  "CAN_CONTAIN": {
+    "edge_count": 1
+  },
+  "CAN_CRACK": {
+    "edge_count": 1
+  },
+  "CAN_EXIST_OVER": {
+    "edge_count": 1
+  },
+  "CAN_EXTEND_TO": {
+    "edge_count": 1
+  },
+  "CAN_REACH": {
+    "edge_count": 1
+  },
+  "CAN_RECEIVE": {
+    "edge_count": 1
+  },
+  "CAN_STORE_FOR": {
+    "edge_count": 1
+  },
+  "CAPABLE_IN": {
+    "edge_count": 1
+  },
+  "CAPTURED": {
+    "edge_count": 1
+  },
+  "CAPTURES": {
+    "edge_count": 1
+  },
+  "CAPTURES_ENERGY_FROM": {
+    "edge_count": 1
+  },
+  "CARBOXYLATED_BY": {
+    "edge_count": 1
+  },
+  "CARRIED": {
+    "edge_count": 1
+  },
+  "CARRIED_BY": {
+    "edge_count": 1
+  },
+  "CARRIES_OUT": {
+    "edge_count": 1
+  },
+  "CATALOG_COMPLETION_DATE": {
+    "edge_count": 1
+  },
+  "CATALOG_DATE_END": {
+    "edge_count": 1
+  },
+  "CATALOG_DATE_START": {
+    "edge_count": 1
+  },
+  "CATALYZES_PRODUCTION_OF": {
+    "edge_count": 1
+  },
+  "CATEGORISED": {
+    "edge_count": 1
+  },
+  "CATEGORIZED": {
+    "edge_count": 1
+  },
+  "CATEGORIZED_DIFFERENTLY_BY": {
+    "edge_count": 1
+  },
+  "CAUSED": {
+    "edge_count": 1
+  },
+  "CAUSED_BY_CHANGES_IN": {
+    "edge_count": 1
+  },
+  "CAUSES_ADVANCED_INCREASE_IN": {
+    "edge_count": 1
+  },
+  "CAUSES_DECREASE_IN": {
+    "edge_count": 1
+  },
+  "CAUSES_DECREASE_OF": {
+    "edge_count": 1
+  },
+  "CAUSES_LESS_DAMAGE_TO": {
+    "edge_count": 1
+  },
+  "CAUSES_RECURRENCE_OF": {
+    "edge_count": 1
+  },
+  "CAUSES_REDUCTION_IN": {
+    "edge_count": 1
+  },
+  "CAUSES_SLOWER_FALL": {
+    "edge_count": 1
+  },
+  "CAUSES_SPIKE_IN": {
+    "edge_count": 1
+  },
+  "CENTERED_ON": {
+    "edge_count": 1
+  },
+  "CENTRAL_CONCEPT_IN": {
+    "edge_count": 1
+  },
+  "CHALLENGED_VIEW_OF": {
+    "edge_count": 1
+  },
+  "CHALLENGES": {
+    "edge_count": 1
+  },
+  "CHANGES_ACCORDING_TO": {
+    "edge_count": 1
+  },
+  "CHANGES_BY": {
+    "edge_count": 1
+  },
+  "CHANGES_DURING": {
+    "edge_count": 1
+  },
+  "CHANGES_IN": {
+    "edge_count": 1
+  },
+  "CHANGE_OVER_TIME_IN": {
+    "edge_count": 1
+  },
+  "CHAPTER_OF": {
+    "edge_count": 1
+  },
+  "CHAPTER_ON": {
+    "edge_count": 1
+  },
+  "CHARGE_MULTIPLE_OF": {
+    "edge_count": 1
+  },
+  "CHEMICAL_FORMULA": {
+    "edge_count": 1
+  },
+  "CHUNKED_INTO": {
+    "edge_count": 1
+  },
+  "CLAIMED_CAUSALITY": {
+    "edge_count": 1
+  },
+  "CLASSIFIED": {
+    "edge_count": 1
+  },
+  "CLASSIFIES": {
+    "edge_count": 1
+  },
+  "COATED_WITH": {
+    "edge_count": 1
+  },
+  "COAUTHOR_WITH": {
+    "edge_count": 1
+  },
+  "CODES_FOR": {
+    "edge_count": 1
+  },
+  "COINED_TERM_DATE": {
+    "edge_count": 1
+  },
+  "COINED_TERM_FOR": {
+    "edge_count": 1
+  },
+  "COINVENTED_WITH": {
+    "edge_count": 1
+  },
+  "COLLECTED_AT": {
+    "edge_count": 1
+  },
+  "COLLECTIVELY_KNOWN_AS": {
+    "edge_count": 1
+  },
+  "COMBINES": {
+    "edge_count": 1
+  },
+  "COMBINES_AT": {
+    "edge_count": 1
+  },
+  "COMBINE_INTO": {
+    "edge_count": 1
+  },
+  "COMBUSTS_WITH": {
+    "edge_count": 1
+  },
+  "COMPARED_TO": {
+    "edge_count": 1
+  },
+  "COMPARES_TO": {
+    "edge_count": 1
+  },
+  "COMPILATION_DATE": {
+    "edge_count": 1
+  },
+  "COMPLETES": {
+    "edge_count": 1
+  },
+  "COMPOSE": {
+    "edge_count": 1
+  },
+  "COMPOUNDED": {
+    "edge_count": 1
+  },
+  "COMPRESSED_TO": {
+    "edge_count": 1
+  },
+  "CONCEIVED_IN": {
+    "edge_count": 1
+  },
+  "CONCEIVED_OF": {
+    "edge_count": 1
+  },
+  "CONCERNED_WITH": {
+    "edge_count": 1
+  },
+  "CONCERNS": {
+    "edge_count": 1
+  },
+  "CONDENSES_AT": {
+    "edge_count": 1
+  },
+  "CONDITION_ON": {
+    "edge_count": 1
+  },
+  "CONDUCTED_EXPERIMENT_DURING": {
+    "edge_count": 1
+  },
+  "CONDUCTED_UNDER": {
+    "edge_count": 1
+  },
+  "CONDUCTS": {
+    "edge_count": 1
+  },
+  "CONFERS_CHARACTER_TO": {
+    "edge_count": 1
+  },
+  "CONFERS_LOWEST_COST_TO": {
+    "edge_count": 1
+  },
+  "CONFINES": {
+    "edge_count": 1
+  },
+  "CONFIRMED": {
+    "edge_count": 1
+  },
+  "CONFIRMS": {
+    "edge_count": 1
+  },
+  "CONFLICTS_WITH": {
+    "edge_count": 1
+  },
+  "CONNECTS_TO": {
+    "edge_count": 1
+  },
+  "CONSERVES": {
+    "edge_count": 1
+  },
+  "CONSIDERED": {
+    "edge_count": 1
+  },
+  "CONSIDERED_FLAW_IN": {
+    "edge_count": 1
+  },
+  "CONSIDERED_FOUNDERS_OF": {
+    "edge_count": 1
+  },
+  "CONSOLIDATE": {
+    "edge_count": 1
+  },
+  "CONSTITUTED_BY": {
+    "edge_count": 1
+  },
+  "CONSTRAIN": {
+    "edge_count": 1
+  },
+  "CONSTRUCTED": {
+    "edge_count": 1
+  },
+  "CONSTRUCTED_WITH": {
+    "edge_count": 1
+  },
+  "CONSTRUCTION_KNOWLEDGE_TREATED_AS": {
+    "edge_count": 1
+  },
+  "CONSTRUCTS": {
+    "edge_count": 1
+  },
+  "CONSUMED_BY": {
+    "edge_count": 1
+  },
+  "CONSUMED_IN": {
+    "edge_count": 1
+  },
+  "CONSUMED_WITH": {
+    "edge_count": 1
+  },
+  "CONTAINED_WITHIN": {
+    "edge_count": 1
+  },
+  "CONTAINS_IDEA_OF": {
+    "edge_count": 1
+  },
+  "CONTAINS_MORE": {
+    "edge_count": 1
+  },
+  "CONTAINS_PERCENTAGE_OF": {
+    "edge_count": 1
+  },
+  "CONTAINS_SITE_FOR": {
+    "edge_count": 1
+  },
+  "CONTAIN_ON_LEFT": {
+    "edge_count": 1
+  },
+  "CONTAIN_ON_RIGHT": {
+    "edge_count": 1
+  },
+  "CONTENDED_ABOUT": {
+    "edge_count": 1
+  },
+  "CONTRIBUTOR_TO": {
+    "edge_count": 1
+  },
+  "CONTROLLED_BY": {
+    "edge_count": 1
+  },
+  "CONVERSION_TIME": {
+    "edge_count": 1
+  },
+  "CONVERTIBLE_INTO": {
+    "edge_count": 1
+  },
+  "COORDINATED_BY": {
+    "edge_count": 1
+  },
+  "COORDINATED_THROUGH": {
+    "edge_count": 1
+  },
+  "COORDINATED_WITH": {
+    "edge_count": 1
+  },
+  "CORRELATED_WITH": {
+    "edge_count": 1
+  },
+  "COUNT": {
+    "edge_count": 1
+  },
+  "COUNTERBALANCES": {
+    "edge_count": 1
+  },
+  "COUNT_AT_END": {
+    "edge_count": 1
+  },
+  "COUNT_AT_START": {
+    "edge_count": 1
+  },
+  "COVALENTLY_BONDED_TO": {
+    "edge_count": 1
+  },
+  "COVERS_PART_OF": {
+    "edge_count": 1
+  },
+  "CO_OCCURS_WITH": {
+    "edge_count": 1
+  },
+  "CREATED_AFTER": {
+    "edge_count": 1
+  },
+  "CREATED_ON": {
+    "edge_count": 1
+  },
+  "CREATED_WITH": {
+    "edge_count": 1
+  },
+  "CREATES_BENEFIT": {
+    "edge_count": 1
+  },
+  "CREATE_DEMAND_FOR": {
+    "edge_count": 1
+  },
+  "CREDITED_AS_SOURCE_OF_WORD": {
+    "edge_count": 1
+  },
+  "CREDITED_WITH": {
+    "edge_count": 1
+  },
+  "CREDITS_AS_FIRST_AUTHOR_ON": {
+    "edge_count": 1
+  },
+  "CRITICALLY_RELEVANT_TO": {
+    "edge_count": 1
+  },
+  "CRITICAL_ELEMENT_OF": {
+    "edge_count": 1
+  },
+  "CRITICAL_OF": {
+    "edge_count": 1
+  },
+  "CRITIQUED": {
+    "edge_count": 1
+  },
+  "CRYSTALLIZED": {
+    "edge_count": 1
+  },
+  "CUT_OUT_FROM": {
+    "edge_count": 1
+  },
+  "DATE_DETERMINED_FROM": {
+    "edge_count": 1
+  },
+  "DEATH_DATE": {
+    "edge_count": 1
+  },
+  "DECLARED_AS": {
+    "edge_count": 1
+  },
+  "DECLINED_AFTER": {
+    "edge_count": 1
+  },
+  "DECLINED_BY": {
+    "edge_count": 1
+  },
+  "DECLINED_IN": {
+    "edge_count": 1
+  },
+  "DECLINED_OVER_PERIOD": {
+    "edge_count": 1
+  },
+  "DECLINE_MAGNITUDE": {
+    "edge_count": 1
+  },
+  "DECREASED_BY_LOWERING": {
+    "edge_count": 1
+  },
+  "DECREASED_DURING": {
+    "edge_count": 1
+  },
+  "DECREASES_ABSORPTION_OF": {
+    "edge_count": 1
+  },
+  "DECREASES_AMOUNT_OF": {
+    "edge_count": 1
+  },
+  "DECREASES_BY_PER": {
+    "edge_count": 1
+  },
+  "DECREASES_CAPACITY_OF": {
+    "edge_count": 1
+  },
+  "DECREASES_WITH_DISTANCE_FROM": {
+    "edge_count": 1
+  },
+  "DEDUCE": {
+    "edge_count": 1
+  },
+  "DEFINE": {
+    "edge_count": 1
+  },
+  "DEFINES_DIRECTION_OF": {
+    "edge_count": 1
+  },
+  "DEFINING_FEATURE_OF": {
+    "edge_count": 1
+  },
+  "DELIVERED_ACROSS": {
+    "edge_count": 1
+  },
+  "DEMONSTRATES_ISOTROPY_OF": {
+    "edge_count": 1
+  },
+  "DENOMINATED_IN": {
+    "edge_count": 1
+  },
+  "DENOMINATES": {
+    "edge_count": 1
+  },
+  "DENSER_AND_MORE_COMPACT_THAN": {
+    "edge_count": 1
+  },
+  "DEPENDS_ON_POSITION_IN": {
+    "edge_count": 1
+  },
+  "DEPOSITED_ON": {
+    "edge_count": 1
+  },
+  "DEPRECATED_BY": {
+    "edge_count": 1
+  },
+  "DESCRIBED_CONCEPT": {
+    "edge_count": 1
+  },
+  "DESCRIBED_IN_TIME": {
+    "edge_count": 1
+  },
+  "DESCRIBED_IN_YEAR": {
+    "edge_count": 1
+  },
+  "DESCRIBES_AS": {
+    "edge_count": 1
+  },
+  "DESCRIBES_DURING": {
+    "edge_count": 1
+  },
+  "DESCRIBES_EXPANSION_OF": {
+    "edge_count": 1
+  },
+  "DESCRIBES_PERIOD": {
+    "edge_count": 1
+  },
+  "DESCRIBES_USE_OF": {
+    "edge_count": 1
+  },
+  "DESIGNATED_AS": {
+    "edge_count": 1
+  },
+  "DESIGNATES": {
+    "edge_count": 1
+  },
+  "DESIGNED_TO_DETECT": {
+    "edge_count": 1
+  },
+  "DESIGNED_TO_OPERATE_IN": {
+    "edge_count": 1
+  },
+  "DESIGNS": {
+    "edge_count": 1
+  },
+  "DESTINED_FOR": {
+    "edge_count": 1
+  },
+  "DESTROYED_AT_UNPRECEDENTED_RATE_IN": {
+    "edge_count": 1
+  },
+  "DESTROYED_OVER_PERIOD": {
+    "edge_count": 1
+  },
+  "DESTROYED_TO_FORM": {
+    "edge_count": 1
+  },
+  "DESTROYS": {
+    "edge_count": 1
+  },
+  "DETAILS": {
+    "edge_count": 1
+  },
+  "DETECTABLE_BY": {
+    "edge_count": 1
+  },
+  "DETECTED_FROM": {
+    "edge_count": 1
+  },
+  "DETECTED_IN": {
+    "edge_count": 1
+  },
+  "DETECTED_ON": {
+    "edge_count": 1
+  },
+  "DETERMINED_USING": {
+    "edge_count": 1
+  },
+  "DETERMINE_INERTIAL_MOTION_OF": {
+    "edge_count": 1
+  },
+  "DEVELOPED_INTO": {
+    "edge_count": 1
+  },
+  "DEVELOPS_IN": {
+    "edge_count": 1
+  },
+  "DEVELOP_FROM": {
+    "edge_count": 1
+  },
+  "DEVOTED_TO": {
+    "edge_count": 1
+  },
+  "DE_PEGGED_FROM": {
+    "edge_count": 1
+  },
+  "DICTATED_BY": {
+    "edge_count": 1
+  },
+  "DIFFERENTIATES_INTO": {
+    "edge_count": 1
+  },
+  "DIFFERENTIATE_FROM": {
+    "edge_count": 1
+  },
+  "DIFFERENT_NUMBER_THAN": {
+    "edge_count": 1
+  },
+  "DIFFER_BY": {
+    "edge_count": 1
+  },
+  "DIFFICULT_TO_MANUFACTURE_ON": {
+    "edge_count": 1
+  },
+  "DIGESTS_COATING_OF": {
+    "edge_count": 1
+  },
+  "DIMINISHED_BY": {
+    "edge_count": 1
+  },
+  "DIMINISHES": {
+    "edge_count": 1
+  },
+  "DIMINISHES_ABILITY_TO_FUNCTION_AS": {
+    "edge_count": 1
+  },
+  "DIMINISH_WITH": {
+    "edge_count": 1
+  },
+  "DIMINUTIVE_OF": {
+    "edge_count": 1
+  },
+  "DIRECTED_TOWARDS": {
+    "edge_count": 1
+  },
+  "DIRECTED_TOWARDS_UNDERSTANDING": {
+    "edge_count": 1
+  },
+  "DIRECTED_TO_TOUCH": {
+    "edge_count": 1
+  },
+  "DIRECTLY_COMPARED_BETWEEN": {
+    "edge_count": 1
+  },
+  "DISCONTINUED": {
+    "edge_count": 1
+  },
+  "DISCOVERED_AS": {
+    "edge_count": 1
+  },
+  "DISCOVERED_ASSOCIATION_WITH": {
+    "edge_count": 1
+  },
+  "DISCOVERED_DURING": {
+    "edge_count": 1
+  },
+  "DISCOVERED_EFFECT_OF": {
+    "edge_count": 1
+  },
+  "DISCOVERED_LINK_WITH": {
+    "edge_count": 1
+  },
+  "DISCOVERED_PROPERTY_OF": {
+    "edge_count": 1
+  },
+  "DISCOVERS": {
+    "edge_count": 1
+  },
+  "DISCUSSED_IN": {
+    "edge_count": 1
+  },
+  "DISPERSED": {
+    "edge_count": 1
+  },
+  "DISPERSED_INTO": {
+    "edge_count": 1
+  },
+  "DISPLAY": {
+    "edge_count": 1
+  },
+  "DISPLAYED_ON": {
+    "edge_count": 1
+  },
+  "DISPLAYS": {
+    "edge_count": 1
+  },
+  "DISPLAYS_IN": {
+    "edge_count": 1
+  },
+  "DISPOSED_TO_FEEL": {
+    "edge_count": 1
+  },
+  "DISPROVED": {
+    "edge_count": 1
+  },
+  "DISSEMINATED_IN": {
+    "edge_count": 1
+  },
+  "DISTANCE_FROM": {
+    "edge_count": 1
+  },
+  "DISTANCE_FROM_EARTH": {
+    "edge_count": 1
+  },
+  "DISTINGUISHES_BETWEEN": {
+    "edge_count": 1
+  },
+  "DISTINGUISHES_FROM": {
+    "edge_count": 1
+  },
+  "DISTORTS": {
+    "edge_count": 1
+  },
+  "DISTRIBUTED_BY": {
+    "edge_count": 1
+  },
+  "DISTRIBUTED_OVER": {
+    "edge_count": 1
+  },
+  "DISTRIBUTES_HEAT_AROUND": {
+    "edge_count": 1
+  },
+  "DOCUMENTED_BY": {
+    "edge_count": 1
+  },
+  "DOCUMENTED_IN": {
+    "edge_count": 1
+  },
+  "DOES_NOT_ACCOUNT_FOR": {
+    "edge_count": 1
+  },
+  "DOES_NOT_ALWAYS_INCLUDE": {
+    "edge_count": 1
+  },
+  "DOES_NOT_CONTAIN": {
+    "edge_count": 1
+  },
+  "DOES_NOT_FOLLOW_PATTERN_OF": {
+    "edge_count": 1
+  },
+  "DOES_NOT_PROVIDE": {
+    "edge_count": 1
+  },
+  "DOES_NOT_REFER_TO": {
+    "edge_count": 1
+  },
+  "DOES_NOT_REFLECT": {
+    "edge_count": 1
+  },
+  "DOES_NOT_RELEASE": {
+    "edge_count": 1
+  },
+  "DOES_NOT_RELEASE_TO": {
+    "edge_count": 1
+  },
+  "DOES_NOT_REQUIRE": {
+    "edge_count": 1
+  },
+  "DOES_NOT_USE": {
+    "edge_count": 1
+  },
+  "DOES_NO_WORK_ON": {
+    "edge_count": 1
+  },
+  "DOES_WORK_ON": {
+    "edge_count": 1
+  },
+  "DOMINANT_DURING": {
+    "edge_count": 1
+  },
+  "DOMINATES": {
+    "edge_count": 1
+  },
+  "DO_NOT_CHANGE": {
+    "edge_count": 1
+  },
+  "DRAG_ALONG": {
+    "edge_count": 1
+  },
+  "DRAWN_TO": {
+    "edge_count": 1
+  },
+  "DRENCHED": {
+    "edge_count": 1
+  },
+  "DRIVING_FORCE_BEHIND": {
+    "edge_count": 1
+  },
+  "DROPPED_FROM": {
+    "edge_count": 1
+  },
+  "DUE_TO": {
+    "edge_count": 1
+  },
+  "DUE_TO_LIMITATIONS_IN": {
+    "edge_count": 1
+  },
+  "DUPLICATED_BY": {
+    "edge_count": 1
+  },
+  "DUPLICATE_OF": {
+    "edge_count": 1
+  },
+  "EDITED_BY": {
+    "edge_count": 1
+  },
+  "EJECTED_AT_SPEED": {
+    "edge_count": 1
+  },
+  "EJECTED_INTO": {
+    "edge_count": 1
+  },
+  "ELIMINATED_WITHIN": {
+    "edge_count": 1
+  },
+  "EMERGED_WITH": {
+    "edge_count": 1
+  },
+  "EMERGE_DURING": {
+    "edge_count": 1
+  },
+  "EMISSION_SOURCE": {
+    "edge_count": 1
+  },
+  "EMITS_OR_REFLECTS": {
+    "edge_count": 1
+  },
+  "EMITS_WHEN_BURNT": {
+    "edge_count": 1
+  },
+  "ENABLED_APPROACH_TO": {
+    "edge_count": 1
+  },
+  "ENABLED_AT": {
+    "edge_count": 1
+  },
+  "ENABLED_EXPANSION_OF": {
+    "edge_count": 1
+  },
+  "ENABLER_OF": {
+    "edge_count": 1
+  },
+  "ENABLES_ADJUSTMENT_OF": {
+    "edge_count": 1
+  },
+  "ENABLES_METABOLISM_OF": {
+    "edge_count": 1
+  },
+  "ENABLES_PASSAGE_OVER": {
+    "edge_count": 1
+  },
+  "ENCODES_ALONG": {
+    "edge_count": 1
+  },
+  "ENCODES_WITH": {
+    "edge_count": 1
+  },
+  "ENDOWED_BY": {
+    "edge_count": 1
+  },
+  "ENDOWED_WITH": {
+    "edge_count": 1
+  },
+  "ENDS": {
+    "edge_count": 1
+  },
+  "ENDS_IN": {
+    "edge_count": 1
+  },
+  "ENDS_WITHIN": {
+    "edge_count": 1
+  },
+  "ENERGY_CAPTURED_AS": {
+    "edge_count": 1
+  },
+  "ENHANCED_BY": {
+    "edge_count": 1
+  },
+  "ENHANCES": {
+    "edge_count": 1
+  },
+  "ENHANCES_PRODUCTION_OF": {
+    "edge_count": 1
+  },
+  "ENQUIRES_HOW_OBTAINED": {
+    "edge_count": 1
+  },
+  "ENRICHED_WITH": {
+    "edge_count": 1
+  },
+  "ENRICHES": {
+    "edge_count": 1
+  },
+  "ENTERED_STATE": {
+    "edge_count": 1
+  },
+  "ENTERS": {
+    "edge_count": 1
+  },
+  "EQUALS": {
+    "edge_count": 1
+  },
+  "EQUAL_IN_ALL": {
+    "edge_count": 1
+  },
+  "EQUAL_TO": {
+    "edge_count": 1
+  },
+  "ESSENTIAL_PART_OF": {
+    "edge_count": 1
+  },
+  "ESTABLISHED_AS": {
+    "edge_count": 1
+  },
+  "ESTABLISHED_WHEN_EQUAL": {
+    "edge_count": 1
+  },
+  "ESTABLISH_OR_REMOVE": {
+    "edge_count": 1
+  },
+  "ESTIMATE": {
+    "edge_count": 1
+  },
+  "ESTIMATED_BY": {
+    "edge_count": 1
+  },
+  "ESTIMATED_IN": {
+    "edge_count": 1
+  },
+  "ESTIMATED_USING": {
+    "edge_count": 1
+  },
+  "EVALUATE_AND_PRICE": {
+    "edge_count": 1
+  },
+  "EVIDENCE_OF": {
+    "edge_count": 1
+  },
+  "EVOLVED_FROM": {
+    "edge_count": 1
+  },
+  "EVOLVED_INTO": {
+    "edge_count": 1
+  },
+  "EVOLVED_ON": {
+    "edge_count": 1
+  },
+  "EVOLVES_WITH": {
+    "edge_count": 1
+  },
+  "EVOLVE_INTO": {
+    "edge_count": 1
+  },
+  "EVOLVE_WITHIN": {
+    "edge_count": 1
+  },
+  "EXAMINED": {
+    "edge_count": 1
+  },
+  "EXCEEDED": {
+    "edge_count": 1
+  },
+  "EXCEEDS_BASELINE_IN": {
+    "edge_count": 1
+  },
+  "EXCHANGES_FOR": {
+    "edge_count": 1
+  },
+  "EXCITES": {
+    "edge_count": 1
+  },
+  "EXCLUDED_FROM": {
+    "edge_count": 1
+  },
+  "EXERT": {
+    "edge_count": 1
+  },
+  "EXERTED_BY": {
+    "edge_count": 1
+  },
+  "EXHIBIT": {
+    "edge_count": 1
+  },
+  "EXHIBIT_BEHAVIOR": {
+    "edge_count": 1
+  },
+  "EXISTED_SINCE": {
+    "edge_count": 1
+  },
+  "EXISTENCE_SCEPTICISM_ABOUT": {
+    "edge_count": 1
+  },
+  "EXISTS_AT": {
+    "edge_count": 1
+  },
+  "EXISTS_BETWEEN": {
+    "edge_count": 1
+  },
+  "EXISTS_IN_STATE": {
+    "edge_count": 1
+  },
+  "EXISTS_ON": {
+    "edge_count": 1
+  },
+  "EXISTS_ON_BOOKS_OF": {
+    "edge_count": 1
+  },
+  "EXISTS_UNDER": {
+    "edge_count": 1
+  },
+  "EXPANDED_INTO": {
+    "edge_count": 1
+  },
+  "EXPANDS_BY": {
+    "edge_count": 1
+  },
+  "EXPERIENCING": {
+    "edge_count": 1
+  },
+  "EXPERT_IN": {
+    "edge_count": 1
+  },
+  "EXPLAINS_ADAPTATION_OF": {
+    "edge_count": 1
+  },
+  "EXPLAINS_IN_TERMS_OF": {
+    "edge_count": 1
+  },
+  "EXPLAINS_SIGNIFICANCE_OF": {
+    "edge_count": 1
+  },
+  "EXPLOITED_IN": {
+    "edge_count": 1
+  },
+  "EXPLOSION_OF": {
+    "edge_count": 1
+  },
+  "EXPRESSED_BY": {
+    "edge_count": 1
+  },
+  "EXPRESSED_IN_TERMS_OF": {
+    "edge_count": 1
+  },
+  "EXTEND": {
+    "edge_count": 1
+  },
+  "EXTENDED_TO": {
+    "edge_count": 1
+  },
+  "EXTENDS": {
+    "edge_count": 1
+  },
+  "EXTEND_BEYOND": {
+    "edge_count": 1
+  },
+  "EXTINCTION_RATE": {
+    "edge_count": 1
+  },
+  "EXTINCT_BY": {
+    "edge_count": 1
+  },
+  "EXTREME_EXAMPLE_OF": {
+    "edge_count": 1
+  },
+  "EXTRUDES_THROUGH": {
+    "edge_count": 1
+  },
+  "FACILITATE": {
+    "edge_count": 1
+  },
+  "FACILITATES_CREATION_OF": {
+    "edge_count": 1
+  },
+  "FALLS_IN": {
+    "edge_count": 1
+  },
+  "FALLS_TOWARD": {
+    "edge_count": 1
+  },
+  "FALL_INTO_SAME": {
+    "edge_count": 1
+  },
+  "FAR_FROM": {
+    "edge_count": 1
+  },
+  "FASTER_THAN": {
+    "edge_count": 1
+  },
+  "FAVORED_AS_BRIDGE_MATERIAL": {
+    "edge_count": 1
+  },
+  "FAVOURABLE_FOR": {
+    "edge_count": 1
+  },
+  "FAVOURED_FOR": {
+    "edge_count": 1
+  },
+  "FAVOURED_IN": {
+    "edge_count": 1
+  },
+  "FEATURES": {
+    "edge_count": 1
+  },
+  "FEATURES_IN": {
+    "edge_count": 1
+  },
+  "FEEDBACK_ON": {
+    "edge_count": 1
+  },
+  "FERMENTED": {
+    "edge_count": 1
+  },
+  "FIELD_OF": {
+    "edge_count": 1
+  },
+  "FILL": {
+    "edge_count": 1
+  },
+  "FILTERS": {
+    "edge_count": 1
+  },
+  "FILTER_OUT": {
+    "edge_count": 1
+  },
+  "FINDS_RESPONSIBLE_FOR": {
+    "edge_count": 1
+  },
+  "FIRST_APPEARANCE_OF": {
+    "edge_count": 1
+  },
+  "FIRST_FORMULATION_OF": {
+    "edge_count": 1
+  },
+  "FIRST_FORM_OF_LIFE_ON": {
+    "edge_count": 1
+  },
+  "FIRST_ISSUED_BY": {
+    "edge_count": 1
+  },
+  "FIRST_ISSUED_IN": {
+    "edge_count": 1
+  },
+  "FIRST_ISSUED_ON": {
+    "edge_count": 1
+  },
+  "FIRST_LETTER_OF": {
+    "edge_count": 1
+  },
+  "FIRST_REPORTED_IN": {
+    "edge_count": 1
+  },
+  "FIRST_USED_BY": {
+    "edge_count": 1
+  },
+  "FIRST_USED_DURING": {
+    "edge_count": 1
+  },
+  "FIRST_USED_IN_ENGLISH_BY": {
+    "edge_count": 1
+  },
+  "FIRST_USED_IN_ENGLISH_ON": {
+    "edge_count": 1
+  },
+  "FLATTER_THAN": {
+    "edge_count": 1
+  },
+  "FLOATS_ON": {
+    "edge_count": 1
+  },
+  "FLOURISHED_DURING": {
+    "edge_count": 1
+  },
+  "FLOWN_IN": {
+    "edge_count": 1
+  },
+  "FLOWS_TO": {
+    "edge_count": 1
+  },
+  "FOLDED_INTO": {
+    "edge_count": 1
+  },
+  "FOLLOWS": {
+    "edge_count": 1
+  },
+  "FOR": {
+    "edge_count": 1
+  },
+  "FORAGES_FOR": {
+    "edge_count": 1
+  },
+  "FORESHADOWED": {
+    "edge_count": 1
+  },
+  "FORMALIZED_BY": {
+    "edge_count": 1
+  },
+  "FORMATION_PREVENTED_BY": {
+    "edge_count": 1
+  },
+  "FORMATTED_AS": {
+    "edge_count": 1
+  },
+  "FORMED_BASIS_FOR": {
+    "edge_count": 1
+  },
+  "FORMED_IN": {
+    "edge_count": 1
+  },
+  "FORMED_OF": {
+    "edge_count": 1
+  },
+  "FORMS_ON": {
+    "edge_count": 1
+  },
+  "FORMS_PERCEPTION_OF": {
+    "edge_count": 1
+  },
+  "FORMS_STRUCTURE": {
+    "edge_count": 1
+  },
+  "FORMULATED_AS": {
+    "edge_count": 1
+  },
+  "FORMULATED_USING": {
+    "edge_count": 1
+  },
+  "FORM_AND_BREAK": {
+    "edge_count": 1
+  },
+  "FORM_CONTINUOUS_PHASE": {
+    "edge_count": 1
+  },
+  "FORM_PART_OF": {
+    "edge_count": 1
+  },
+  "FOUND_FORMULA": {
+    "edge_count": 1
+  },
+  "FOUND_SOLUTION_TO": {
+    "edge_count": 1
+  },
+  "FREED_BY_SPLITTING_OF": {
+    "edge_count": 1
+  },
+  "FREEZES_AT": {
+    "edge_count": 1
+  },
+  "FULFILLS": {
+    "edge_count": 1
+  },
+  "FUNCTIONS_FOR": {
+    "edge_count": 1
+  },
+  "FUNCTIONS_WITHIN": {
+    "edge_count": 1
+  },
+  "FUNDAMENTAL_BUILDING_BLOCK_OF": {
+    "edge_count": 1
+  },
+  "FUSED_INTO": {
+    "edge_count": 1
+  },
+  "FUSED_WITH": {
+    "edge_count": 1
+  },
+  "FUSES": {
+    "edge_count": 1
+  },
+  "FUSES_TO_FORM": {
+    "edge_count": 1
+  },
+  "GAINS": {
+    "edge_count": 1
+  },
+  "GAINS_MASS_FROM": {
+    "edge_count": 1
+  },
+  "GATHERED": {
+    "edge_count": 1
+  },
+  "GAVE": {
+    "edge_count": 1
+  },
+  "GAVE_LECTURES_ON": {
+    "edge_count": 1
+  },
+  "GENERATED_FROM": {
+    "edge_count": 1
+  },
+  "GIVES_RIGIDITY_TO": {
+    "edge_count": 1
+  },
+  "GOES_TO": {
+    "edge_count": 1
+  },
+  "GOVERNED_BY": {
+    "edge_count": 1
+  },
+  "GO_THROUGH": {
+    "edge_count": 1
+  },
+  "GRAVITATIONALLY_BOUND_TO": {
+    "edge_count": 1
+  },
+  "GREATER_THAN": {
+    "edge_count": 1
+  },
+  "GUIDES": {
+    "edge_count": 1
+  },
+  "HAD": {
+    "edge_count": 1
+  },
+  "HAD_CAUSE": {
+    "edge_count": 1
+  },
+  "HAD_DIFFICULTY_RECALLING": {
+    "edge_count": 1
+  },
+  "HAD_LITTLE_SIGNIFICANCE_TO": {
+    "edge_count": 1
+  },
+  "HAS_ANALOG_IN": {
+    "edge_count": 1
+  },
+  "HAS_ANGULAR_DIAMETER_TWICE": {
+    "edge_count": 1
+  },
+  "HAS_AVERAGE_LENGTH": {
+    "edge_count": 1
+  },
+  "HAS_BENEFIT": {
+    "edge_count": 1
+  },
+  "HAS_CAPACITY": {
+    "edge_count": 1
+  },
+  "HAS_CENTER_OF_GRAVITY": {
+    "edge_count": 1
+  },
+  "HAS_CENTRAL": {
+    "edge_count": 1
+  },
+  "HAS_CHARACTERISTIC": {
+    "edge_count": 1
+  },
+  "HAS_CHEMICAL_STRUCTURE": {
+    "edge_count": 1
+  },
+  "HAS_COMPLEX_RELATIONSHIP_WITH": {
+    "edge_count": 1
+  },
+  "HAS_COMPOSITION": {
+    "edge_count": 1
+  },
+  "HAS_DEFINITION": {
+    "edge_count": 1
+  },
+  "HAS_DIMENSION": {
+    "edge_count": 1
+  },
+  "HAS_DIVERSE": {
+    "edge_count": 1
+  },
+  "HAS_DIVERSITY_OF": {
+    "edge_count": 1
+  },
+  "HAS_EC_NUMBER": {
+    "edge_count": 1
+  },
+  "HAS_ELECTRONEGATIVITY_RANGE": {
+    "edge_count": 1
+  },
+  "HAS_ELECTRON_CONFIGURATION": {
+    "edge_count": 1
+  },
+  "HAS_FEATURE": {
+    "edge_count": 1
+  },
+  "HAS_GREATER_AREA_THAN": {
+    "edge_count": 1
+  },
+  "HAS_HALF_LIFE": {
+    "edge_count": 1
+  },
+  "HAS_HIGHER_DENSITY_THAN": {
+    "edge_count": 1
+  },
+  "HAS_HYBRIDIZATION": {
+    "edge_count": 1
+  },
+  "HAS_IMPORTANCE_FOR": {
+    "edge_count": 1
+  },
+  "HAS_INSTANCE": {
+    "edge_count": 1
+  },
+  "HAS_INSTEAD": {
+    "edge_count": 1
+  },
+  "HAS_INSTEAD_OF": {
+    "edge_count": 1
+  },
+  "HAS_LARGER": {
+    "edge_count": 1
+  },
+  "HAS_LIFESPAN": {
+    "edge_count": 1
+  },
+  "HAS_LOST": {
+    "edge_count": 1
+  },
+  "HAS_MAGNITUDE": {
+    "edge_count": 1
+  },
+  "HAS_MAJOR_TRAFFICKING_PROTEIN": {
+    "edge_count": 1
+  },
+  "HAS_MASS": {
+    "edge_count": 1
+  },
+  "HAS_MASS_RANGE": {
+    "edge_count": 1
+  },
+  "HAS_MAX_LENGTH": {
+    "edge_count": 1
+  },
+  "HAS_MEMBER_COUNT": {
+    "edge_count": 1
+  },
+  "HAS_METABOLISM": {
+    "edge_count": 1
+  },
+  "HAS_MORE_THAN": {
+    "edge_count": 1
+  },
+  "HAS_MORE_THAN_COUNT": {
+    "edge_count": 1
+  },
+  "HAS_NUMBER_OF": {
+    "edge_count": 1
+  },
+  "HAS_NUMBER_OF_LAYERS": {
+    "edge_count": 1
+  },
+  "HAS_ONLY": {
+    "edge_count": 1
+  },
+  "HAS_QUANTITY": {
+    "edge_count": 1
+  },
+  "HAS_RANGE": {
+    "edge_count": 1
+  },
+  "HAS_RATIO": {
+    "edge_count": 1
+  },
+  "HAS_REVERSE": {
+    "edge_count": 1
+  },
+  "HAS_ROLE": {
+    "edge_count": 1
+  },
+  "HAS_SHAPE": {
+    "edge_count": 1
+  },
+  "HAS_SIZE_RANGE": {
+    "edge_count": 1
+  },
+  "HAS_SPEED": {
+    "edge_count": 1
+  },
+  "HAS_STAGE": {
+    "edge_count": 1
+  },
+  "HAS_STATE_AT": {
+    "edge_count": 1
+  },
+  "HAS_STATUS": {
+    "edge_count": 1
+  },
+  "HAS_STATUS_AS_OF": {
+    "edge_count": 1
+  },
+  "HAS_SUBCONCEPT": {
+    "edge_count": 1
+  },
+  "HAS_SYMBOL": {
+    "edge_count": 1
+  },
+  "HAS_THEORETICAL_GOAL": {
+    "edge_count": 1
+  },
+  "HAS_THICKNESS": {
+    "edge_count": 1
+  },
+  "HAS_TITLE": {
+    "edge_count": 1
+  },
+  "HAS_TYPE": {
+    "edge_count": 1
+  },
+  "HAS_ZONE": {
+    "edge_count": 1
+  },
+  "HAVE_WELL_DEFINED": {
+    "edge_count": 1
+  },
+  "HEATED_BY": {
+    "edge_count": 1
+  },
+  "HELD_LOW_AND_STABLE_IN": {
+    "edge_count": 1
+  },
+  "HELD_LOW_AND_STABLE_SINCE": {
+    "edge_count": 1
+  },
+  "HELPED_DESIGN": {
+    "edge_count": 1
+  },
+  "HINDERS": {
+    "edge_count": 1
+  },
+  "HITS": {
+    "edge_count": 1
+  },
+  "HOLDS_TOGETHER": {
+    "edge_count": 1
+  },
+  "HOPED_TO_CURE": {
+    "edge_count": 1
+  },
+  "HYPOTHESIZED_AS": {
+    "edge_count": 1
+  },
+  "HYPOTHESIZED_BASED_ON": {
+    "edge_count": 1
+  },
+  "ICON_OF": {
+    "edge_count": 1
+  },
+  "IDENTICAL_FOR": {
+    "edge_count": 1
+  },
+  "IDENTIFIED_BY": {
+    "edge_count": 1
+  },
+  "IGNORED_IN_NUMBERING_OF": {
+    "edge_count": 1
+  },
+  "ILLUMINATE": {
+    "edge_count": 1
+  },
+  "ILLUMINATED_BY": {
+    "edge_count": 1
+  },
+  "ILLUSTRATE": {
+    "edge_count": 1
+  },
+  "IMAGINED": {
+    "edge_count": 1
+  },
+  "IMPAIRS": {
+    "edge_count": 1
+  },
+  "IMPLEMENTED_IN": {
+    "edge_count": 1
+  },
+  "IMPLICATES": {
+    "edge_count": 1
+  },
+  "IMPORTANT_FOR_PRODUCTION_OF": {
+    "edge_count": 1
+  },
+  "IMPORTED_THROUGH": {
+    "edge_count": 1
+  },
+  "IMPOSED_BY": {
+    "edge_count": 1
+  },
+  "IMPOSSIBLE_ACCORDING_TO": {
+    "edge_count": 1
+  },
+  "IMPROVED_BY": {
+    "edge_count": 1
+  },
+  "IMPROVEMENT_LIMITED_BY": {
+    "edge_count": 1
+  },
+  "IMPROVES_ON": {
+    "edge_count": 1
+  },
+  "INCAPABLE_OF": {
+    "edge_count": 1
+  },
+  "INCLUDES_STRUCTURE": {
+    "edge_count": 1
+  },
+  "INCONVENIENCES": {
+    "edge_count": 1
+  },
+  "INCREASED_BY_FACTOR": {
+    "edge_count": 1
+  },
+  "INCREASED_ESTIMATES_OF": {
+    "edge_count": 1
+  },
+  "INCREASED_OVER_PERIOD": {
+    "edge_count": 1
+  },
+  "INCREASES_ABSORPTION_OF": {
+    "edge_count": 1
+  },
+  "INCREASES_AMOUNT_OF": {
+    "edge_count": 1
+  },
+  "INCREASES_CAPACITY_OF": {
+    "edge_count": 1
+  },
+  "INCREASES_DOWN": {
+    "edge_count": 1
+  },
+  "INCREASES_DURING": {
+    "edge_count": 1
+  },
+  "INCREASES_FROM": {
+    "edge_count": 1
+  },
+  "INCREASES_PARALLEL_TO": {
+    "edge_count": 1
+  },
+  "INCREASES_RATE_OF": {
+    "edge_count": 1
+  },
+  "INCREASES_RIGHT_TO_LEFT": {
+    "edge_count": 1
+  },
+  "INCREASES_TO": {
+    "edge_count": 1
+  },
+  "INCREASES_WITH": {
+    "edge_count": 1
+  },
+  "INDICATED_BY_ALTERATIONS_IN": {
+    "edge_count": 1
+  },
+  "INDICATOR_OF": {
+    "edge_count": 1
+  },
+  "INDUCED_THROUGH": {
+    "edge_count": 1
+  },
+  "INDUCES": {
+    "edge_count": 1
+  },
+  "INEFFICIENCY_LEADS_TO": {
+    "edge_count": 1
+  },
+  "INFLUENCES_FLOW_OF": {
+    "edge_count": 1
+  },
+  "INFORMATION_ENCODED_IN": {
+    "edge_count": 1
+  },
+  "INHABITS": {
+    "edge_count": 1
+  },
+  "INHERITED_FROM": {
+    "edge_count": 1
+  },
+  "INHERITS": {
+    "edge_count": 1
+  },
+  "INHERITS_TOGETHER": {
+    "edge_count": 1
+  },
+  "INITIATED_IN": {
+    "edge_count": 1
+  },
+  "INSUFFICIENT_TO_VALIDATE": {
+    "edge_count": 1
+  },
+  "INTENTIONAL_WHEREAS": {
+    "edge_count": 1
+  },
+  "INTERCHANGEABLE_WITH": {
+    "edge_count": 1
+  },
+  "INTERESTED_IN_DETECTING": {
+    "edge_count": 1
+  },
+  "INTERMEDIATES": {
+    "edge_count": 1
+  },
+  "INTERPRETED_AS_EFFECT_OF": {
+    "edge_count": 1
+  },
+  "INTERPRETED_AS_ISOTROPIC": {
+    "edge_count": 1
+  },
+  "INTRODUCED_AT": {
+    "edge_count": 1
+  },
+  "INTRODUCED_BY": {
+    "edge_count": 1
+  },
+  "INTRODUCED_IN": {
+    "edge_count": 1
+  },
+  "INTRODUCED_TERM": {
+    "edge_count": 1
+  },
+  "INTRODUCES": {
+    "edge_count": 1
+  },
+  "INVENTED_FOR": {
+    "edge_count": 1
+  },
+  "INVENTED_IN_CONTEXT_OF": {
+    "edge_count": 1
+  },
+  "INVENTED_IN_LOCATION": {
+    "edge_count": 1
+  },
+  "INVESTIGATED_IN": {
+    "edge_count": 1
+  },
+  "INVOLVED": {
+    "edge_count": 1
+  },
+  "INVOLVES_CHANGE_IN": {
+    "edge_count": 1
+  },
+  "INVOLVES_OBJECT": {
+    "edge_count": 1
+  },
+  "INVOLVES_SHARING_OF": {
+    "edge_count": 1
+  },
+  "IN_CONTACT_WITH": {
+    "edge_count": 1
+  },
+  "IN_CONTEXT_OF": {
+    "edge_count": 1
+  },
+  "IN_DIRECT_CONTACT_WITH": {
+    "edge_count": 1
+  },
+  "IN_LANGUAGE": {
+    "edge_count": 1
+  },
+  "IN_RESPONSE_TO": {
+    "edge_count": 1
+  },
+  "IN_STATE": {
+    "edge_count": 1
+  },
+  "IS_A_FORM_OF": {
+    "edge_count": 1
+  },
+  "IS_BOUND_TO": {
+    "edge_count": 1
+  },
+  "IS_DESCRIBED_AS": {
+    "edge_count": 1
+  },
+  "IS_ELECTRICAL_IN_NATURE": {
+    "edge_count": 1
+  },
+  "IS_FORM_OF": {
+    "edge_count": 1
+  },
+  "IS_FRAME_DEPENDENT_WITH": {
+    "edge_count": 1
+  },
+  "IS_MEMBER_OF": {
+    "edge_count": 1
+  },
+  "IS_NOT_A": {
+    "edge_count": 1
+  },
+  "IS_NOW": {
+    "edge_count": 1
+  },
+  "IS_STANDARD_FOR": {
+    "edge_count": 1
+  },
+  "IS_STATE_OF": {
+    "edge_count": 1
+  },
+  "IS_SUBUNIT_OF": {
+    "edge_count": 1
+  },
+  "IS_TAKEN_IN_THROUGH": {
+    "edge_count": 1
+  },
+  "IS_THEORY_OF": {
+    "edge_count": 1
+  },
+  "IS_TOPIC_OF": {
+    "edge_count": 1
+  },
+  "IS_USEFUL_PROPERTY_IN": {
+    "edge_count": 1
+  },
+  "IS_VALUE_OF": {
+    "edge_count": 1
+  },
+  "JOINED_BY": {
+    "edge_count": 1
+  },
+  "JOINS_WITH": {
+    "edge_count": 1
+  },
+  "JUMPED_FROM": {
+    "edge_count": 1
+  },
+  "JUMPED_TO": {
+    "edge_count": 1
+  },
+  "KEY_DEVELOPMENT_DURING": {
+    "edge_count": 1
+  },
+  "KNOWN_BY": {
+    "edge_count": 1
+  },
+  "KNOWN_IN": {
+    "edge_count": 1
+  },
+  "KNOWN_THROUGH": {
+    "edge_count": 1
+  },
+  "KNOWN_TO": {
+    "edge_count": 1
+  },
+  "LABELED_AS": {
+    "edge_count": 1
+  },
+  "LACKS_STRUCTURE": {
+    "edge_count": 1
+  },
+  "LARGER_THAN": {
+    "edge_count": 1
+  },
+  "LASTS_FOR": {
+    "edge_count": 1
+  },
+  "LATER_CALLED": {
+    "edge_count": 1
+  },
+  "LEADS_TO_REDUCTION_OF": {
+    "edge_count": 1
+  },
+  "LEAKS_INTO": {
+    "edge_count": 1
+  },
+  "LEARNED": {
+    "edge_count": 1
+  },
+  "LEAVES_BEHIND": {
+    "edge_count": 1
+  },
+  "LED_TO_DEVELOPMENT_OF": {
+    "edge_count": 1
+  },
+  "LESS_DENSE_THAN": {
+    "edge_count": 1
+  },
+  "LESS_INTENSE_THAN": {
+    "edge_count": 1
+  },
+  "LESS_POPULAR_IN": {
+    "edge_count": 1
+  },
+  "LESS_RELIABLE_THAN": {
+    "edge_count": 1
+  },
+  "LESS_STUDIED_THAN": {
+    "edge_count": 1
+  },
+  "LIMITED_TO": {
+    "edge_count": 1
+  },
+  "LIMITS": {
+    "edge_count": 1
+  },
+  "LINKED": {
+    "edge_count": 1
+  },
+  "LINKED_BY": {
+    "edge_count": 1
+  },
+  "LINKED_WITH": {
+    "edge_count": 1
+  },
+  "LISTS": {
+    "edge_count": 1
+  },
+  "LISTS_AS": {
+    "edge_count": 1
+  },
+  "LITERAL_MEANING": {
+    "edge_count": 1
+  },
+  "LIVED_AT_TIME": {
+    "edge_count": 1
+  },
+  "LIVED_IN": {
+    "edge_count": 1
+  },
+  "LOCATED_AROUND": {
+    "edge_count": 1
+  },
+  "LOCATED_AT_DISTANCE": {
+    "edge_count": 1
+  },
+  "LOCATED_BEYOND": {
+    "edge_count": 1
+  },
+  "LOCATED_NEAR": {
+    "edge_count": 1
+  },
+  "LOCATED_NEXT_TO": {
+    "edge_count": 1
+  },
+  "LOCATED_WITHIN": {
+    "edge_count": 1
+  },
+  "LOCATION_OF": {
+    "edge_count": 1
+  },
+  "LOCATION_OF_INFINITY": {
+    "edge_count": 1
+  },
+  "LOOKED_TO": {
+    "edge_count": 1
+  },
+  "LOSE": {
+    "edge_count": 1
+  },
+  "LOSES_MASS_VIA": {
+    "edge_count": 1
+  },
+  "LOST_DURING": {
+    "edge_count": 1
+  },
+  "LOWERS": {
+    "edge_count": 1
+  },
+  "LOWER_BOUND": {
+    "edge_count": 1
+  },
+  "LOWEST_PRESSURE_FOR_EXISTENCE": {
+    "edge_count": 1
+  },
+  "MADE_DISCOVERY_IN": {
+    "edge_count": 1
+  },
+  "MADE_ENTIRELY_OF": {
+    "edge_count": 1
+  },
+  "MADE_IN": {
+    "edge_count": 1
+  },
+  "MADE_INHOSPITABLE": {
+    "edge_count": 1
+  },
+  "MADE_PUBLIC": {
+    "edge_count": 1
+  },
+  "MAINTAINED_WITHIN": {
+    "edge_count": 1
+  },
+  "MAINTAINS_LIQUID_STATE_OF": {
+    "edge_count": 1
+  },
+  "MAINTAINS_ORIENTATION_OF": {
+    "edge_count": 1
+  },
+  "MAINTAINS_OXYGEN_CONTENT_OF": {
+    "edge_count": 1
+  },
+  "MAINTAIN_IMPORTANCE_OF": {
+    "edge_count": 1
+  },
+  "MAKE": {
+    "edge_count": 1
+  },
+  "MAKES": {
+    "edge_count": 1
+  },
+  "MAKES_SENSE_OF": {
+    "edge_count": 1
+  },
+  "MAKES_UP": {
+    "edge_count": 1
+  },
+  "MANDATORY_IN": {
+    "edge_count": 1
+  },
+  "MANIFESTATION_OF": {
+    "edge_count": 1
+  },
+  "MANUFACTURED_FOR": {
+    "edge_count": 1
+  },
+  "MAPS": {
+    "edge_count": 1
+  },
+  "MARKED_BEGINNING_OF": {
+    "edge_count": 1
+  },
+  "MASS_LIMIT_FOR": {
+    "edge_count": 1
+  },
+  "MATCHED": {
+    "edge_count": 1
+  },
+  "MATCHES": {
+    "edge_count": 1
+  },
+  "MATCHES_OR_EXCEEDS": {
+    "edge_count": 1
+  },
+  "MAY_ALTER_PRODUCT_OF": {
+    "edge_count": 1
+  },
+  "MAY_BE_TYPE_OF": {
+    "edge_count": 1
+  },
+  "MAY_COLLIDE_WITH": {
+    "edge_count": 1
+  },
+  "MAY_FORM": {
+    "edge_count": 1
+  },
+  "MAY_HIT": {
+    "edge_count": 1
+  },
+  "MAY_INCREASE": {
+    "edge_count": 1
+  },
+  "MAY_MAKE_UNNECESSARY": {
+    "edge_count": 1
+  },
+  "MAY_PASS_THROUGH": {
+    "edge_count": 1
+  },
+  "MAY_PRODUCE": {
+    "edge_count": 1
+  },
+  "MEANS_CAN_FORM": {
+    "edge_count": 1
+  },
+  "MEASURED_FROM": {
+    "edge_count": 1
+  },
+  "MECHANISM_OF": {
+    "edge_count": 1
+  },
+  "MEDIUM_FOR_SIGNAL_TRANSMISSION": {
+    "edge_count": 1
+  },
+  "MELTS_AT": {
+    "edge_count": 1
+  },
+  "MENTIONED_IN_WRITINGS_OF": {
+    "edge_count": 1
+  },
+  "MERGED_ONTO": {
+    "edge_count": 1
+  },
+  "MERGES_WITH": {
+    "edge_count": 1
+  },
+  "MIGRATED_INTO": {
+    "edge_count": 1
+  },
+  "MINED_BY": {
+    "edge_count": 1
+  },
+  "MINTED_AT_TIME": {
+    "edge_count": 1
+  },
+  "MIXED_WITH": {
+    "edge_count": 1
+  },
+  "MODELS_BEHAVIOUR_OF": {
+    "edge_count": 1
+  },
+  "MODERATED": {
+    "edge_count": 1
+  },
+  "MODERATES": {
+    "edge_count": 1
+  },
+  "MODERN_ANALOG_OF": {
+    "edge_count": 1
+  },
+  "MODERN_EQUIVALENT": {
+    "edge_count": 1
+  },
+  "MODERN_FORM_REACHED_IN": {
+    "edge_count": 1
+  },
+  "MODULATES_AVAILABILITY_OF": {
+    "edge_count": 1
+  },
+  "MORE_CONVENIENT_FOR": {
+    "edge_count": 1
+  },
+  "MORE_EFFECTIVE_THAN": {
+    "edge_count": 1
+  },
+  "MORE_POWERFUL_THAN": {
+    "edge_count": 1
+  },
+  "MORE_REACTIVE_THAN": {
+    "edge_count": 1
+  },
+  "MORE_STABLE_THAN": {
+    "edge_count": 1
+  },
+  "MOST_COMMON_IN": {
+    "edge_count": 1
+  },
+  "MOST_COMMON_STATE_OF": {
+    "edge_count": 1
+  },
+  "MOTION_IS": {
+    "edge_count": 1
+  },
+  "MOTIVATED_BY": {
+    "edge_count": 1
+  },
+  "MOUNTED_TO": {
+    "edge_count": 1
+  },
+  "MOVED_ACROSS": {
+    "edge_count": 1
+  },
+  "MOVED_ALONG": {
+    "edge_count": 1
+  },
+  "MOVED_AWAY_FROM": {
+    "edge_count": 1
+  },
+  "MOVED_IN": {
+    "edge_count": 1
+  },
+  "MOVED_INTO": {
+    "edge_count": 1
+  },
+  "MOVES_ACROSS": {
+    "edge_count": 1
+  },
+  "MOVES_PROTEINS_INTO": {
+    "edge_count": 1
+  },
+  "MOVES_THROUGH": {
+    "edge_count": 1
+  },
+  "MOVES_TOWARD": {
+    "edge_count": 1
+  },
+  "MUCH_HIGHER_THAN": {
+    "edge_count": 1
+  },
+  "MUST_CONNECT_TO": {
+    "edge_count": 1
+  },
+  "MUST_MATCH": {
+    "edge_count": 1
+  },
+  "MUST_PROVIDE": {
+    "edge_count": 1
+  },
+  "MUST_SATISFY": {
+    "edge_count": 1
+  },
+  "MUST_SURMOUNT": {
+    "edge_count": 1
+  },
+  "MUST_TRANSPORT_SAFELY": {
+    "edge_count": 1
+  },
+  "MUTUALLY_ATTRACT": {
+    "edge_count": 1
+  },
+  "NAMED": {
+    "edge_count": 1
+  },
+  "NAMED_ACCORDING_TO": {
+    "edge_count": 1
+  },
+  "NAMED_FOR": {
+    "edge_count": 1
+  },
+  "NAMED_IN": {
+    "edge_count": 1
+  },
+  "NAMED_UNDER": {
+    "edge_count": 1
+  },
+  "NAMED_WITH_A": {
+    "edge_count": 1
+  },
+  "NAMED_WITH_B": {
+    "edge_count": 1
+  },
+  "NAME_DERIVED_FROM": {
+    "edge_count": 1
+  },
+  "NATURE_CONFIRMED_IN": {
+    "edge_count": 1
+  },
+  "NEEDED_FOR": {
+    "edge_count": 1
+  },
+  "NEEDED_IN": {
+    "edge_count": 1
+  },
+  "NEED_NOT_HAVE": {
+    "edge_count": 1
+  },
+  "NEGATIVELY_VIEWED_BY": {
+    "edge_count": 1
+  },
+  "NICKNAMED_AS": {
+    "edge_count": 1
+  },
+  "NORMAL_FORM_ON": {
+    "edge_count": 1
+  },
+  "NOTABLE_EXAMPLE_DURING": {
+    "edge_count": 1
+  },
+  "NOT_ALWAYS_SUBJECT_TO": {
+    "edge_count": 1
+  },
+  "NOT_ALWAYS_TRANSLATED_TO": {
+    "edge_count": 1
+  },
+  "NOT_ASSOCIATED_WITH": {
+    "edge_count": 1
+  },
+  "NOT_CLASSIFICATORY_OF": {
+    "edge_count": 1
+  },
+  "NOT_COLLAPSE_BEYOND": {
+    "edge_count": 1
+  },
+  "NOT_CONSUMED_IN": {
+    "edge_count": 1
+  },
+  "NOT_EXISTS_AS": {
+    "edge_count": 1
+  },
+  "NOT_EXPLAINED_BY": {
+    "edge_count": 1
+  },
+  "NOT_EXPRESSED_IN_MOST": {
+    "edge_count": 1
+  },
+  "NOT_FULLY_COMPATIBLE_WITH": {
+    "edge_count": 1
+  },
+  "NOT_HELD_IN": {
+    "edge_count": 1
+  },
+  "NOT_INHERITED_BY": {
+    "edge_count": 1
+  },
+  "NOT_MODIFIED_BY": {
+    "edge_count": 1
+  },
+  "NOT_OBSERVED_BY": {
+    "edge_count": 1
+  },
+  "NOT_PARENT_OF": {
+    "edge_count": 1
+  },
+  "NOT_REFERRED_TO": {
+    "edge_count": 1
+  },
+  "NOT_UNIQUE_TO": {
+    "edge_count": 1
+  },
+  "NOW_CALLED": {
+    "edge_count": 1
+  },
+  "NUMBERED_FROM": {
+    "edge_count": 1
+  },
+  "NUMBERED_TO": {
+    "edge_count": 1
+  },
+  "OBEYS": {
+    "edge_count": 1
+  },
+  "OBSCURES": {
+    "edge_count": 1
+  },
+  "OBSERVATION_DATE": {
+    "edge_count": 1
+  },
+  "OBSERVATION_LOCATION": {
+    "edge_count": 1
+  },
+  "OBSERVED_AT_TIME": {
+    "edge_count": 1
+  },
+  "OBSERVED_DURING": {
+    "edge_count": 1
+  },
+  "OBSERVED_ON": {
+    "edge_count": 1
+  },
+  "OBTAINED_BY": {
+    "edge_count": 1
+  },
+  "OBTAINED_FROM": {
+    "edge_count": 1
+  },
+  "OBTAINED_THROUGH": {
+    "edge_count": 1
+  },
+  "OCCUPY": {
+    "edge_count": 1
+  },
+  "OCCURRED_AROUND": {
+    "edge_count": 1
+  },
+  "OCCURRED_ON": {
+    "edge_count": 1
+  },
+  "OCCURS_ALONGSIDE": {
+    "edge_count": 1
+  },
+  "OCCURS_AT_RATE": {
+    "edge_count": 1
+  },
+  "OCCURS_BEFORE": {
+    "edge_count": 1
+  },
+  "OCCURS_DURING_LAST_EVOLUTIONARY_STAGES_OF": {
+    "edge_count": 1
+  },
+  "OCCURS_IN_RESPONSE_TO": {
+    "edge_count": 1
+  },
+  "OCCURS_OUTSIDE": {
+    "edge_count": 1
+  },
+  "OCCURS_THROUGHOUT": {
+    "edge_count": 1
+  },
+  "OCCURS_WHEN_TRIGGERED_INTO": {
+    "edge_count": 1
+  },
+  "OCCURS_WITHOUT": {
+    "edge_count": 1
+  },
+  "OCCUR_AS_MIXES_OF": {
+    "edge_count": 1
+  },
+  "OCCUR_ON": {
+    "edge_count": 1
+  },
+  "OCCUR_WITH": {
+    "edge_count": 1
+  },
+  "OFTEN_IS": {
+    "edge_count": 1
+  },
+  "OF_INTEREST_TO": {
+    "edge_count": 1
+  },
+  "OF_LITTLE_CONSEQUENCE_TO": {
+    "edge_count": 1
+  },
+  "OF_SAME": {
+    "edge_count": 1
+  },
+  "ON": {
+    "edge_count": 1
+  },
+  "ONE_FOR": {
+    "edge_count": 1
+  },
+  "ON_COURSE_FOR": {
+    "edge_count": 1
+  },
+  "OPERATED_BY": {
+    "edge_count": 1
+  },
+  "OPERATED_IN": {
+    "edge_count": 1
+  },
+  "OPERATES": {
+    "edge_count": 1
+  },
+  "OPERATES_ACCORDING_TO": {
+    "edge_count": 1
+  },
+  "OPPOSED_BY": {
+    "edge_count": 1
+  },
+  "OPPOSITE_DIRECTION_TO": {
+    "edge_count": 1
+  },
+  "OPPOSITE_OF": {
+    "edge_count": 1
+  },
+  "ORBIT": {
+    "edge_count": 1
+  },
+  "ORBITING": {
+    "edge_count": 1
+  },
+  "ORDERED_FOR": {
+    "edge_count": 1
+  },
+  "ORDERS": {
+    "edge_count": 1
+  },
+  "ORDERS_BY": {
+    "edge_count": 1
+  },
+  "ORIENTED_BY": {
+    "edge_count": 1
+  },
+  "ORIENTED_TOWARD": {
+    "edge_count": 1
+  },
+  "ORIENTED_TO_MAINTAIN": {
+    "edge_count": 1
+  },
+  "ORIGINATED_FROM": {
+    "edge_count": 1
+  },
+  "ORIGIN_TRACES_TO": {
+    "edge_count": 1
+  },
+  "OSCILLATE_IN": {
+    "edge_count": 1
+  },
+  "OUTNUMBER": {
+    "edge_count": 1
+  },
+  "OUTPERFORMS": {
+    "edge_count": 1
+  },
+  "OUTPUTS": {
+    "edge_count": 1
+  },
+  "OUTSTRIPS": {
+    "edge_count": 1
+  },
+  "OUT_OF_PLACE_IN": {
+    "edge_count": 1
+  },
+  "OVERSHADOWED": {
+    "edge_count": 1
+  },
+  "OVERWHELMS": {
+    "edge_count": 1
+  },
+  "OXIDATION_PRODUCT": {
+    "edge_count": 1
+  },
+  "PARTICIPATE_IN": {
+    "edge_count": 1
+  },
+  "PASSED_BETWEEN": {
+    "edge_count": 1
+  },
+  "PASSED_FROM_TO": {
+    "edge_count": 1
+  },
+  "PASSED_ON_TO": {
+    "edge_count": 1
+  },
+  "PASSED_TO": {
+    "edge_count": 1
+  },
+  "PASSES_ELECTRON_TO": {
+    "edge_count": 1
+  },
+  "PASS_INFORMATION_TO": {
+    "edge_count": 1
+  },
+  "PEAK_LUMINOSITY": {
+    "edge_count": 1
+  },
+  "PER": {
+    "edge_count": 1
+  },
+  "PERCEIVES": {
+    "edge_count": 1
+  },
+  "PERCENT_DESTROYED": {
+    "edge_count": 1
+  },
+  "PERCENT_EXPERIENCING": {
+    "edge_count": 1
+  },
+  "PERCENT_EXPERIENCING_POPULATION_DECLINES": {
+    "edge_count": 1
+  },
+  "PERCEPTION_OF": {
+    "edge_count": 1
+  },
+  "PERFECTED_IN": {
+    "edge_count": 1
+  },
+  "PERFORMED_DURING": {
+    "edge_count": 1
+  },
+  "PERFORMED_EXPERIMENT_ON": {
+    "edge_count": 1
+  },
+  "PERFORMED_IN": {
+    "edge_count": 1
+  },
+  "PERFORMS_FUNCTION_AS": {
+    "edge_count": 1
+  },
+  "PERFORMS_PROCESS": {
+    "edge_count": 1
+  },
+  "PERISH_DURING": {
+    "edge_count": 1
+  },
+  "PERMEABLE_TO": {
+    "edge_count": 1
+  },
+  "PERPETUATES": {
+    "edge_count": 1
+  },
+  "PER_DISTANCE": {
+    "edge_count": 1
+  },
+  "PER_TIME_UNIT": {
+    "edge_count": 1
+  },
+  "PER_UNIT_AREA": {
+    "edge_count": 1
+  },
+  "PHASE_DIAGRAM_OF": {
+    "edge_count": 1
+  },
+  "PHRASE_IN_LANGUAGE": {
+    "edge_count": 1
+  },
+  "PIONEERED": {
+    "edge_count": 1
+  },
+  "PLACED_IN": {
+    "edge_count": 1
+  },
+  "PLACED_IN_CONTACT_WITH": {
+    "edge_count": 1
+  },
+  "PLACED_IN_CURRENT_POSITIONS": {
+    "edge_count": 1
+  },
+  "PLAYS_A_ROLE_IN": {
+    "edge_count": 1
+  },
+  "POINTED_OUT": {
+    "edge_count": 1
+  },
+  "POINTS_TO": {
+    "edge_count": 1
+  },
+  "POINT_TO": {
+    "edge_count": 1
+  },
+  "POPULARISED": {
+    "edge_count": 1
+  },
+  "POPULARIZED_DATE": {
+    "edge_count": 1
+  },
+  "POPULARIZED_PHRASE": {
+    "edge_count": 1
+  },
+  "POPULAR_AFTER": {
+    "edge_count": 1
+  },
+  "POPULAR_FOR": {
+    "edge_count": 1
+  },
+  "POSITIONED_ON": {
+    "edge_count": 1
+  },
+  "POSSESS": {
+    "edge_count": 1
+  },
+  "POSSESSED_INTRINSIC_VALUE_AS": {
+    "edge_count": 1
+  },
+  "POSSESSES": {
+    "edge_count": 1
+  },
+  "POSSESSES_ONLY": {
+    "edge_count": 1
+  },
+  "POSSIBLY_INSTANCE_OF": {
+    "edge_count": 1
+  },
+  "PRACTICES": {
+    "edge_count": 1
+  },
+  "PRECESS_UNEXPECTEDLY_IN": {
+    "edge_count": 1
+  },
+  "PRECIPITATES_AS": {
+    "edge_count": 1
+  },
+  "PRECONDITION_FOR": {
+    "edge_count": 1
+  },
+  "PRECURSOR_TO": {
+    "edge_count": 1
+  },
+  "PREDICTS_EMISSION_FROM": {
+    "edge_count": 1
+  },
+  "PREDOMINANTLY_USED_IN": {
+    "edge_count": 1
+  },
+  "PREFER": {
+    "edge_count": 1
+  },
+  "PREFERRED_TERM": {
+    "edge_count": 1
+  },
+  "PREPARES_FOR": {
+    "edge_count": 1
+  },
+  "PRESENTED_AS": {
+    "edge_count": 1
+  },
+  "PRESENT_AS": {
+    "edge_count": 1
+  },
+  "PRESERVES": {
+    "edge_count": 1
+  },
+  "PRESERVES_STRUCTURE_OF": {
+    "edge_count": 1
+  },
+  "PREVALENT_IN": {
+    "edge_count": 1
+  },
+  "PREVALENT_TERM_IN": {
+    "edge_count": 1
+  },
+  "PREVENTS_EXPANSION_OF": {
+    "edge_count": 1
+  },
+  "PREVENTS_STABILIZATION_BY": {
+    "edge_count": 1
+  },
+  "PREVIOUSLY_KNOWN_AS": {
+    "edge_count": 1
+  },
+  "PREVIOUSLY_KNOWN_BY": {
+    "edge_count": 1
+  },
+  "PRICES": {
+    "edge_count": 1
+  },
+  "PRIMARY_DRIVER_FOR": {
+    "edge_count": 1
+  },
+  "PRIMARY_EXPLANATION_FOR": {
+    "edge_count": 1
+  },
+  "PRIMARY_INTERACTION_IN": {
+    "edge_count": 1
+  },
+  "PRINCIPAL_COMPONENT_OF": {
+    "edge_count": 1
+  },
+  "PRIVATE_TO": {
+    "edge_count": 1
+  },
+  "PROCESSED_INTO": {
+    "edge_count": 1
+  },
+  "PROCESS_OF": {
+    "edge_count": 1
+  },
+  "PRODUCED_DURING": {
+    "edge_count": 1
+  },
+  "PRODUCED_FOR": {
+    "edge_count": 1
+  },
+  "PRODUCES_AND_MAINTAINS": {
+    "edge_count": 1
+  },
+  "PRODUCES_ENERGY_BY": {
+    "edge_count": 1
+  },
+  "PROHIBITS": {
+    "edge_count": 1
+  },
+  "PROLIFERATED_DURING": {
+    "edge_count": 1
+  },
+  "PROPAGATED_IN": {
+    "edge_count": 1
+  },
+  "PROPAGATES_IN": {
+    "edge_count": 1
+  },
+  "PROPAGATES_INTO": {
+    "edge_count": 1
+  },
+  "PROPAGATES_ON": {
+    "edge_count": 1
+  },
+  "PROPERTIES_SENSITIVE_TO": {
+    "edge_count": 1
+  },
+  "PROPERTIES_SHOULD_MATCH": {
+    "edge_count": 1
+  },
+  "PROPERTY_DUE_TO": {
+    "edge_count": 1
+  },
+  "PROPORTIONAL_TO": {
+    "edge_count": 1
+  },
+  "PROPOSED_AS_MECHANISM_FOR": {
+    "edge_count": 1
+  },
+  "PROPOSED_AT_TIME": {
+    "edge_count": 1
+  },
+  "PROPOSED_CONCEPT": {
+    "edge_count": 1
+  },
+  "PROPOSED_IDEA_OF": {
+    "edge_count": 1
+  },
+  "PROPOSES": {
+    "edge_count": 1
+  },
+  "PROTECTS_FROM": {
+    "edge_count": 1
+  },
+  "PROVED": {
+    "edge_count": 1
+  },
+  "PROVIDED_AS": {
+    "edge_count": 1
+  },
+  "PROVIDED_BY": {
+    "edge_count": 1
+  },
+  "PROVIDED_GREATER_POWER_THAN": {
+    "edge_count": 1
+  },
+  "PROVIDED_TO": {
+    "edge_count": 1
+  },
+  "PROVIDES_ENERGY_FOR": {
+    "edge_count": 1
+  },
+  "PROVIDES_HIGHER": {
+    "edge_count": 1
+  },
+  "PROVIDES_STRUCTURE_TO": {
+    "edge_count": 1
+  },
+  "PROVIDE_PRIDE_FOR": {
+    "edge_count": 1
+  },
+  "PUBLICATION_DATE": {
+    "edge_count": 1
+  },
+  "PUBLISHED_BY": {
+    "edge_count": 1
+  },
+  "PUBLISHED_IN_YEAR": {
+    "edge_count": 1
+  },
+  "PUBLISHED_PAPER_IN": {
+    "edge_count": 1
+  },
+  "PUBLISHED_VIEWS_ON": {
+    "edge_count": 1
+  },
+  "PURPOSE": {
+    "edge_count": 1
+  },
+  "RADIATES_BY": {
+    "edge_count": 1
+  },
+  "RANGE_END": {
+    "edge_count": 1
+  },
+  "RANGE_START": {
+    "edge_count": 1
+  },
+  "REACHED_LEVEL": {
+    "edge_count": 1
+  },
+  "REACHED_VALUE": {
+    "edge_count": 1
+  },
+  "REACTIVITY_MEASURED_AT": {
+    "edge_count": 1
+  },
+  "READ_TO": {
+    "edge_count": 1
+  },
+  "REARRANGES": {
+    "edge_count": 1
+  },
+  "RECALLED": {
+    "edge_count": 1
+  },
+  "RECALLS": {
+    "edge_count": 1
+  },
+  "RECALLS_WITH": {
+    "edge_count": 1
+  },
+  "RECEIVES_FROM": {
+    "edge_count": 1
+  },
+  "RECOGNIZED": {
+    "edge_count": 1
+  },
+  "RECOGNIZES": {
+    "edge_count": 1
+  },
+  "RECONSTRUCTED_BY": {
+    "edge_count": 1
+  },
+  "RECONSTRUCTED_FROM": {
+    "edge_count": 1
+  },
+  "RECORDED": {
+    "edge_count": 1
+  },
+  "RECORDED_ON": {
+    "edge_count": 1
+  },
+  "RECORDS": {
+    "edge_count": 1
+  },
+  "REDEEMABLE_BY": {
+    "edge_count": 1
+  },
+  "REDEEMABLE_FOR": {
+    "edge_count": 1
+  },
+  "REDEFINED_AS": {
+    "edge_count": 1
+  },
+  "REDUCED_TO": {
+    "edge_count": 1
+  },
+  "REDUCED_VARIATION_IN": {
+    "edge_count": 1
+  },
+  "REDUCES_LIKELIHOOD_OF": {
+    "edge_count": 1
+  },
+  "REDUCES_RISK_OF": {
+    "edge_count": 1
+  },
+  "REFERENCE_FOR": {
+    "edge_count": 1
+  },
+  "REFERS_TO_AS": {
+    "edge_count": 1
+  },
+  "REFERS_TO_GENERAL_TREND_OF": {
+    "edge_count": 1
+  },
+  "REFINED": {
+    "edge_count": 1
+  },
+  "REGAINS": {
+    "edge_count": 1
+  },
+  "REGARDING": {
+    "edge_count": 1
+  },
+  "REGARDING_POSITION_OF": {
+    "edge_count": 1
+  },
+  "REGENERATED_AT_END_OF": {
+    "edge_count": 1
+  },
+  "REGISTERS_ON": {
+    "edge_count": 1
+  },
+  "REGRETTED_USE_OF_TERM": {
+    "edge_count": 1
+  },
+  "REHEARSED": {
+    "edge_count": 1
+  },
+  "REJECTED_USE_OF": {
+    "edge_count": 1
+  },
+  "RELATED_BY": {
+    "edge_count": 1
+  },
+  "RELATED_TERM": {
+    "edge_count": 1
+  },
+  "RELATED_TO_VALUE_OF": {
+    "edge_count": 1
+  },
+  "RELIED_ON": {
+    "edge_count": 1
+  },
+  "RELIED_ON_INSTEAD_OF": {
+    "edge_count": 1
+  },
+  "RELIED_ON_MASS_OF": {
+    "edge_count": 1
+  },
+  "REMAINS_AS": {
+    "edge_count": 1
+  },
+  "REMAINS_OF": {
+    "edge_count": 1
+  },
+  "REMAIN_SOLID_BEYOND": {
+    "edge_count": 1
+  },
+  "REMEMBERED_THROUGH": {
+    "edge_count": 1
+  },
+  "REMOVAL_LEADS_TO": {
+    "edge_count": 1
+  },
+  "REMOVED_FROM": {
+    "edge_count": 1
+  },
+  "RENAMED_FROM": {
+    "edge_count": 1
+  },
+  "RENAMED_IN": {
+    "edge_count": 1
+  },
+  "RENAMED_TO": {
+    "edge_count": 1
+  },
+  "RENDERS_MAGNETIC": {
+    "edge_count": 1
+  },
+  "REPEATED_IN": {
+    "edge_count": 1
+  },
+  "REPEL": {
+    "edge_count": 1
+  },
+  "REPLACED_TERM": {
+    "edge_count": 1
+  },
+  "REPORTED": {
+    "edge_count": 1
+  },
+  "REPORTED_TO": {
+    "edge_count": 1
+  },
+  "REPRESENTATIVE_OF": {
+    "edge_count": 1
+  },
+  "REPRESENTED_BY": {
+    "edge_count": 1
+  },
+  "REQUESTED_ANALYSIS_FROM": {
+    "edge_count": 1
+  },
+  "REQUIRED_BY": {
+    "edge_count": 1
+  },
+  "REQUIRED_FOR_BREAKING": {
+    "edge_count": 1
+  },
+  "REQUIRES_COORDINATION_OF": {
+    "edge_count": 1
+  },
+  "REQUIRES_FOR_TRANSPORT": {
+    "edge_count": 1
+  },
+  "REQUIRES_LAWS_HOLD_IN": {
+    "edge_count": 1
+  },
+  "RESIDES_IN": {
+    "edge_count": 1
+  },
+  "RESOLVES": {
+    "edge_count": 1
+  },
+  "RESPONSE_TO": {
+    "edge_count": 1
+  },
+  "RESPONSIBLE_FOR_EFFECTS_IN": {
+    "edge_count": 1
+  },
+  "RESTRICTED_TO": {
+    "edge_count": 1
+  },
+  "RESTRICTS_LEAKAGE_OF": {
+    "edge_count": 1
+  },
+  "RESTS_ON": {
+    "edge_count": 1
+  },
+  "RESULT_IN": {
+    "edge_count": 1
+  },
+  "RETAINS": {
+    "edge_count": 1
+  },
+  "RETENTION_OF": {
+    "edge_count": 1
+  },
+  "RETRIEVES": {
+    "edge_count": 1
+  },
+  "RETRIEVES_FROM": {
+    "edge_count": 1
+  },
+  "RETURNED_TO": {
+    "edge_count": 1
+  },
+  "RETURNS_MATERIAL_TO": {
+    "edge_count": 1
+  },
+  "REVEALED": {
+    "edge_count": 1
+  },
+  "REVEALS": {
+    "edge_count": 1
+  },
+  "REVERSE_OF": {
+    "edge_count": 1
+  },
+  "ROMANIZED_AS": {
+    "edge_count": 1
+  },
+  "ROOT_OF": {
+    "edge_count": 1
+  },
+  "RULES_OUT_MEASUREMENT_OF": {
+    "edge_count": 1
+  },
+  "RUNS_UNDER": {
+    "edge_count": 1
+  },
+  "RUN_SLOWER_IN": {
+    "edge_count": 1
+  },
+  "SAFER_THAN": {
+    "edge_count": 1
+  },
+  "SAME_NUMBER_AS": {
+    "edge_count": 1
+  },
+  "SAME_NUMBER_IN_SUBSHELL": {
+    "edge_count": 1
+  },
+  "SATELLITE_OF": {
+    "edge_count": 1
+  },
+  "SCATTERED": {
+    "edge_count": 1
+  },
+  "SECRETES": {
+    "edge_count": 1
+  },
+  "SEEKS": {
+    "edge_count": 1
+  },
+  "SEEKS_OUT": {
+    "edge_count": 1
+  },
+  "SEEKS_TO_ANALYSE": {
+    "edge_count": 1
+  },
+  "SEEKS_TO_UNIFY_WITH": {
+    "edge_count": 1
+  },
+  "SEEKS_UNDERSTANDING_OF": {
+    "edge_count": 1
+  },
+  "SEEN_EVERY": {
+    "edge_count": 1
+  },
+  "SEEN_IN": {
+    "edge_count": 1
+  },
+  "SEIZED_BY": {
+    "edge_count": 1
+  },
+  "SENDS_INFORMATION_TO": {
+    "edge_count": 1
+  },
+  "SENDS_SIGNAL_TO": {
+    "edge_count": 1
+  },
+  "SENT_BY": {
+    "edge_count": 1
+  },
+  "SEPARATED_FROM": {
+    "edge_count": 1
+  },
+  "SEPARATED_IN": {
+    "edge_count": 1
+  },
+  "SEPARATE_BUT_INTERACTING_WITH": {
+    "edge_count": 1
+  },
+  "SEQUENCED_IN": {
+    "edge_count": 1
+  },
+  "SEQUENCE_OF": {
+    "edge_count": 1
+  },
+  "SEQUENTIAL_RANGE_TO": {
+    "edge_count": 1
+  },
+  "SERVE_AS": {
+    "edge_count": 1
+  },
+  "SETS": {
+    "edge_count": 1
+  },
+  "SET_BY": {
+    "edge_count": 1
+  },
+  "SHAPES": {
+    "edge_count": 1
+  },
+  "SHARED_BY": {
+    "edge_count": 1
+  },
+  "SHARED_POSITION_WITH": {
+    "edge_count": 1
+  },
+  "SHARES_SIMILAR": {
+    "edge_count": 1
+  },
+  "SHIELDS": {
+    "edge_count": 1
+  },
+  "SHIELDS_FROM": {
+    "edge_count": 1
+  },
+  "SHORTER_THAN": {
+    "edge_count": 1
+  },
+  "SHORT_FOR": {
+    "edge_count": 1
+  },
+  "SHOULD_BE_BALANCED_ACCORDING_TO": {
+    "edge_count": 1
+  },
+  "SHOWED": {
+    "edge_count": 1
+  },
+  "SHOWED_IDENTITY_OF": {
+    "edge_count": 1
+  },
+  "SHOWED_IS": {
+    "edge_count": 1
+  },
+  "SHOWED_IS_A": {
+    "edge_count": 1
+  },
+  "SHOWN": {
+    "edge_count": 1
+  },
+  "SHOWS_IMPOSSIBILITY_OF": {
+    "edge_count": 1
+  },
+  "SHOWS_STABILITY_OF": {
+    "edge_count": 1
+  },
+  "SIGNALS_TO": {
+    "edge_count": 1
+  },
+  "SIGNIFICANTLY_HIGHER_THAN": {
+    "edge_count": 1
+  },
+  "SIMILAR_IN": {
+    "edge_count": 1
+  },
+  "SIMILAR_OUTPUT_TO": {
+    "edge_count": 1
+  },
+  "SIMILAR_SIZE_TO": {
+    "edge_count": 1
+  },
+  "SIMPLER_THAN": {
+    "edge_count": 1
+  },
+  "SINKS_TO": {
+    "edge_count": 1
+  },
+  "SITE_OF": {
+    "edge_count": 1
+  },
+  "SIZE_COMPARISON": {
+    "edge_count": 1
+  },
+  "SOLIDIFIED": {
+    "edge_count": 1
+  },
+  "SOLUTION_TO": {
+    "edge_count": 1
+  },
+  "SOLVED": {
+    "edge_count": 1
+  },
+  "SOLVES": {
+    "edge_count": 1
+  },
+  "SOMETIMES_CLASSIFIED_AS": {
+    "edge_count": 1
+  },
+  "SOME_ARE": {
+    "edge_count": 1
+  },
+  "SORTS_ACCORDING_TO": {
+    "edge_count": 1
+  },
+  "SPAWNS": {
+    "edge_count": 1
+  },
+  "SPECIFY": {
+    "edge_count": 1
+  },
+  "SPELLS_OUT": {
+    "edge_count": 1
+  },
+  "SPIRALS_OUT_FROM": {
+    "edge_count": 1
+  },
+  "SPLIT_IN": {
+    "edge_count": 1
+  },
+  "SPONTANEOUSLY_ALIGN_IN": {
+    "edge_count": 1
+  },
+  "SPREADS": {
+    "edge_count": 1
+  },
+  "SPREADS_TO": {
+    "edge_count": 1
+  },
+  "SPREAD_THROUGHOUT": {
+    "edge_count": 1
+  },
+  "SPREAD_TO": {
+    "edge_count": 1
+  },
+  "STABILITY_DIFFERENCE": {
+    "edge_count": 1
+  },
+  "STABILIZED_IN": {
+    "edge_count": 1
+  },
+  "STABLE_BELOW": {
+    "edge_count": 1
+  },
+  "STACKED_IN": {
+    "edge_count": 1
+  },
+  "STANDARD_FOR_DURATION": {
+    "edge_count": 1
+  },
+  "STARTED_IN": {
+    "edge_count": 1
+  },
+  "STARTED_TOWARD_END_OF": {
+    "edge_count": 1
+  },
+  "STARTED_WHEN_FIRST_ELECTRON_IN": {
+    "edge_count": 1
+  },
+  "STARTED_WITH": {
+    "edge_count": 1
+  },
+  "STARTS_FLOW_IN": {
+    "edge_count": 1
+  },
+  "STARTS_FROM": {
+    "edge_count": 1
+  },
+  "STARTS_IN": {
+    "edge_count": 1
+  },
+  "STATES": {
+    "edge_count": 1
+  },
+  "STATES_EXISTENCE_OF": {
+    "edge_count": 1
+  },
+  "STORES_ENERGY_IN": {
+    "edge_count": 1
+  },
+  "STRETCHES_FROM": {
+    "edge_count": 1
+  },
+  "STRETCHES_THROUGH": {
+    "edge_count": 1
+  },
+  "STRIKES": {
+    "edge_count": 1
+  },
+  "STRIP_ELECTRONS_FROM": {
+    "edge_count": 1
+  },
+  "STRUCTURALLY_SIMILAR_TO": {
+    "edge_count": 1
+  },
+  "STRUCTURE_DUE_TO": {
+    "edge_count": 1
+  },
+  "STRUCTURE_OF": {
+    "edge_count": 1
+  },
+  "STUCK_IN": {
+    "edge_count": 1
+  },
+  "STUDIED_AS": {
+    "edge_count": 1
+  },
+  "STUDIED_PROCESS_IN": {
+    "edge_count": 1
+  },
+  "STUDIED_SINCE": {
+    "edge_count": 1
+  },
+  "STUDIES_AND_APPLIES_TO": {
+    "edge_count": 1
+  },
+  "STUDIES_RELATIONSHIPS_WITH": {
+    "edge_count": 1
+  },
+  "STUDY_DATE": {
+    "edge_count": 1
+  },
+  "SUBDISCIPLINE_OF": {
+    "edge_count": 1
+  },
+  "SUBJECTED_TO": {
+    "edge_count": 1
+  },
+  "SUFFERS": {
+    "edge_count": 1
+  },
+  "SUFFIXED_FORM_OF": {
+    "edge_count": 1
+  },
+  "SUGGESTED": {
+    "edge_count": 1
+  },
+  "SUGGESTS": {
+    "edge_count": 1
+  },
+  "SUITABLE_FOR_USE_IN": {
+    "edge_count": 1
+  },
+  "SUPERIOR_TO": {
+    "edge_count": 1
+  },
+  "SUPERPOSED_ON": {
+    "edge_count": 1
+  },
+  "SUPERSEDED": {
+    "edge_count": 1
+  },
+  "SUPERVISED_CONSTRUCTION_OF": {
+    "edge_count": 1
+  },
+  "SURROUNDED_BY": {
+    "edge_count": 1
+  },
+  "SUSPENDED": {
+    "edge_count": 1
+  },
+  "SUSPENDED_BY": {
+    "edge_count": 1
+  },
+  "SUSTAINS": {
+    "edge_count": 1
+  },
+  "SWEEPS_UP": {
+    "edge_count": 1
+  },
+  "SYNCHRONIZED_FOR": {
+    "edge_count": 1
+  },
+  "SYNTHESIZED": {
+    "edge_count": 1
+  },
+  "SYNTHESIZED_BY": {
+    "edge_count": 1
+  },
+  "SYNTHESIZES": {
+    "edge_count": 1
+  },
+  "TAKEN_OVER_BY": {
+    "edge_count": 1
+  },
+  "TAKEN_UP_BY": {
+    "edge_count": 1
+  },
+  "TAKES_IN": {
+    "edge_count": 1
+  },
+  "TAKES_LONGER_THAN": {
+    "edge_count": 1
+  },
+  "TAKES_ON_CHARACTERISTICS_OF": {
+    "edge_count": 1
+  },
+  "TAKES_PLACE_AT": {
+    "edge_count": 1
+  },
+  "TARGET": {
+    "edge_count": 1
+  },
+  "TARGETS_ENTITY": {
+    "edge_count": 1
+  },
+  "TARGETS_FOR_DESTRUCTION": {
+    "edge_count": 1
+  },
+  "TAUGHT": {
+    "edge_count": 1
+  },
+  "TAUGHT_AT": {
+    "edge_count": 1
+  },
+  "TENDS_TO_ALIGN_WITH": {
+    "edge_count": 1
+  },
+  "TERMED": {
+    "edge_count": 1
+  },
+  "TERMINATES_AT": {
+    "edge_count": 1
+  },
+  "TESTED_IN": {
+    "edge_count": 1
+  },
+  "THEORETICALLY_ADVANCED_BY": {
+    "edge_count": 1
+  },
+  "THEORIZED": {
+    "edge_count": 1
+  },
+  "THOUGHT_OF": {
+    "edge_count": 1
+  },
+  "THREATENED_WITH": {
+    "edge_count": 1
+  },
+  "THREATENS": {
+    "edge_count": 1
+  },
+  "THREE_FOR": {
+    "edge_count": 1
+  },
+  "THRESHOLD_FOR_LOSS_OF": {
+    "edge_count": 1
+  },
+  "TIME_OF_ACCEPTANCE": {
+    "edge_count": 1
+  },
+  "TIME_OF_ACTIVITY": {
+    "edge_count": 1
+  },
+  "TIME_OF_INNOVATION": {
+    "edge_count": 1
+  },
+  "TIME_SPAN": {
+    "edge_count": 1
+  },
+  "TIME_TO_REACH": {
+    "edge_count": 1
+  },
+  "TOWED": {
+    "edge_count": 1
+  },
+  "TRACED_TO": {
+    "edge_count": 1
+  },
+  "TRACES": {
+    "edge_count": 1
+  },
+  "TRADES": {
+    "edge_count": 1
+  },
+  "TRAINED_BY": {
+    "edge_count": 1
+  },
+  "TRANSCRIBED_INTO": {
+    "edge_count": 1
+  },
+  "TRANSDUCED_INTO": {
+    "edge_count": 1
+  },
+  "TRANSFERS_TO": {
+    "edge_count": 1
+  },
+  "TRANSFERS_WEIGHT_TO": {
+    "edge_count": 1
+  },
+  "TRANSFORMATION_BARRIER": {
+    "edge_count": 1
+  },
+  "TRANSFORMED_DURING": {
+    "edge_count": 1
+  },
+  "TRANSFORMED_IN": {
+    "edge_count": 1
+  },
+  "TRANSFORMS_INTO": {
+    "edge_count": 1
+  },
+  "TRANSFORMS_INTO_AT": {
+    "edge_count": 1
+  },
+  "TRANSITION_FROM": {
+    "edge_count": 1
+  },
+  "TRANSITION_TO": {
+    "edge_count": 1
+  },
+  "TRANSLATED_INTO": {
+    "edge_count": 1
+  },
+  "TRANSLATION_OF": {
+    "edge_count": 1
+  },
+  "TRANSLOCATED_ACROSS": {
+    "edge_count": 1
+  },
+  "TRANSMITS": {
+    "edge_count": 1
+  },
+  "TRANSMITTED_TO": {
+    "edge_count": 1
+  },
+  "TRANSPORTED_ACROSS": {
+    "edge_count": 1
+  },
+  "TRANSPORTED_INTO": {
+    "edge_count": 1
+  },
+  "TRANSPORTS_FROM": {
+    "edge_count": 1
+  },
+  "TRANSPORTS_TO": {
+    "edge_count": 1
+  },
+  "TRANSPORT_TO": {
+    "edge_count": 1
+  },
+  "TRAPPED_INSIDE": {
+    "edge_count": 1
+  },
+  "TRAPPED_INSIDE_AFTER_CROSSING": {
+    "edge_count": 1
+  },
+  "TRAPPED_ON": {
+    "edge_count": 1
+  },
+  "TREAT": {
+    "edge_count": 1
+  },
+  "TRIGGERED_INTO": {
+    "edge_count": 1
+  },
+  "TURNS": {
+    "edge_count": 1
+  },
+  "TYPICALLY": {
+    "edge_count": 1
+  },
+  "TYPICALLY_FOLLOWED_BY": {
+    "edge_count": 1
+  },
+  "TYPICALLY_FROM": {
+    "edge_count": 1
+  },
+  "TYPICALLY_INSTANCE_OF": {
+    "edge_count": 1
+  },
+  "UNAUTHORIZED_BY": {
+    "edge_count": 1
+  },
+  "UNFOLD_WHEN_EXPOSED_TO": {
+    "edge_count": 1
+  },
+  "UPPER_BOUND": {
+    "edge_count": 1
+  },
+  "USABLE_FOR": {
+    "edge_count": 1
+  },
+  "USED_ALONGSIDE": {
+    "edge_count": 1
+  },
+  "USED_AROUND": {
+    "edge_count": 1
+  },
+  "USED_AT_TIME": {
+    "edge_count": 1
+  },
+  "USED_FOR_MEASURING": {
+    "edge_count": 1
+  },
+  "USED_FOR_SOLVING": {
+    "edge_count": 1
+  },
+  "USED_FOR_SPECULATION_ON": {
+    "edge_count": 1
+  },
+  "USED_INSTEAD_OF": {
+    "edge_count": 1
+  },
+  "USED_IN_MOTIVATING": {
+    "edge_count": 1
+  },
+  "USED_MATERIAL": {
+    "edge_count": 1
+  },
+  "USED_METHOD": {
+    "edge_count": 1
+  },
+  "USED_SINCE": {
+    "edge_count": 1
+  },
+  "USED_THEORY_OF": {
+    "edge_count": 1
+  },
+  "USED_TOOL": {
+    "edge_count": 1
+  },
+  "USED_TO_BUILD": {
+    "edge_count": 1
+  },
+  "USED_TO_CONSTRUCT": {
+    "edge_count": 1
+  },
+  "USED_TO_CREATE": {
+    "edge_count": 1
+  },
+  "USED_TO_DEFINE": {
+    "edge_count": 1
+  },
+  "USED_TO_DESCRIBE": {
+    "edge_count": 1
+  },
+  "USED_TO_INFER": {
+    "edge_count": 1
+  },
+  "USED_TO_MEASURE": {
+    "edge_count": 1
+  },
+  "USED_TO_MEET": {
+    "edge_count": 1
+  },
+  "USED_TO_MOVE": {
+    "edge_count": 1
+  },
+  "USED_TO_PREDICT_PROPERTIES_OF": {
+    "edge_count": 1
+  },
+  "USED_TO_PROPEL": {
+    "edge_count": 1
+  },
+  "USED_TO_REMOVE": {
+    "edge_count": 1
+  },
+  "USED_TO_SETTLE": {
+    "edge_count": 1
+  },
+  "USED_TO_VERIFY": {
+    "edge_count": 1
+  },
+  "USEFUL_IN": {
+    "edge_count": 1
+  },
+  "USEFUL_TO": {
+    "edge_count": 1
+  },
+  "USES_AFTER_FRONT_END": {
+    "edge_count": 1
+  },
+  "USES_AS_FUEL": {
+    "edge_count": 1
+  },
+  "USES_IN_PRODUCTS": {
+    "edge_count": 1
+  },
+  "USES_TERM_FOR": {
+    "edge_count": 1
+  },
+  "USES_TOOL": {
+    "edge_count": 1
+  },
+  "USHERED_IN": {
+    "edge_count": 1
+  },
+  "USUALLY_IN_FORM_OF": {
+    "edge_count": 1
+  },
+  "USUALLY_IS": {
+    "edge_count": 1
+  },
+  "USUALLY_IS_A": {
+    "edge_count": 1
+  },
+  "VALUED_IN": {
+    "edge_count": 1
+  },
+  "VALUE_DERIVED_FROM": {
+    "edge_count": 1
+  },
+  "VALUE_INCREASE_DESCRIBED_BY": {
+    "edge_count": 1
+  },
+  "VANISHES_IN": {
+    "edge_count": 1
+  },
+  "VARIABILITY_AMONG": {
+    "edge_count": 1
+  },
+  "VARIABILITY_OF": {
+    "edge_count": 1
+  },
+  "VARIANT_OF": {
+    "edge_count": 1
+  },
+  "VARIES_ACROSS": {
+    "edge_count": 1
+  },
+  "VARIES_BETWEEN": {
+    "edge_count": 1
+  },
+  "VARIES_IN": {
+    "edge_count": 1
+  },
+  "VARIES_WITH": {
+    "edge_count": 1
+  },
+  "VIEWED_FROM_PERSPECTIVE_OF": {
+    "edge_count": 1
+  },
+  "VISIBLE_AT": {
+    "edge_count": 1
+  },
+  "VISIBLE_WITH": {
+    "edge_count": 1
+  },
+  "VISITED_AT": {
+    "edge_count": 1
+  },
+  "VITAL_FOR": {
+    "edge_count": 1
+  },
+  "VITAL_TO": {
+    "edge_count": 1
+  },
+  "WAS": {
+    "edge_count": 1
+  },
+  "WAS_AT_HIGH_PRICE_IN": {
+    "edge_count": 1
+  },
+  "WAS_HISTORICALLY": {
+    "edge_count": 1
+  },
+  "WEAKLY_ATTRACTED_TO": {
+    "edge_count": 1
+  },
+  "WEAKLY_REPELLED_BY": {
+    "edge_count": 1
+  },
+  "WERE": {
+    "edge_count": 1
+  },
+  "WHEN_SANDWICHED_BETWEEN": {
+    "edge_count": 1
+  },
+  "WITHIN_FRAMEWORK_OF": {
+    "edge_count": 1
+  },
+  "WITHOUT": {
+    "edge_count": 1
+  },
+  "WITHSTANDS_LOADS_OF": {
+    "edge_count": 1
+  },
+  "WORE": {
+    "edge_count": 1
+  },
+  "WORKS_IN": {
+    "edge_count": 1
+  },
+  "WORKS_WITHIN": {
+    "edge_count": 1
+  },
+  "WRITES_ON": {
+    "edge_count": 1
+  },
+  "WROTE_ABOUT": {
+    "edge_count": 1
+  },
+  "WROTE_TO": {
+    "edge_count": 1
+  },
+  "YIELDED_RESULT": {
+    "edge_count": 1
+  }
+}

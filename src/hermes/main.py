@@ -326,6 +326,12 @@ async def lifespan(app: FastAPI):  # type: ignore
         _redis_config = RedisConfig()
         _type_registry_redis_client = redis.from_url(_redis_config.url)
         _type_registry = TypeRegistry(_type_registry_redis_client)
+        # Expose to ontology_client so extraction prompts see live types
+        # (hermes#146 — the legacy HTTP fetch hit an endpoint that never
+        # existed and always fell back to defaults).
+        from hermes.type_registry import set_active_registry
+
+        set_active_registry(_type_registry)
         logger.info(
             "TypeRegistry initialized with %d types",
             len(_type_registry.get_type_names()),
@@ -360,6 +366,9 @@ async def lifespan(app: FastAPI):  # type: ignore
         _type_registry = None
         _type_registry_event_bus = None
         _type_registry_listener = None
+        from hermes.type_registry import set_active_registry
+
+        set_active_registry(None)
 
     # Seed the match-before-mint predicate vocabulary from the same Sophia
     # sync (sophia#190 -> hermes#137). INDEPENDENT fail-soft block: a failure

@@ -399,3 +399,19 @@ def test_domain_root_is_a_valid_name_reuse(monkeypatch):
     body = _post(_members(("i1", "fermentation"))).json()
     assert body["name"] == "process"
     assert body["parent"] is None
+
+
+# --------------------------------------------------------------------------
+# The system prompt must push the model to MINT a specific shared category
+# rather than reusing a domain root as the cluster `name`.
+# --------------------------------------------------------------------------
+
+
+def test_type_cluster_prompt_requires_minting_specific_type(monkeypatch):
+    fake = _make_completion(json.dumps({"name": "person", "parent": "entity"}))
+    monkeypatch.setattr(m, "generate_completion", fake)
+    _post(_members(("i1", "marie curie"), ("i2", "isaac newton")))
+    system = fake.last_messages[0]["content"].lower()
+    assert "never specific enough" in system          # roots-not-enough clause
+    assert "must mint" in system                       # mint instruction
+    assert "person" in system and "energy" in system   # few-shot examples present

@@ -410,7 +410,8 @@ def test_domain_root_is_a_valid_name_reuse(monkeypatch):
 def test_type_cluster_prompt_requires_minting_specific_type(monkeypatch):
     fake = _make_completion(json.dumps({"name": "person", "parent": "entity"}))
     monkeypatch.setattr(m, "generate_completion", fake)
-    _post(_members(("i1", "marie curie"), ("i2", "isaac newton")))
+    resp = _post(_members(("i1", "marie curie"), ("i2", "isaac newton")))
+    assert resp.status_code == 200
     system = fake.last_messages[0]["content"].lower()
     assert "never specific enough" in system          # roots-not-enough clause
     assert "must mint" in system                       # mint instruction

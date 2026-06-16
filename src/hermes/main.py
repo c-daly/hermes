@@ -1794,15 +1794,16 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         "- `outliers`: the EXACT names of members that are clearly NOT a kind of "
         "`name` (e.g. a measurement, equation, or property mixed into a cluster "
         "of objects). When in doubt, KEEP the member.\n"
-        "Examples (members -> JSON):\n"
-        "albert einstein; marie curie; isaac newton -> "
+        "Examples:\n"
+        "Input:\n- albert einstein\n- marie curie\n- isaac newton\n"
         '{"name": "person", "parent": "entity", "outliers": []}\n'
-        "thermal energy; nuclear energy; kinetic energy -> "
+        "Input:\n- thermal energy\n- nuclear energy\n- kinetic energy\n"
         '{"name": "energy", "parent": "concept", "outliers": []}\n'
-        "saturn; pluto; titan; kuiper belt -> "
+        "Input:\n- saturn\n- pluto\n- titan\n- kuiper belt\n"
         '{"name": "astronomical object", "parent": "entity", "outliers": []}\n'
-        "royal albert bridge; high level bridge; maximum achievable span of bridge -> "
-        '{"name": "bridge", "parent": "structure", '
+        "Input:\n- royal albert bridge\n- high level bridge\n"
+        "- maximum achievable span of bridge\n"
+        '{"name": "bridge", "parent": "entity", '
         '"outliers": ["maximum achievable span of bridge"]}\n'
         "Return ONLY a JSON object: "
         '{"name": "<noun>", "parent": "<existing type>" or null, '
@@ -1813,8 +1814,9 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
     user_msg = (
         "These entities were grouped together (embedding-coarse cluster):\n"
         f"{members_block}\n\nType them: name the category that binds them "
-        "(reuse an existing type if one fits, else mint under the most "
-        "specific existing parent), and list any members that do not fit."
+        "(reuse a specific existing type if one fits — never a domain root, "
+        "else mint under the most specific existing parent), and list any "
+        "members that do not fit."
     )
 
     # Bounded response: one name + one parent + a short outlier list. The

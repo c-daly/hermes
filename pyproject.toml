@@ -49,8 +49,19 @@ ml = [
   "sentence-transformers>=2.2.0",
   "numpy>=1.24.0,<2.4",
 ]
-# ML dependencies with GPU support (CUDA, larger download)
+# ML dependencies with GPU support (CUDA, larger download).
+# NOTE: this previously omitted torch/torchvision/torchaudio entirely, so
+# `--extras ml-gpu` was a silent no-op and torch fell back to the `ml` (PyPI)
+# wheel. PEP 621 extras cannot pin a package index, so to get a CUDA build that
+# supports recent GPUs (e.g. Blackwell / sm_120, RTX 50-series) install from the
+# CUDA-12.8 index explicitly:
+#   pip install '.[ml-gpu]' --index-url https://download.pytorch.org/whl/cu128
+# The default PyPI torch wheel (cu121) lacks sm_120 kernels and fails on
+# Blackwell with "no kernel image is available for execution on the device".
 ml-gpu = [
+  "torch>=2.7.0,<2.10.0",
+  "torchvision>=0.22.0,<0.25.0",
+  "torchaudio>=2.7.0,<2.10.0",
   "openai-whisper>=20231117",
   "TTS>=0.22.0; python_version < '3.12'",
   "spacy>=3.7.0; python_version < '3.14'",

@@ -404,6 +404,21 @@ def test_domain_root_is_a_valid_name_reuse(monkeypatch):
     assert body["parent"] is None
 
 
+# --------------------------------------------------------------------------
+# The system prompt must push the model to MINT a specific shared category
+# rather than reusing a domain root as the cluster `name`.
+# --------------------------------------------------------------------------
+
+
+def test_type_cluster_prompt_requires_minting_specific_type(monkeypatch):
+    fake = _make_completion(json.dumps({"name": "person", "parent": "entity"}))
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "marie curie"), ("i2", "isaac newton")))
+    assert resp.status_code == 200
+    system = fake.last_messages[0]["content"].lower()
+    assert "never specific enough" in system          # roots-not-enough clause
+    assert "must mint" in system                       # mint instruction
+    assert "person" in system and "energy" in system   # few-shot examples present
 def test_new_type_with_null_parent_is_502_when_catalog_present(monkeypatch):
     # Server-side guard: when a catalog is present and the LLM mints a new
     # name (not in catalog) but provides no valid parent, the endpoint must

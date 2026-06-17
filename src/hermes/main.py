@@ -1778,17 +1778,34 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
     catalog_block, _alias_unused, _pub_unused, catalog_names = _build_catalog_context()
 
     system_msg = (
-        "You type a cluster of entities. You are given the cluster's members "
-        "and the existing type catalog. Choose FROM WHAT EXISTS: return the "
-        "most specific existing type that fits the WHOLE cluster as `name` "
-        "with `parent`: null (reuse it). If no existing type fits, mint a new "
-        "type: return the new `name` (a lowercase singular noun) and a NON-NULL "
-        "`parent` -- the most specific existing type to place it under, and when "
-        "nothing more specific fits, a domain root (entity, concept, or process). "
-        "A new `name` MUST have a parent (at minimum a domain root); `parent` is "
-        "null ONLY when `name` is an existing type you are reusing. Also return "
-        "`outliers`: the EXACT names of any listed members that do not belong "
-        "under `name`. Do not invent ids or chains. Return ONLY a JSON object: "
+        "You assign a cluster of entities to the MOST SPECIFIC category that "
+        "binds the WHOLE cluster. You are given the members and the existing "
+        "type catalog.\n"
+        "- The domain roots (entity, concept, process) are NEVER specific enough "
+        "as a `name`. If the most specific EXISTING type that fits the cluster is "
+        "only a root, you MUST MINT the specific shared category: return it as "
+        "`name` (a lowercase singular noun) with a NON-NULL `parent` -- the most "
+        "specific existing type that contains it, or a domain root when nothing "
+        "more specific exists. The member hints (in parentheses) usually name the "
+        "category; use them.\n"
+        "- Reuse an existing catalog type with `parent`: null ONLY when that type "
+        "is genuinely specific and fits the whole cluster. NEVER return a domain "
+        "root as `name`.\n"
+        "- `outliers`: the EXACT names of members that are clearly NOT a kind of "
+        "`name` (e.g. a measurement, equation, or property mixed into a cluster "
+        "of objects). When in doubt, KEEP the member.\n"
+        "Examples:\n"
+        "Input:\n- albert einstein\n- marie curie\n- isaac newton\n"
+        '{"name": "person", "parent": "entity", "outliers": []}\n'
+        "Input:\n- thermal energy\n- nuclear energy\n- kinetic energy\n"
+        '{"name": "energy", "parent": "concept", "outliers": []}\n'
+        "Input:\n- saturn\n- pluto\n- titan\n- kuiper belt\n"
+        '{"name": "astronomical object", "parent": "entity", "outliers": []}\n'
+        "Input:\n- royal albert bridge\n- high level bridge\n"
+        "- maximum achievable span of bridge\n"
+        '{"name": "bridge", "parent": "entity", '
+        '"outliers": ["maximum achievable span of bridge"]}\n'
+        "Return ONLY a JSON object: "
         '{"name": "<noun>", "parent": "<existing type>" or null, '
         '"outliers": ["<member name>", ...]}.'
     )
@@ -1797,8 +1814,9 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
     user_msg = (
         "These entities were grouped together (embedding-coarse cluster):\n"
         f"{members_block}\n\nType them: name the category that binds them "
-        "(reuse an existing type if one fits, else mint under the most "
-        "specific existing parent), and list any members that do not fit."
+        "(reuse a specific existing type if one fits — never a domain root, "
+        "else mint under the most specific existing parent), and list any "
+        "members that do not fit."
     )
 
     # Bounded response: one name + one parent + a short outlier list. The

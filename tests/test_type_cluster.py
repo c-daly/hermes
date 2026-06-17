@@ -367,15 +367,18 @@ def test_parent_root_is_coerced_and_logged(monkeypatch):
 
 
 def test_unresolvable_parent_is_coerced_when_catalog_present(monkeypatch):
+    # An unresolvable parent is coerced to None by _resolve_parent, which then
+    # triggers the new-type-must-have-parent guard: 502 rather than a silent
+    # dangling node.
     monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
     monkeypatch.setattr(
         m,
         "generate_completion",
         _make_completion(json.dumps({"name": "sedan", "parent": "starship"})),
     )
-    body = _post(_members(("i1", "a sedan"))).json()
-    assert body["name"] == "sedan"
-    assert body["parent"] is None  # closed-world: not a published name
+    resp = _post(_members(("i1", "a sedan")))
+    assert resp.status_code == 502
+    assert "new type" in resp.json()["detail"].lower()
 
 
 def test_domain_root_is_a_valid_parent(monkeypatch):
@@ -416,3 +419,16 @@ def test_type_cluster_prompt_requires_minting_specific_type(monkeypatch):
     assert "never specific enough" in system          # roots-not-enough clause
     assert "must mint" in system                       # mint instruction
     assert "person" in system and "energy" in system   # few-shot examples present
+def test_new_type_with_null_parent_is_502_when_catalog_present(monkeypatch):
+    # Server-side guard: when a catalog is present and the LLM mints a new
+    # name (not in catalog) but provides no valid parent, the endpoint must
+    # return 502 rather than silently emitting a dangling node.
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "gadget", "parent": None})),
+    )
+    resp = _post(_members(("i1", "a gadget")))
+    assert resp.status_code == 502
+    assert "new type" in resp.json()["detail"].lower()

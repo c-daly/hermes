@@ -1875,6 +1875,18 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
     # is left to the cascade.
     parent = _resolve_parent(data.get("parent"), catalog_names, bool(catalog_block))
 
+    # Server-side enforcement of the non-null parent invariant for new types:
+    # only meaningful when a catalog is present (closed-world mode). If the
+    # LLM minted a name that isn't in the catalog, it MUST have supplied a
+    # valid parent. A null here means either the model disobeyed the prompt
+    # or its parent was coerced away (structural root / out-of-catalog name).
+    # Either way the caller cannot safely graft this node.
+    if catalog_block and name not in catalog_names and parent is None:
+        raise HTTPException(
+            status_code=502,
+            detail="LLM minted a new type with no valid parent",
+        )
+
     # Map outlier NAMES back to input ids over the known member set: exact,
     # then case/space-normalized. Names the model invented (no member match)
     # are dropped. Names, not ids -- the model reproduces the medium it

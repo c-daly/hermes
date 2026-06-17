@@ -1782,9 +1782,11 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         "and the existing type catalog. Choose FROM WHAT EXISTS: return the "
         "most specific existing type that fits the WHOLE cluster as `name` "
         "with `parent`: null (reuse it). If no existing type fits, mint a new "
-        "type: return the new `name` (a lowercase singular noun) and `parent` "
-        "= the most specific existing type to place it under (a domain root -- "
-        "entity, concept, or process -- is a valid parent). Also return "
+        "type: return the new `name` (a lowercase singular noun) and a NON-NULL "
+        "`parent` -- the most specific existing type to place it under, and when "
+        "nothing more specific fits, a domain root (entity, concept, or process). "
+        "A new `name` MUST have a parent (at minimum a domain root); `parent` is "
+        "null ONLY when `name` is an existing type you are reusing. Also return "
         "`outliers`: the EXACT names of any listed members that do not belong "
         "under `name`. Do not invent ids or chains. Return ONLY a JSON object: "
         '{"name": "<noun>", "parent": "<existing type>" or null, '
@@ -1854,6 +1856,18 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
     # catalog) unpublished names coerce to None; remaining placement validity
     # is left to the cascade.
     parent = _resolve_parent(data.get("parent"), catalog_names, bool(catalog_block))
+
+    # Server-side enforcement of the non-null parent invariant for new types:
+    # only meaningful when a catalog is present (closed-world mode). If the
+    # LLM minted a name that isn't in the catalog, it MUST have supplied a
+    # valid parent. A null here means either the model disobeyed the prompt
+    # or its parent was coerced away (structural root / out-of-catalog name).
+    # Either way the caller cannot safely graft this node.
+    if catalog_block and name not in catalog_names and parent is None:
+        raise HTTPException(
+            status_code=502,
+            detail="LLM minted a new type with no valid parent",
+        )
 
     # Map outlier NAMES back to input ids over the known member set: exact,
     # then case/space-normalized. Names the model invented (no member match)

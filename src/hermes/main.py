@@ -1679,9 +1679,7 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
     for entry in entries:
         entry_name = entry["name"]
         entry_root = entry["root"] or "?"
-        tag = (
-            " [parent only]" if canonicalize(str(entry_name)) in _DOMAIN_ROOTS else ""
-        )
+        tag = " [parent only]" if canonicalize(str(entry_name)) in _DOMAIN_ROOTS else ""
         line = f"  - {entry_name} (root: {entry_root}){tag}"
         lines.append(line)
     return "\n".join(lines), {}, published_uuids, catalog_names

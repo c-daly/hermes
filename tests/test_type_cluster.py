@@ -126,6 +126,18 @@ def test_natural_multiword_name_is_accepted(monkeypatch):
     assert fake.calls == 1
 
 
+def test_hyphenated_name_is_accepted(monkeypatch):
+    """Hyphens are LEGAL -- many real type names are hyphenated ('t-cell',
+    'x-ray', 'mitochondrion-related'). Only underscores (the snake_case /
+    variable-name marker) are rejected; a hyphen must never trigger a retry."""
+    fake = _make_sequence(json.dumps({"name": "t-cell", "parent": "entity"}))
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "lymphocyte"), ("i2", "thymocyte")))
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "t-cell"
+    assert fake.calls == 1
+
+
 def test_gives_up_after_a_single_retry(monkeypatch):
     """If the re-prompt is still wrong, hermes 502s -- and never calls the LLM
     more than twice."""

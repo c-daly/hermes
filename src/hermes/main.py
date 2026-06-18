@@ -1680,7 +1680,7 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
         entry_name = entry["name"]
         entry_root = entry["root"] or "?"
         tag = (
-            " [parent only]" if str(entry_name).strip().lower() in _DOMAIN_ROOTS else ""
+            " [parent only]" if canonicalize(str(entry_name)) in _DOMAIN_ROOTS else ""
         )
         line = f"  - {entry_name} (root: {entry_root}){tag}"
         lines.append(line)

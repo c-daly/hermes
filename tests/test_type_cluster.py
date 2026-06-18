@@ -43,6 +43,21 @@ def _post(members, request_id="t::0"):
 # --------------------------------------------------------------------------
 
 
+def test_rejects_domain_root_as_name(monkeypatch):
+    """A domain realm root (entity/concept/process) is valid only as a `parent`,
+    never as the type `name`. Reusing one as `name` would type the whole cluster
+    as a bare realm (or mint a duplicate root), so it must be rejected with 502
+    -- the cluster is then left in the pool for the next pass, not mis-typed."""
+    for realm in ("entity", "concept", "process", "Entity", "PROCESS"):
+        monkeypatch.setattr(
+            m,
+            "generate_completion",
+            _make_completion(json.dumps({"name": realm, "parent": None})),
+        )
+        resp = _post(_members(("i1", "mitochondrion"), ("i2", "ribosome")))
+        assert resp.status_code == 502, f"{realm!r} should be rejected as a name"
+
+
 def test_names_the_cluster_and_canonicalizes(monkeypatch):
     monkeypatch.setattr(
         m, "generate_completion", _make_completion(json.dumps({"name": "Vehicles"}))
@@ -392,16 +407,21 @@ def test_domain_root_is_a_valid_parent(monkeypatch):
     assert body["parent"] == "entity"  # ordinary catalog citizen
 
 
-def test_domain_root_is_a_valid_name_reuse(monkeypatch):
+def test_domain_root_as_name_is_rejected_even_with_catalog(monkeypatch):
+    # Contract change: a domain root (entity/concept/process) is parent-only,
+    # never a `name`. Reusing one as the type name now 502s even with a catalog
+    # present -- previously this was accepted as a valid reuse, which typed the
+    # whole cluster as a bare realm (or, against a positional in-pass catalog,
+    # minted a duplicate root). The cohort is left in the pool for the next pass.
     monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
     monkeypatch.setattr(
         m,
         "generate_completion",
         _make_completion(json.dumps({"name": "process", "parent": None})),
     )
-    body = _post(_members(("i1", "fermentation"))).json()
-    assert body["name"] == "process"
-    assert body["parent"] is None
+    resp = _post(_members(("i1", "fermentation")))
+    assert resp.status_code == 502
+    assert "domain root" in resp.json()["detail"].lower()
 
 
 def test_new_type_with_null_parent_is_502_when_catalog_present(monkeypatch):

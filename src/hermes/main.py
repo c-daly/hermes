@@ -1592,6 +1592,9 @@ async def name_cluster(request: NameClusterRequest) -> NameClusterResponse:
 # minted in the current design, so it is excluded from the catalog as well.
 _STRUCTURAL_ROOTS: set[str] = {"node", "root"}
 _CATALOG_EXCLUDED: set[str] = _STRUCTURAL_ROOTS | {"cognition"}
+# Domain realm roots: valid ONLY as a `parent` of a new type, NEVER as a type
+# `name`/reuse target (typing a cluster AS a bare realm is not a type).
+_DOMAIN_ROOTS: set[str] = {"entity", "concept", "process"}
 
 # Over-specification ceiling (computed on the RAW name, pre-canonicalize).
 MAX_WORDS: int = 3
@@ -1669,13 +1672,17 @@ def _build_catalog_context() -> tuple[str, dict[str, str], set[str], set[str]]:
     published_uuids = {e["uuid"] for e in entries}
     catalog_names = {canonicalize(str(e["name"])) for e in entries}
     lines = [
-        "PUBLISHED TYPE CATALOG (the existing types: reuse one as `name`, "
-        "or pick one as the `parent` of a new type):"
+        "PUBLISHED TYPE CATALOG (existing types -- reuse one as `name`, or pick "
+        "one as the `parent` of a new type). Entries tagged [parent only] are "
+        "domain roots: usable as a `parent`, NEVER as a `name`:"
     ]
     for entry in entries:
         entry_name = entry["name"]
         entry_root = entry["root"] or "?"
-        line = f"  - {entry_name} (root: {entry_root})"
+        tag = (
+            " [parent only]" if str(entry_name).strip().lower() in _DOMAIN_ROOTS else ""
+        )
+        line = f"  - {entry_name} (root: {entry_root}){tag}"
         lines.append(line)
     return "\n".join(lines), {}, published_uuids, catalog_names
 
@@ -1786,7 +1793,11 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         "`parent` -- the most specific existing type to place it under, and when "
         "nothing more specific fits, a domain root (entity, concept, or process). "
         "A new `name` MUST have a parent (at minimum a domain root); `parent` is "
-        "null ONLY when `name` is an existing type you are reusing. Also return "
+        "null ONLY when `name` is an existing type you are reusing. The domain "
+        "roots (entity, concept, process) are valid ONLY as a `parent`, NEVER as "
+        "a `name`: if nothing more specific than a realm fits, MINT a new "
+        "specific type under that realm -- do not reuse the realm as the name. "
+        "Also return "
         "`outliers`: the EXACT names of any listed members that do not belong "
         "under `name`. Do not invent ids or chains. Return ONLY a JSON object: "
         '{"name": "<noun>", "parent": "<existing type>" or null, '
@@ -1849,6 +1860,17 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         raise HTTPException(
             status_code=502,
             detail="LLM returned an empty/uncanonicalizable cluster name",
+        )
+
+    # Domain realm roots (entity/concept/process) are valid only as a `parent`,
+    # never as a type `name`. Reusing one as the name would type the whole
+    # cluster as a bare realm -- or, against a positional in-pass catalog that
+    # omits a childless realm, mint a duplicate root. Reject so the cohort is
+    # left in the pool for the next pass instead of being silently mis-typed.
+    if name in _DOMAIN_ROOTS:
+        raise HTTPException(
+            status_code=502,
+            detail="LLM returned a domain root as the type name (parent-only)",
         )
 
     # parent: null => reuse `name`; else the existing type to graft under.

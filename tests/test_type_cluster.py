@@ -58,6 +58,98 @@ def test_rejects_domain_root_as_name(monkeypatch):
         assert resp.status_code == 502, f"{realm!r} should be rejected as a name"
 
 
+def _make_sequence(*contents):
+    """Fake generate_completion that returns each content in turn (the last one
+    repeats), recording how many times it was called -- to assert retry bounds."""
+
+    async def fake_completion(messages, temperature=0.0, max_tokens=512, **kwargs):
+        i = min(fake_completion.calls, len(contents) - 1)
+        fake_completion.calls += 1
+        fake_completion.last_messages = messages  # type: ignore[attr-defined]
+        return {"choices": [{"message": {"content": contents[i]}}]}
+
+    fake_completion.calls = 0  # type: ignore[attr-defined]
+    return fake_completion
+
+
+def test_retries_once_and_uses_corrected_verdict(monkeypatch):
+    """A rejected verdict (domain root as name) triggers exactly one re-prompt;
+    the corrected specific name is accepted."""
+    fake = _make_sequence(
+        json.dumps({"name": "entity", "parent": None}),
+        json.dumps({"name": "organelle", "parent": "entity"}),
+    )
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "mitochondrion"), ("i2", "ribosome")))
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "organelle"
+    assert fake.calls == 2  # initial + one retry
+
+
+def test_snake_case_name_is_rejected_and_retried(monkeypatch):
+    """A snake_case name looks like a variable, not a type ('biological_process',
+    'cell_structure'); it is rejected and the corrected natural name accepted."""
+    for bad in ("biological_process", "cell_structure"):
+        fake = _make_sequence(
+            json.dumps({"name": bad, "parent": "entity"}),
+            json.dumps({"name": "organelle", "parent": "entity"}),
+        )
+        monkeypatch.setattr(m, "generate_completion", fake)
+        resp = _post(_members(("i1", "mitochondrion"), ("i2", "ribosome")))
+        assert resp.status_code == 200, f"{bad!r} (snake_case) should be rejected"
+        assert resp.json()["name"] == "organelle"
+        assert fake.calls == 2
+
+
+def test_name_restating_its_realm_is_rejected_and_retried(monkeypatch):
+    """A name that ends in its realm root ('temporal concept' under `concept`) is
+    redundant ('ATM machine') and rejected; the specific part is accepted."""
+    fake = _make_sequence(
+        json.dumps({"name": "temporal concept", "parent": "concept"}),
+        json.dumps({"name": "temporal", "parent": "concept"}),
+    )
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "duration"), ("i2", "interval")))
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "temporal"
+    assert fake.calls == 2
+
+
+def test_natural_multiword_name_is_accepted(monkeypatch):
+    """A genuine space-separated term ('amino acid') is not variable-name-like
+    and is accepted as-is -- no retry."""
+    fake = _make_sequence(json.dumps({"name": "amino acid", "parent": "entity"}))
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "glycine"), ("i2", "alanine")))
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "amino acid"
+    assert fake.calls == 1
+
+
+def test_gives_up_after_a_single_retry(monkeypatch):
+    """If the re-prompt is still wrong, hermes 502s -- and never calls the LLM
+    more than twice."""
+    fake = _make_sequence(
+        json.dumps({"name": "entity", "parent": None}),
+        json.dumps({"name": "concept", "parent": None}),
+        json.dumps({"name": "process", "parent": None}),  # must never be reached
+    )
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "mitochondrion"), ("i2", "ribosome")))
+    assert resp.status_code == 502
+    assert fake.calls == 2  # bounded: initial + exactly one retry
+
+
+def test_valid_first_verdict_does_not_retry(monkeypatch):
+    """A good verdict on the first try is used as-is -- no extra LLM call."""
+    fake = _make_sequence(json.dumps({"name": "organelle", "parent": "entity"}))
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "mitochondrion"), ("i2", "ribosome")))
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "organelle"
+    assert fake.calls == 1
+
+
 def test_names_the_cluster_and_canonicalizes(monkeypatch):
     monkeypatch.setattr(
         m, "generate_completion", _make_completion(json.dumps({"name": "Vehicles"}))

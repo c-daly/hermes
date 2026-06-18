@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 import hermes.main as m
 from fastapi.testclient import TestClient
 
@@ -106,12 +108,12 @@ def test_name_restating_its_realm_is_rejected_and_retried(monkeypatch):
     redundant ('ATM machine') and rejected; the specific part is accepted."""
     fake = _make_sequence(
         json.dumps({"name": "temporal concept", "parent": "concept"}),
-        json.dumps({"name": "temporal", "parent": "concept"}),
+        json.dumps({"name": "interval", "parent": "concept"}),
     )
     monkeypatch.setattr(m, "generate_completion", fake)
     resp = _post(_members(("i1", "duration"), ("i2", "interval")))
     assert resp.status_code == 200
-    assert resp.json()["name"] == "temporal"
+    assert resp.json()["name"] == "interval"
     assert fake.calls == 2
 
 
@@ -150,6 +152,90 @@ def test_reuse_of_catalog_type_coerces_parent_null(monkeypatch):
     body = _post(_members(("i1", "car"), ("i2", "truck"))).json()
     assert body["name"] == "vehicle"
     assert body["parent"] is None  # reuse => parent coerced to null
+
+
+# --------------------------------------------------------------------------
+# Noun-headedness gate (#152): a type name must be a specific NOUN, not a bare
+# adjective ('physical') or a vague generic head ('thing'). The WordNet noun
+# check is isolated behind m._is_noun_headed / m._wordnet so it can be swapped
+# for a non-linguistic approach or dropped later.
+# --------------------------------------------------------------------------
+
+
+def _wordnet_ready():
+    try:
+        from nltk.corpus import wordnet as wn
+
+        wn.synsets("dog")
+        return True
+    except Exception:
+        try:
+            import nltk
+
+            nltk.download("wordnet", quiet=True)
+            nltk.download("omw-1.4", quiet=True)
+            from nltk.corpus import wordnet as wn
+
+            wn.synsets("dog")
+            return True
+        except Exception:
+            return False
+
+
+needs_wordnet = pytest.mark.skipif(
+    not _wordnet_ready(), reason="WordNet corpus unavailable"
+)
+
+
+@needs_wordnet
+def test_bare_adjective_name_is_rejected_and_retried(monkeypatch):
+    """A bare adjective ('physical') isn't a category -- reject, re-prompt for a noun."""
+    fake = _make_sequence(
+        json.dumps({"name": "physical", "parent": "entity"}),
+        json.dumps({"name": "organelle", "parent": "entity"}),
+    )
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "mitochondrion"), ("i2", "ribosome")))
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "organelle"
+    assert fake.calls == 2
+
+
+@needs_wordnet
+def test_generic_stop_noun_head_is_rejected_and_retried(monkeypatch):
+    """A vague generic head ('physical thing' -> head 'thing') is rejected."""
+    fake = _make_sequence(
+        json.dumps({"name": "physical thing", "parent": "entity"}),
+        json.dumps({"name": "organelle", "parent": "entity"}),
+    )
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "mitochondrion")))
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "organelle"
+    assert fake.calls == 2
+
+
+@needs_wordnet
+def test_noun_headed_multiword_name_is_accepted(monkeypatch):
+    """A noun-headed phrase ('cell membrane' -> head 'membrane') passes -- no retry."""
+    fake = _make_sequence(json.dumps({"name": "cell membrane", "parent": "entity"}))
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "phospholipid")))
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "cell membrane"
+    assert fake.calls == 1
+
+
+def test_noun_gate_disabled_when_wordnet_absent(monkeypatch):
+    """Graceful degradation: if WordNet can't load, the noun check no-ops (accept)
+    so a deploy without the corpus never crashes /type-cluster."""
+    monkeypatch.setattr(m, "_wordnet", lambda: None)
+    fake = _make_sequence(json.dumps({"name": "physical", "parent": "entity"}))
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "mitochondrion")))
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "physical"  # not rejected -- gate disabled
+    assert fake.calls == 1
 
 
 def test_gives_up_after_a_single_retry(monkeypatch):

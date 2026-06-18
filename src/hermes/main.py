@@ -1773,6 +1773,58 @@ class _TypeClusterRetry(Exception):
 
 _TYPE_CLUSTER_MAX_ATTEMPTS = 2  # initial call + one corrective retry
 
+# Generic, non-discriminating head nouns: real nouns, but too vague to be a type
+# on their own ("physical thing" -> head "thing"). Plain set lookup, no resource.
+_GENERIC_STOP_NOUNS = frozenset(
+    {"thing", "object", "item", "entity", "stuff", "kind", "sort", "one", "being"}
+)
+
+# WordNet is the one linguistic crutch for the noun check, isolated here so it can
+# be swapped for a non-linguistic (embedding/structural) check -- or dropped --
+# without touching the gate. Lazy-loaded; if the corpus is absent it no-ops.
+_WORDNET = None
+_WORDNET_LOADED = False
+
+
+def _wordnet():
+    """Return the WordNet reader, or None if its corpus is unavailable."""
+    global _WORDNET, _WORDNET_LOADED
+    if not _WORDNET_LOADED:
+        _WORDNET_LOADED = True
+        try:
+            from nltk.corpus import wordnet as wn
+
+            wn.synsets("dog")  # force lazy corpus load; raises if data is missing
+            _WORDNET = wn
+        except Exception as exc:  # pragma: no cover - depends on corpus presence
+            logger.warning("type_cluster: WordNet unavailable, noun gate off: %s", exc)
+            _WORDNET = None
+    return _WORDNET
+
+
+def _is_noun_headed(head: str) -> bool:
+    """True if `head` reads as a noun (or we cannot tell); False => reject.
+
+    Deterministic lexical check (not context-free POS, which is unreliable on a
+    bare word): a noun if WordNet has a noun sense at least as common as any
+    adjective sense. OOV words (coined/technical, e.g. 'biomolecule') and the
+    no-WordNet case both return True -- never false-reject a real type.
+    """
+    wn = _wordnet()
+    if wn is None:
+        return True
+    nouns = wn.synsets(head, pos=wn.NOUN)
+    adjs = wn.synsets(head, pos="a") + wn.synsets(head, pos="s")
+    if not nouns and not adjs:
+        return True  # OOV -> assume noun
+
+    def _count(syns: list) -> int:
+        return sum(
+            lm.count() for s in syns for lm in s.lemmas() if lm.name().lower() == head
+        )
+
+    return bool(nouns) and _count(nouns) >= _count(adjs)
+
 
 def _validate_type_cluster_verdict(
     content: str, catalog_names: set[str], has_catalog: bool
@@ -1844,6 +1896,25 @@ def _validate_type_cluster_verdict(
             f"'{name}' redundantly ends in its realm '{realm_echo}' (like 'ATM "
             f"machine'). Drop the '{realm_echo}' -- the parent realm conveys it; "
             "return only the specific part as the `name`.",
+        )
+
+    # Name must be a SPECIFIC NOUN (#152): not a vague generic head, and not a
+    # bare adjective (a qualifier, not a category -- e.g. 'physical'). Head = the
+    # last canonicalized token. Generic-head check is a plain set lookup; the
+    # noun check is the isolated WordNet seam (no-ops if the corpus is absent).
+    head = name.rsplit(" ", 1)[-1]
+    if head in _GENERIC_STOP_NOUNS:
+        raise _TypeClusterRetry(
+            f"LLM returned a vague generic head ('{head}')",
+            f"'{name}' ends in the generic noun '{head}'. Return the SPECIFIC "
+            "kind of entity (a concrete noun), not a placeholder.",
+        )
+    if not _is_noun_headed(head):
+        raise _TypeClusterRetry(
+            f"LLM returned a non-noun type name ('{name}')",
+            f"'{name}' is headed by '{head}', which reads as an adjective. A type "
+            "is a NOUN -- name the KIND of entity (e.g. 'organelle'), with any "
+            "qualifier inside the noun phrase, not a bare adjective.",
         )
 
     # parent: null => reuse `name`; else the existing type to graft under.

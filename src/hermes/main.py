@@ -1840,7 +1840,7 @@ def _validate_type_cluster_verdict(
     realm_echo = next((r for r in _DOMAIN_ROOTS if name.endswith(f" {r}")), None)
     if realm_echo:
         raise _TypeClusterRetry(
-            f"LLM name restates its realm root ('{realm_echo}')",
+            f"LLM name '{name}' restates its realm root ('{realm_echo}')",
             f"'{name}' redundantly ends in its realm '{realm_echo}' (like 'ATM "
             f"machine'). Drop the '{realm_echo}' -- the parent realm conveys it; "
             "return only the specific part as the `name`.",
@@ -1851,6 +1851,12 @@ def _validate_type_cluster_verdict(
     # catalog) unpublished names coerce to None; remaining placement validity
     # is left to the cascade.
     parent = _resolve_parent(data.get("parent"), catalog_names, has_catalog)
+
+    # Reuse invariant: a `name` already in the catalog IS that type, so `parent`
+    # must be null -- a non-null parent would ask the placement cascade to
+    # re-graft an existing type. Coerce it (gemini #158 review).
+    if has_catalog and name in catalog_names:
+        parent = None
 
     # Server-side enforcement of the non-null parent invariant for new types
     # (closed-world only). A null here means the model disobeyed the prompt or

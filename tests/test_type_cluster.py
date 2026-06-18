@@ -138,6 +138,20 @@ def test_hyphenated_name_is_accepted(monkeypatch):
     assert fake.calls == 1
 
 
+def test_reuse_of_catalog_type_coerces_parent_null(monkeypatch):
+    """Reusing an existing catalog type ('vehicle'): even if the LLM supplies a
+    parent, it is coerced to null -- a reuse must not re-graft the type."""
+    monkeypatch.setattr(m, "_type_registry", _FakeRegistry())
+    monkeypatch.setattr(
+        m,
+        "generate_completion",
+        _make_completion(json.dumps({"name": "vehicle", "parent": "entity"})),
+    )
+    body = _post(_members(("i1", "car"), ("i2", "truck"))).json()
+    assert body["name"] == "vehicle"
+    assert body["parent"] is None  # reuse => parent coerced to null
+
+
 def test_gives_up_after_a_single_retry(monkeypatch):
     """If the re-prompt is still wrong, hermes 502s -- and never calls the LLM
     more than twice."""

@@ -21,13 +21,15 @@ ARG HERMES_INSTALL_ML=0
 
 # Note: foundry base already has Poetry and common dependencies (virtualenvs.create=false)
 # For ML builds, pip installs CPU-only torch from the PyTorch wheel index, then
-# Poetry installs the remaining ML deps via the ml-gpu extra (which excludes torch).
+# Poetry installs the remaining ML deps via the ml-gpu extra. The ml-gpu extra
+# now pins torch>=2.7.0, so the pre-installed CPU build must satisfy that floor;
+# otherwise Poetry re-resolves torch from the default index (large CUDA wheels).
 RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
       pip install --no-cache-dir --force-reinstall numpy && \
       pip install --no-cache-dir \
-        torch==2.3.1 \
-        torchaudio==2.3.1 \
-        torchvision==0.18.1 \
+        torch==2.7.1 \
+        torchaudio==2.7.1 \
+        torchvision==0.22.1 \
         --index-url https://download.pytorch.org/whl/cpu && \
       poetry install --only main --extras ml-gpu --extras otel --no-interaction --no-ansi && \
       poetry run python -m spacy download en_core_web_sm; \

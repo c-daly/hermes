@@ -39,10 +39,14 @@ otel = [
 ]
 # ML dependencies with CPU-only PyTorch (default, faster install, no CUDA)
 ml = [
-  "torch>=2.0.0,<2.10.0",
-  "torchvision>=0.15.0,<0.20.0",
+  # Same torch line as ml-gpu (extras can't pin a package index, so the only
+  # difference is the install index -- see the ml-gpu note below). They must
+  # agree: Poetry locks ONE torch/torchvision/torchaudio version across extras,
+  # and ml-gpu needs >=2.7 (Blackwell sm_120), so ml cannot cap below it.
+  "torch>=2.7.0,<2.10.0",
+  "torchvision>=0.22.0,<0.25.0",
   "open-clip-torch>=2.0.0",
-  "torchaudio>=2.0.0,<2.10.0",
+  "torchaudio>=2.7.0,<2.10.0",
   "openai-whisper>=20231117",
   "TTS>=0.22.0; python_version < '3.12'",
   "spacy>=3.7.0; python_version < '3.14'",

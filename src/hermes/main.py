@@ -1758,6 +1758,201 @@ class TypeClusterResponse(BaseModel):
     raw_partition_ok: bool = True  # every returned outlier name resolved to a member
 
 
+class _TypeClusterRetry(Exception):
+    """A correctable /type-cluster verdict: re-prompt the LLM once with `followup`.
+
+    Carries the client-facing `detail` (used for the eventual 502 if the retry
+    also fails) and the corrective `followup` message fed back to the model.
+    """
+
+    def __init__(self, detail: str, followup: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
+        self.followup = followup
+
+
+_TYPE_CLUSTER_MAX_ATTEMPTS = 2  # initial call + one corrective retry
+
+# Generic, non-discriminating head nouns: real nouns, but too vague to be a type
+# on their own ("physical thing" -> head "thing"). Plain set lookup, no resource.
+_GENERIC_STOP_NOUNS = frozenset(
+    {"thing", "object", "item", "entity", "stuff", "kind", "sort", "one", "being"}
+)
+
+# WordNet is the one linguistic crutch for the noun check, isolated here so it can
+# be swapped for a non-linguistic (embedding/structural) check -- or dropped --
+# without touching the gate. Lazy-loaded; if the corpus is absent it no-ops.
+_WORDNET = None
+_WORDNET_LOADED = False
+
+
+def _wordnet() -> Any:
+    """Return the WordNet reader, or None if its corpus is unavailable."""
+    global _WORDNET, _WORDNET_LOADED
+    if not _WORDNET_LOADED:
+        _WORDNET_LOADED = True
+        try:
+            from nltk.corpus import wordnet as wn
+
+            wn.synsets("dog")  # force lazy corpus load; raises if data is missing
+            _WORDNET = wn
+        except Exception as exc:  # pragma: no cover - depends on corpus presence
+            logger.warning("type_cluster: WordNet unavailable, noun gate off: %s", exc)
+            _WORDNET = None
+    return _WORDNET
+
+
+def _is_noun_headed(head: str) -> bool:
+    """True if `head` reads as a noun (or we cannot tell); False => reject.
+
+    Deterministic lexical check (not context-free POS, which is unreliable on a
+    bare word): a noun if WordNet has a noun sense at least as common as any
+    adjective sense. OOV words (coined/technical, e.g. 'biomolecule') and the
+    no-WordNet case both return True -- never false-reject a real type.
+    """
+    wn = _wordnet()
+    if wn is None:
+        return True
+    nouns = wn.synsets(head, pos=wn.NOUN)
+    adjs = wn.synsets(head, pos="a") + wn.synsets(head, pos="s")
+    if not nouns and not adjs:
+        return True  # OOV -> assume noun
+
+    def _count(syns: list) -> int:
+        return sum(
+            lm.count() for s in syns for lm in s.lemmas() if lm.name().lower() == head
+        )
+
+    return bool(nouns) and _count(nouns) >= _count(adjs)
+
+
+def _validate_type_cluster_verdict(
+    content: str, catalog_names: set[str], has_catalog: bool
+) -> tuple[dict, str, str | None, bool]:
+    """Parse + validate one /type-cluster LLM verdict.
+
+    Returns ``(data, name, parent, over_specified)``. Raises
+    :class:`_TypeClusterRetry` for a correctable wrong answer (the caller
+    re-prompts once with the feedback) -- a malformed/empty name, a domain root
+    or realm-redundant name, or a new type with no valid parent.
+    """
+    try:
+        data = _extract_json(content)
+    except Exception:
+        logger.warning("type_cluster: unparseable JSON")
+        raise _TypeClusterRetry(
+            "LLM typing response was unparseable",
+            'Return ONLY a JSON object: {"name": "<specific lowercase noun>", '
+            '"parent": "<existing type>" or null, "outliers": ["<member>", ...]}.',
+        )
+    if not isinstance(data, dict):
+        raise _TypeClusterRetry(
+            "LLM typing response is not a JSON object",
+            'Return ONLY a JSON object with "name", "parent", and "outliers".',
+        )
+
+    raw_name = data.get("name")
+    if not isinstance(raw_name, str) or not raw_name.strip():
+        raise _TypeClusterRetry(
+            "LLM typing response had no usable name",
+            'Return a non-empty "name": a specific lowercase singular noun.',
+        )
+    over_specified = _is_over_specified(raw_name)
+    name = canonicalize(raw_name)
+    if not name:
+        raise _TypeClusterRetry(
+            "LLM returned an empty/uncanonicalizable cluster name",
+            'Return a "name" that is a plain lowercase singular noun.',
+        )
+
+    # Name-quality gates. The realm parent already conveys the kind, so the name
+    # carries only the specific part, in NATURAL LANGUAGE (not a code identifier):
+    #   1. a domain root (entity/concept/process) is parent-only, never a name;
+    #   2. no snake_case / underscores -- type names are natural language, not
+    #      variable names (`biological_process`, `cell_structure`). canonicalize()
+    #      space-joins tokens, so any "_" is the model emitting an identifier;
+    #   3. a name must not RESTATE its realm (`temporal concept` under `concept`,
+    #      "ATM machine") -- the underscore form is already caught by (2), so this
+    #      only needs the space form.
+    # Genuine multi-word terms ("amino acid") are fine; the over_specified flag,
+    # not rejection, is the ceiling for excessive length.
+    if name in _DOMAIN_ROOTS:
+        raise _TypeClusterRetry(
+            "LLM returned a domain root as the type name (parent-only)",
+            f"'{name}' is a domain root -- valid only as a `parent`, never the "
+            "`name`. Return a SPECIFIC, narrower type, with that root as `parent`.",
+        )
+    if "_" in name:
+        raise _TypeClusterRetry(
+            f"LLM returned a snake_case/variable-name type name ('{name}')",
+            f"'{name}' looks like a variable name. Type names are natural "
+            "language: return the `name` with spaces, not underscores (e.g. "
+            "'amino acid', not 'amino_acid'; or a single noun).",
+        )
+    realm_echo = next((r for r in _DOMAIN_ROOTS if name.endswith(f" {r}")), None)
+    if realm_echo:
+        raise _TypeClusterRetry(
+            f"LLM name '{name}' restates its realm root ('{realm_echo}')",
+            f"'{name}' redundantly ends in its realm '{realm_echo}' (like 'ATM "
+            f"machine'). Drop the '{realm_echo}' -- the parent realm conveys it; "
+            "return only the specific part as the `name`.",
+        )
+
+    # A type names ONE category, not a list -- reject conjunctions ('X and Y',
+    # 'X or Y'); re-prompt for the single dominant kind (#152).
+    if any(tok in {"and", "or"} for tok in name.split()):
+        raise _TypeClusterRetry(
+            f"LLM returned a conjunction type name ('{name}')",
+            f"'{name}' joins things with 'and'/'or'. A type names ONE category -- "
+            "return a single noun for the dominant kind, and put the members that "
+            "don't fit it in `outliers`, not in the name.",
+        )
+
+    # Name must be a SPECIFIC NOUN (#152): not a vague generic head, and not a
+    # bare adjective (a qualifier, not a category -- e.g. 'physical'). Head = the
+    # last canonicalized token. Generic-head check is a plain set lookup; the
+    # noun check is the isolated WordNet seam (no-ops if the corpus is absent).
+    head = name.rsplit(" ", 1)[-1]
+    if head in _GENERIC_STOP_NOUNS:
+        raise _TypeClusterRetry(
+            f"LLM returned a vague generic head ('{head}')",
+            f"'{name}' ends in the generic noun '{head}'. Return the SPECIFIC "
+            "kind of entity (a concrete noun), not a placeholder.",
+        )
+    if not _is_noun_headed(head):
+        raise _TypeClusterRetry(
+            f"LLM returned a non-noun type name ('{name}')",
+            f"'{name}' is headed by '{head}', which reads as an adjective. A type "
+            "is a NOUN -- name the KIND of entity (e.g. 'organelle'), with any "
+            "qualifier inside the noun phrase, not a bare adjective.",
+        )
+
+    # parent: null => reuse `name`; else the existing type to graft under.
+    # Canonicalized, then resolved closed-world: `node`/`root` and (with a
+    # catalog) unpublished names coerce to None; remaining placement validity
+    # is left to the cascade.
+    parent = _resolve_parent(data.get("parent"), catalog_names, has_catalog)
+
+    # Reuse invariant: a `name` already in the catalog IS that type, so `parent`
+    # must be null -- a non-null parent would ask the placement cascade to
+    # re-graft an existing type. Coerce it (gemini #158 review).
+    if has_catalog and name in catalog_names:
+        parent = None
+
+    # Server-side enforcement of the non-null parent invariant for new types
+    # (closed-world only). A null here means the model disobeyed the prompt or
+    # its parent was coerced away; either way the caller cannot graft this node.
+    if has_catalog and name not in catalog_names and parent is None:
+        raise _TypeClusterRetry(
+            "LLM minted a new type with no valid parent",
+            f"A new type name ('{name}') needs a `parent` chosen from the "
+            "catalog. Either reuse an existing type (set it as `name` with "
+            "parent=null) or give the closest catalog type as the `parent`.",
+        )
+
+    return data, name, parent, over_specified
+
+
 @app.post("/type-cluster", response_model=TypeClusterResponse)
 async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
     """Name the category that binds a cluster; pick an existing parent or reuse.
@@ -1787,7 +1982,9 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         "and the existing type catalog. Choose FROM WHAT EXISTS: return the "
         "most specific existing type that fits the WHOLE cluster as `name` "
         "with `parent`: null (reuse it). If no existing type fits, mint a new "
-        "type: return the new `name` (a lowercase singular noun) and a NON-NULL "
+        "type: return the new `name` (a lowercase noun in natural language with "
+        "spaces -- never a snake_case identifier like `cell_structure`, and never "
+        "restating the realm; the `parent` carries the kind) and a NON-NULL "
         "`parent` -- the most specific existing type to place it under, and when "
         "nothing more specific fits, a domain root (entity, concept, or process). "
         "A new `name` MUST have a parent (at minimum a domain root); `parent` is "
@@ -1810,84 +2007,54 @@ async def type_cluster(request: TypeClusterRequest) -> TypeClusterResponse:
         "specific existing parent), and list any members that do not fit."
     )
 
-    # Bounded response: one name + one parent + a short outlier list. The
-    # per-member token scaling the partition contract needed (#126) is moot.
-    try:
-        result = await generate_completion(
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": user_msg},
-            ],
-            temperature=0.0,
-            max_tokens=512,
-            metadata={"request_id": request.request_id},
-        )
-    except LLMProviderNotConfiguredError as exc:
-        logger.error("type_cluster: LLM provider not configured: %s", exc)
-        raise HTTPException(
-            status_code=503, detail="LLM provider not configured"
-        ) from exc
-    except LLMProviderError as exc:
-        logger.error("type_cluster: LLM provider error: %s", exc)
-        raise HTTPException(status_code=502, detail="LLM provider error") from exc
-    choices = result.get("choices", [])
-    if not choices:
-        raise HTTPException(status_code=502, detail="LLM returned no choices")
-    content = choices[0]["message"]["content"]
+    # Bounded response: one name + one parent + a short outlier list. The LLM
+    # may return a wrong verdict (a realm root or multi-word/snake_case name, or
+    # a new name with no valid parent); on the first such rejection we re-prompt
+    # ONCE with the reason fed back, then accept the correction or 502.
+    messages = [
+        {"role": "system", "content": system_msg},
+        {"role": "user", "content": user_msg},
+    ]
+    for attempt in range(_TYPE_CLUSTER_MAX_ATTEMPTS):
+        try:
+            result = await generate_completion(
+                messages=messages,
+                temperature=0.0,
+                max_tokens=512,
+                metadata={"request_id": request.request_id},
+            )
+        except LLMProviderNotConfiguredError as exc:
+            logger.error("type_cluster: LLM provider not configured: %s", exc)
+            raise HTTPException(
+                status_code=503, detail="LLM provider not configured"
+            ) from exc
+        except LLMProviderError as exc:
+            logger.error("type_cluster: LLM provider error: %s", exc)
+            raise HTTPException(status_code=502, detail="LLM provider error") from exc
+        choices = result.get("choices", [])
+        if not choices:
+            raise HTTPException(status_code=502, detail="LLM returned no choices")
+        content = choices[0]["message"]["content"]
 
-    try:
-        data = _extract_json(content)
-    except Exception:
-        logger.warning("type_cluster: unparseable JSON")
-        raise HTTPException(
-            status_code=502, detail="LLM typing response was unparseable"
-        )
-    if not isinstance(data, dict):
-        raise HTTPException(
-            status_code=502, detail="LLM typing response is not a JSON object"
-        )
-
-    raw_name = data.get("name")
-    if not isinstance(raw_name, str) or not raw_name.strip():
-        raise HTTPException(
-            status_code=502, detail="LLM typing response had no usable name"
-        )
-    over_specified = _is_over_specified(raw_name)
-    name = canonicalize(raw_name)
-    if not name:
-        raise HTTPException(
-            status_code=502,
-            detail="LLM returned an empty/uncanonicalizable cluster name",
-        )
-
-    # Domain realm roots (entity/concept/process) are valid only as a `parent`,
-    # never as a type `name`. Reusing one as the name would type the whole
-    # cluster as a bare realm -- or, against a positional in-pass catalog that
-    # omits a childless realm, mint a duplicate root. Reject so the cohort is
-    # left in the pool for the next pass instead of being silently mis-typed.
-    if name in _DOMAIN_ROOTS:
-        raise HTTPException(
-            status_code=502,
-            detail="LLM returned a domain root as the type name (parent-only)",
-        )
-
-    # parent: null => reuse `name`; else the existing type to graft under.
-    # Canonicalized, then resolved closed-world: `node`/`root` and (with a
-    # catalog) unpublished names coerce to None; remaining placement validity
-    # is left to the cascade.
-    parent = _resolve_parent(data.get("parent"), catalog_names, bool(catalog_block))
-
-    # Server-side enforcement of the non-null parent invariant for new types:
-    # only meaningful when a catalog is present (closed-world mode). If the
-    # LLM minted a name that isn't in the catalog, it MUST have supplied a
-    # valid parent. A null here means either the model disobeyed the prompt
-    # or its parent was coerced away (structural root / out-of-catalog name).
-    # Either way the caller cannot safely graft this node.
-    if catalog_block and name not in catalog_names and parent is None:
-        raise HTTPException(
-            status_code=502,
-            detail="LLM minted a new type with no valid parent",
-        )
+        try:
+            data, name, parent, over_specified = _validate_type_cluster_verdict(
+                content, catalog_names, bool(catalog_block)
+            )
+        except _TypeClusterRetry as retry:
+            if attempt + 1 < _TYPE_CLUSTER_MAX_ATTEMPTS:
+                logger.info(
+                    "type_cluster: re-prompting once after rejection: %s",
+                    retry.detail,
+                )
+                messages = [
+                    *messages,
+                    {"role": "assistant", "content": content},
+                    {"role": "user", "content": retry.followup},
+                ]
+                continue
+            logger.warning("type_cluster: rejected after one retry: %s", retry.detail)
+            raise HTTPException(status_code=502, detail=retry.detail) from retry
+        break
 
     # Map outlier NAMES back to input ids over the known member set: exact,
     # then case/space-normalized. Names the model invented (no member match)

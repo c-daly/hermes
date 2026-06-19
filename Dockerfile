@@ -37,6 +37,10 @@ RUN if [ "$HERMES_INSTALL_ML" = "1" ]; then \
       poetry install --only main --extras otel --no-interaction --no-ansi; \
     fi
 
+# WordNet corpus for the /type-cluster noun-headedness gate (#152). The gate
+# gracefully no-ops if the corpus is absent, but ship it so the gate is active.
+RUN poetry run python -m nltk.downloader -q wordnet omw-1.4
+
 # Expose the API port
 EXPOSE 8080
 

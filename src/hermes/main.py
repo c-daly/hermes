@@ -1898,6 +1898,16 @@ def _validate_type_cluster_verdict(
             "return only the specific part as the `name`.",
         )
 
+    # A type names ONE category, not a list -- reject conjunctions ('X and Y',
+    # 'X or Y'); re-prompt for the single dominant kind (#152).
+    if any(tok in {"and", "or"} for tok in name.split()):
+        raise _TypeClusterRetry(
+            f"LLM returned a conjunction type name ('{name}')",
+            f"'{name}' joins things with 'and'/'or'. A type names ONE category -- "
+            "return a single noun for the dominant kind, and put the members that "
+            "don't fit it in `outliers`, not in the name.",
+        )
+
     # Name must be a SPECIFIC NOUN (#152): not a vague generic head, and not a
     # bare adjective (a qualifier, not a category -- e.g. 'physical'). Head = the
     # last canonicalized token. Generic-head check is a plain set lookup; the

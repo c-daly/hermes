@@ -345,13 +345,28 @@ def test_duplicate_member_name_claims_one_unclaimed_id(monkeypatch):
 
 
 def test_over_specified_name_is_flagged(monkeypatch):
+    # >MAX_WORDS (3) and NOT a conjunction -> still returned, flagged over_specified.
+    # (The conjunction case is now rejected by the conjunction gate, not flagged.)
     monkeypatch.setattr(
         m,
         "generate_completion",
-        _make_completion(json.dumps({"name": "carbon and its allotropes"})),
+        _make_completion(json.dumps({"name": "large multinucleated muscle fiber"})),
     )
-    body = _post(_members(("i1", "graphite"))).json()
+    body = _post(_members(("i1", "myofiber"))).json()
     assert body["over_specified"] is True
+
+
+def test_conjunction_name_is_rejected_and_retried(monkeypatch):
+    """A type names ONE category -- 'X and Y' / 'X or Y' is rejected and re-prompted."""
+    fake = _make_sequence(
+        json.dumps({"name": "protein and amino acid", "parent": "entity"}),
+        json.dumps({"name": "protein", "parent": "entity"}),
+    )
+    monkeypatch.setattr(m, "generate_completion", fake)
+    resp = _post(_members(("i1", "albumin"), ("i2", "globulin")))
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "protein"
+    assert fake.calls == 2
 
 
 def test_clean_name_not_over_specified(monkeypatch):

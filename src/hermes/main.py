@@ -1786,7 +1786,7 @@ _WORDNET = None
 _WORDNET_LOADED = False
 
 
-def _wordnet():
+def _wordnet() -> Any:
     """Return the WordNet reader, or None if its corpus is unavailable."""
     global _WORDNET, _WORDNET_LOADED
     if not _WORDNET_LOADED:
